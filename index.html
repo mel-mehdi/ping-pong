@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <meta name="description" content="Ping Pong Game - Play online multiplayer ping pong, track your stats, and compete on the leaderboard">
+    <meta name="keywords" content="ping pong, pong game, online game, multiplayer, browser game">
+    <meta name="theme-color" content="#667eea">
+    <meta http-equiv="refresh" content="0; url=pages/login.html">
+    <title>Ping Pong Game - Redirecting...</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <style>
+        .redirect-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+            color: white;
+        }
+        .redirect-content {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .redirect-content h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        .redirect-content p {
+            font-size: 1.2rem;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-container">
+        <div class="redirect-content">
+            <h1>🏓 Ping Pong</h1>
+            <div class="spinner"></div>
+            <p>Redirecting to game...</p>
+            <p><a href="pages/login.html" style="color: white; text-decoration: underline;">Click here if not redirected automatically</a></p>
+        </div>
+    </div>
+</body>
+</html>

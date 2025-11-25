@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <meta name="description" content="Register for Ping Pong game to compete with players worldwide">
+    <meta name="theme-color" content="#667eea">
+    <title>Ping Pong - Register</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <script src="../scripts/theme.js" type="module"></script>
+</head>
+<body>
+    <main class="auth-container" role="main">
+        <article class="auth-card">
+            <header class="auth-header">
+                <h1><span role="img" aria-label="Ping Pong">🏓</span> Ping Pong</h1>
+                <p>Create your account and start playing</p>
+            </header>
+
+            <form id="registerForm" class="auth-form" novalidate aria-label="Registration form">
+                <div class="form-group">
+                    <label for="fullname">Full Name</label>
+                    <input type="text" id="fullname" name="fullname" required 
+                           placeholder="Enter your full name"
+                           aria-required="true"
+                           autocomplete="name">
+                    <span class="error-message" id="fullnameError" role="alert"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required 
+                           placeholder="Enter your email"
+                           aria-required="true"
+                           autocomplete="email">
+                    <span class="error-message" id="emailError" role="alert"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required 
+                           placeholder="Choose a username"
+                           aria-required="true"
+                           autocomplete="username">
+                    <span class="error-message" id="usernameError" role="alert"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Create a password"
+                           aria-required="true"
+                           autocomplete="new-password"
+                           minlength="8">
+                    <span class="error-message" id="passwordError" role="alert"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required 
+                           placeholder="Confirm your password"
+                           aria-required="true"
+                           autocomplete="new-password"
+                           minlength="8">
+                    <span class="error-message" id="confirmPasswordError" role="alert"></span>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="terms" id="terms" required aria-required="true">
+                        <span>I agree to the <a href="#" class="link" aria-label="Read Terms and Conditions">Terms & Conditions</a></span>
+                    </label>
+                    <span class="error-message" id="termsError" role="alert"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" aria-label="Create your account">Create Account</button>
+            </form>
+
+            <footer class="auth-footer">
+                <p>Already have an account? <a href="login.html" class="link" aria-label="Go to login page">Login here</a></p>
+            </footer>
+        </article>
+    </main>
+
+    <script src="../scripts/auth.js" type="module"></script>
+</body>
+</html>
