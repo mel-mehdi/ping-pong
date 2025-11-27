@@ -12,9 +12,9 @@ export const STORAGE_KEYS = {
 };
 
 export const ROUTES = {
-    LOGIN: 'login.html',
-    REGISTER: 'register.html',
-    DASHBOARD: 'dashboard.html',
+    LOGIN: 'pages/login.html',
+    REGISTER: 'pages/register.html',
+    HOME: '../index.html',
     GAME: 'game.html',
     PROFILE: 'profile.html'
 };

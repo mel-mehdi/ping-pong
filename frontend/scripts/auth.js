@@ -101,7 +101,7 @@ function initLoginForm(form) {
             // Show success and redirect
             form.classList.add('loading');
             setTimeout(() => {
-                window.location.href = ROUTES.DASHBOARD;
+                window.location.href = ROUTES.HOME;
             }, 500);
         }
     });
@@ -212,7 +212,7 @@ function initRegisterForm(form) {
         // Show success and redirect
         form.classList.add('loading');
         setTimeout(() => {
-            window.location.href = ROUTES.DASHBOARD;
+            window.location.href = ROUTES.HOME;
         }, 500);
     });
 }

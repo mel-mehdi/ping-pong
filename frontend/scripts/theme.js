@@ -52,8 +52,15 @@ function toggleTheme() {
  * Create and insert theme toggle button
  */
 function createThemeToggle() {
-    // Check if button already exists
-    if (document.getElementById('themeToggle')) {
+    // Check if any theme toggle button already exists
+    const existingButton = document.querySelector('.theme-toggle');
+    if (existingButton) {
+        return;
+    }
+
+    // Wait for DOM to be ready if it's not
+    if (!document.body) {
+        setTimeout(createThemeToggle, 50);
         return;
     }
 
@@ -61,9 +68,7 @@ function createThemeToggle() {
     button.id = 'themeToggle';
     button.className = 'theme-toggle';
     button.setAttribute('aria-label', 'Toggle dark/light mode');
-    button.setAttribute('title', 'Toggle theme');
-    
-    button.innerHTML = '';
+    button.setAttribute('title', 'Switch between light and dark mode');
     
     button.addEventListener('click', toggleTheme);
     
@@ -76,6 +81,10 @@ function createThemeToggle() {
     } else {
         document.body.appendChild(button);
     }
+    
+    // Update initial state
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    updateToggleButton(currentTheme);
 }
 
 /**
@@ -89,9 +98,18 @@ function updateToggleButton(theme) {
     }
 }
 
-// Auto-initialize when module loads
+// Auto-initialize for static pages (not SPA)
+// SPA (index.html) will call initTheme() manually from app.js
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTheme);
+    document.addEventListener('DOMContentLoaded', () => {
+        // Only auto-init if we're not on the SPA page
+        if (!document.getElementById('app')) {
+            initTheme();
+        }
+    });
 } else {
-    initTheme();
+    // Only auto-init if we're not on the SPA page
+    if (!document.getElementById('app')) {
+        initTheme();
+    }
 }
