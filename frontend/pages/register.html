@@ -7,14 +7,15 @@
     <meta name="theme-color" content="#6366f1">
     <title>Sign Up - FT Transcendence</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏓</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="../styles/main.css">
     <script src="../scripts/theme.js" type="module"></script>
 </head>
 <body>
     <main class="auth-container">
-        <div class="auth-card">
+        <div class="auth-card auth-card-register">
             <div class="auth-brand">
-                <div class="brand-icon">🏓</div>
+                <div class="brand-icon"><i class="fas fa-table-tennis"></i></div>
                 <h1>FT Transcendence</h1>
             </div>
             
@@ -24,32 +25,36 @@
             </div>
 
             <form id="registerForm" class="auth-form" novalidate>
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" 
-                           placeholder="Choose a username" 
-                           autocomplete="username" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" 
+                               placeholder="Choose a username" 
+                               autocomplete="username" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" 
+                               placeholder="your@email.com"
+                               autocomplete="email" required>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" 
-                           placeholder="your@email.com"
-                           autocomplete="email" required>
-                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" 
+                               placeholder="••••••••"
+                               autocomplete="new-password" required>
+                    </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" 
-                           placeholder="••••••••"
-                           autocomplete="new-password" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" 
-                           placeholder="••••••••"
-                           autocomplete="new-password" required>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" 
+                               placeholder="••••••••"
+                               autocomplete="new-password" required>
+                    </div>
                 </div>
 
                 <div class="form-options">
@@ -63,10 +68,6 @@
                     Create Account
                 </button>
             </form>
-
-            <div class="auth-divider">
-                <span>or</span>
-            </div>
 
             <div class="auth-footer">
                 <p>Already have an account? <a href="login.html" class="link-primary">Sign in</a></p>

@@ -69,6 +69,7 @@ function createThemeToggle() {
     button.className = 'theme-toggle';
     button.setAttribute('aria-label', 'Toggle dark/light mode');
     button.setAttribute('title', 'Switch between light and dark mode');
+    button.innerHTML = '<i class="fas fa-moon"></i>'; // Default icon
     
     button.addEventListener('click', toggleTheme);
     
@@ -94,7 +95,16 @@ function createThemeToggle() {
 function updateToggleButton(theme) {
     const button = document.getElementById('themeToggle');
     if (button) {
-        button.setAttribute('aria-label', `Switch to ${theme === THEME_DARK ? 'light' : 'dark'} mode`);
+        // Update icon based on theme
+        if (theme === THEME_DARK) {
+            button.innerHTML = '<i class="fas fa-sun"></i>';
+            button.setAttribute('aria-label', 'Switch to light mode');
+            button.setAttribute('title', 'Switch to light mode');
+        } else {
+            button.innerHTML = '<i class="fas fa-moon"></i>';
+            button.setAttribute('aria-label', 'Switch to dark mode');
+            button.setAttribute('title', 'Switch to dark mode');
+        }
     }
 }
 
