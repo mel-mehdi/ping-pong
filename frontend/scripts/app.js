@@ -12,6 +12,9 @@ class App {
         this.pongGame = null;
         this.tournament = null;
         this.appContainer = document.getElementById('app');
+        this.navbarSearchInitialized = false;
+        this.notificationClickHandler = null;
+        this.documentClickHandler = null;
         
         // Set default user as logged in for demo
         if (!localStorage.getItem('isLoggedIn')) {
@@ -97,8 +100,9 @@ class App {
         // Reinitialize theme toggle for new view
         initTheme();
         
-        // Initialize navbar buttons if present
+        // Initialize navbar features if present
         this.initNavbarButtons();
+        this.initNavbarSearch();
     }
 
     renderHomeView() {
@@ -123,9 +127,17 @@ class App {
                         }
                     </ul>
                     <div class="nav-actions">
-                        <button class="nav-icon-btn" id="navSearchBtn" title="Search" aria-label="Search">
-                            <i class="fas fa-search"></i>
-                        </button>
+                        <div class="nav-search-input-wrapper">
+                            <i class="fas fa-search nav-search-icon"></i>
+                            <input 
+                                type="text" 
+                                class="nav-search-input" 
+                                id="navSearchInput"
+                                placeholder="Search players to invite..."
+                                autocomplete="off"
+                            />
+                            <div class="nav-search-results hidden" id="navSearchResults"></div>
+                        </div>
                         <button class="nav-icon-btn" id="navNotificationsBtn" title="Notifications" aria-label="Notifications">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -136,6 +148,14 @@ class App {
                     </div>
                 </div>
             </nav>
+
+            <!-- Notification Panel -->
+            <div class="notification-panel hidden" id="notificationPanel">
+                <div class="notification-header">Friend Requests</div>
+                <div id="notificationList">
+                    <!-- Notifications will be populated here -->
+                </div>
+            </div>
 
             <!-- Netflix-Style Search Overlay -->
             <div class="search-overlay hidden" id="searchOverlay">
@@ -406,8 +426,108 @@ class App {
             this.loadView('tournament');
         });
 
-        // Initialize Netflix-style search
+        // Initialize search features
+        this.initNavbarSearch();
         this.initNetflixSearch();
+    }
+
+    initNavbarSearch() {
+        const navSearchInput = document.getElementById('navSearchInput');
+        const navSearchResults = document.getElementById('navSearchResults');
+
+        if (!navSearchInput || this.navbarSearchInitialized) return;
+        
+        this.navbarSearchInitialized = true;
+
+        // Sample player data for invitations
+        const playerData = [
+            { id: 1, name: 'MasterPlayer', status: 'Online', rank: '#1', avatar: 'M' },
+            { id: 2, name: 'ProGamer99', status: 'Online', rank: '#2', avatar: 'P' },
+            { id: 3, name: 'ChampionAce', status: 'Away', rank: '#3', avatar: 'C' },
+            { id: 4, name: 'SpeedDemon', status: 'Online', rank: '#4', avatar: 'S' },
+            { id: 5, name: 'QuickReflexes', status: 'Offline', rank: '#5', avatar: 'Q' },
+            { id: 6, name: 'Alice Johnson', status: 'Online', rank: '#12', avatar: 'A' },
+            { id: 7, name: 'Bob Smith', status: 'Away', rank: '#23', avatar: 'B' },
+            { id: 8, name: 'Charlie Brown', status: 'Online', rank: '#45', avatar: 'C' },
+        ];
+
+        navSearchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+
+                if (!query) {
+                    navSearchResults.classList.add('hidden');
+                    return;
+                }
+
+                // Filter players
+                const matches = playerData.filter(player => 
+                    player.name.toLowerCase().includes(query)
+                );
+
+                if (matches.length === 0) {
+                    navSearchResults.innerHTML = `
+                        <div class="nav-search-no-results">
+                            <i class="fas fa-user-slash"></i>
+                            <p>No players found</p>
+                        </div>
+                    `;
+                    navSearchResults.classList.remove('hidden');
+                    return;
+                }
+
+                navSearchResults.innerHTML = matches.map(player => `
+                    <div class="nav-search-item" data-player-id="${player.id}">
+                        <div class="nav-search-avatar">${player.avatar}</div>
+                        <div class="nav-search-info">
+                            <div class="nav-search-name">${this.highlightMatch(player.name, query)}</div>
+                            <div class="nav-search-meta">
+                                <span class="status-dot ${player.status.toLowerCase()}"></span>
+                                <span>${player.status}</span>
+                                <span class="separator">•</span>
+                                <span>${player.rank}</span>
+                            </div>
+                        </div>
+                        <button class="nav-search-invite-btn" title="Send Invitation">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                `).join('');
+
+                navSearchResults.classList.remove('hidden');
+
+                // Add click handlers for invitation buttons
+                navSearchResults.querySelectorAll('.nav-search-invite-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const item = e.target.closest('.nav-search-item');
+                        const playerId = item.dataset.playerId;
+                        const playerName = item.querySelector('.nav-search-name').textContent;
+                        
+                        // Show success feedback
+                        btn.innerHTML = '<i class="fas fa-check"></i>';
+                        btn.classList.add('sent');
+                        btn.disabled = true;
+                        
+                        setTimeout(() => {
+                            alert(`Game invitation sent to ${playerName}!`);
+                        }, 300);
+                    });
+                });
+            });
+
+            // Close results when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.nav-search-input-wrapper')) {
+                    navSearchResults?.classList.add('hidden');
+                }
+            });
+
+            // Keep results open when clicking inside
+            navSearchInput.addEventListener('focus', () => {
+                if (navSearchInput.value.trim()) {
+                    navSearchResults?.classList.remove('hidden');
+                }
+            });
     }
 
     initNetflixSearch() {
@@ -666,12 +786,17 @@ class App {
                         }
                     </ul>
                     <div class="nav-actions">
-                        <button class="nav-icon-btn" id="navSearchBtn" title="Search Users" aria-label="Search Users">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                            </svg>
-                        </button>
+                        <div class="nav-search-input-wrapper">
+                            <i class="fas fa-search nav-search-icon"></i>
+                            <input 
+                                type="text" 
+                                class="nav-search-input" 
+                                id="navSearchInput"
+                                placeholder="Search players to invite..."
+                                autocomplete="off"
+                            />
+                            <div class="nav-search-results hidden" id="navSearchResults"></div>
+                        </div>
                         <button class="nav-icon-btn" id="navNotificationsBtn" title="Notifications" aria-label="Notifications">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -783,12 +908,17 @@ class App {
                         }
                     </ul>
                     <div class="nav-actions">
-                        <button class="nav-icon-btn" id="navSearchBtn" title="Search Users" aria-label="Search Users">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                            </svg>
-                        </button>
+                        <div class="nav-search-input-wrapper">
+                            <i class="fas fa-search nav-search-icon"></i>
+                            <input 
+                                type="text" 
+                                class="nav-search-input" 
+                                id="navSearchInput"
+                                placeholder="Search players to invite..."
+                                autocomplete="off"
+                            />
+                            <div class="nav-search-results hidden" id="navSearchResults"></div>
+                        </div>
                         <button class="nav-icon-btn" id="navNotificationsBtn" title="Notifications" aria-label="Notifications">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -1233,12 +1363,17 @@ class App {
                         }
                     </ul>
                     <div class="nav-actions">
-                        <button class="nav-icon-btn" id="navSearchBtn" title="Search Users" aria-label="Search Users">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                            </svg>
-                        </button>
+                        <div class="nav-search-input-wrapper">
+                            <i class="fas fa-search nav-search-icon"></i>
+                            <input 
+                                type="text" 
+                                class="nav-search-input" 
+                                id="navSearchInput"
+                                placeholder="Search players to invite..."
+                                autocomplete="off"
+                            />
+                            <div class="nav-search-results hidden" id="navSearchResults"></div>
+                        </div>
                         <button class="nav-icon-btn" id="navNotificationsBtn" title="Notifications" aria-label="Notifications">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -1384,20 +1519,11 @@ class App {
                     </div>
                 </div>
             </div>
-
-            <!-- Notification Panel -->
-            <div class="notification-panel hidden" id="notificationPanel">
-                <div class="notification-header">Friend Requests</div>
-                <div id="notificationList">
-                    <!-- Notifications will be populated here -->
-                </div>
-            </div>
         `;
 
         // Add chat functionality
         this.initChat();
         this.initUserSearch();
-        this.initNotifications();
 
         if (isLoggedIn) {
             document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
@@ -1552,24 +1678,22 @@ class App {
                         }
                     </ul>
                     <div class="nav-actions">
-                        <button class="nav-icon-btn" id="navSearchBtn" title="Search Users" aria-label="Search Users">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                            </svg>
-                        </button>
+                        <div class="nav-search-input-wrapper">
+                            <i class="fas fa-search nav-search-icon"></i>
+                            <input 
+                                type="text" 
+                                class="nav-search-input" 
+                                id="navSearchInput"
+                                placeholder="Search players to invite..."
+                                autocomplete="off"
+                            />
+                            <div class="nav-search-results hidden" id="navSearchResults"></div>
+                        </div>
                         <button class="nav-icon-btn" id="navNotificationsBtn" title="Notifications" aria-label="Notifications">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                             </svg>
-                            <span class="notification-badge hidden" id="navNotificationBadge">0</span>
-                        </button>
-                    </div>
-                </div>
-            </nav>
-
-            <main class="main-container">
                             <span class="notification-badge hidden" id="navNotificationBadge">0</span>
                         </button>
                     </div>
@@ -1589,6 +1713,7 @@ class App {
                             <div class="profile-info">
                                 <h1 class="profile-name">${username}</h1>
                                 <p class="profile-status"><i class="fas fa-circle" style="color: #22c55e;"></i> Online</p>
+                                <button class="btn btn-primary" id="editProfileBtn"><i class="fas fa-edit"></i> Edit Profile</button>
                             </div>
                         </div>
 
@@ -1695,46 +1820,131 @@ class App {
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="profile-section">
-                                <div class="section-header">
-                                    <h2>Settings</h2>
-                                </div>
-                                <div class="settings-list">
-                                    <div class="setting-item">
-                                        <div class="setting-label">
-                                            <span><i class="fas fa-bell"></i> Notifications</span>
-                                            <p>Receive game and friend notifications</p>
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="notificationsToggle" checked>
-                                            <span class="toggle-slider"></span>
-                                        </label>
-                                    </div>
-                                    <div class="setting-item">
-                                        <div class="setting-label">
-                                            <span>Sound Effects</span>
-                                            <p>Enable game sound effects</p>
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="soundToggle" checked>
-                                            <span class="toggle-slider"></span>
-                                        </label>
-                                    </div>
-                                    <div class="setting-item">
-                                        <div class="setting-label">
-                                            <span>Display Name</span>
-                                            <p>Change your display name</p>
-                                        </div>
-                                        <button class="setting-btn" id="changeNameBtn">Edit</button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
             </main>
+
+            <!-- Edit Profile Modal -->
+            <div class="modal-overlay hidden" id="editProfileModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Edit Profile</h2>
+                        <button class="modal-close-btn" id="closeEditProfileModal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editProfileForm">
+                            <div class="form-group">
+                                <label for="editUsername">Username</label>
+                                <input type="text" id="editUsername" value="${username}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editEmail">Email</label>
+                                <input type="email" id="editEmail" value="${localStorage.getItem('userEmail') || 'user@example.com'}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editBio">Bio</label>
+                                <textarea id="editBio" rows="3" placeholder="Tell us about yourself...">${localStorage.getItem('userBio') || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="editLocation">Location</label>
+                                <input type="text" id="editLocation" value="${localStorage.getItem('userLocation') || ''}" placeholder="City, Country">
+                            </div>
+                            <div class="form-group">
+                                <label for="editPassword">New Password (optional)</label>
+                                <input type="password" id="editPassword" placeholder="Leave blank to keep current">
+                            </div>
+                            <div class="form-group">
+                                <label for="editConfirmPassword">Confirm New Password</label>
+                                <input type="password" id="editConfirmPassword" placeholder="Confirm new password">
+                            </div>
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" id="cancelEditProfile">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         `;
+
+        this.initEditProfile();
+    }
+
+    initEditProfile() {
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        const editProfileModal = document.getElementById('editProfileModal');
+        const closeModalBtn = document.getElementById('closeEditProfileModal');
+        const cancelBtn = document.getElementById('cancelEditProfile');
+        const editProfileForm = document.getElementById('editProfileForm');
+
+        // Open modal
+        if (editProfileBtn) {
+            editProfileBtn.addEventListener('click', () => {
+                editProfileModal.classList.remove('hidden');
+            });
+        }
+
+        // Close modal functions
+        const closeModal = () => {
+            editProfileModal.classList.add('hidden');
+        };
+
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', closeModal);
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeModal);
+        }
+
+        // Close on overlay click
+        editProfileModal?.addEventListener('click', (e) => {
+            if (e.target === editProfileModal) {
+                closeModal();
+            }
+        });
+
+        // Handle form submission
+        if (editProfileForm) {
+            editProfileForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const username = document.getElementById('editUsername').value.trim();
+                const email = document.getElementById('editEmail').value.trim();
+                const bio = document.getElementById('editBio').value.trim();
+                const location = document.getElementById('editLocation').value.trim();
+                const password = document.getElementById('editPassword').value;
+                const confirmPassword = document.getElementById('editConfirmPassword').value;
+
+                // Validate passwords match if provided
+                if (password || confirmPassword) {
+                    if (password !== confirmPassword) {
+                        alert('Passwords do not match!');
+                        return;
+                    }
+                    if (password.length < 6) {
+                        alert('Password must be at least 6 characters!');
+                        return;
+                    }
+                }
+
+                // Save to localStorage
+                localStorage.setItem('username', username);
+                localStorage.setItem('userEmail', email);
+                localStorage.setItem('userBio', bio);
+                localStorage.setItem('userLocation', location);
+
+                if (password) {
+                    localStorage.setItem('userPassword', password);
+                }
+
+                // Show success message and reload profile
+                alert('Profile updated successfully!');
+                closeModal();
+                this.loadView('profile');
+            });
+        }
     }
 
     escapeHtml(text) {
@@ -1898,115 +2108,107 @@ class App {
         updateNotificationBadge();
     }
 
-    initNotifications() {
-        const notifBtn = document.getElementById('notificationsBtn');
-        const notifPanel = document.getElementById('notificationPanel');
+    displayNotifications() {
         const notifList = document.getElementById('notificationList');
+        if (!notifList) return;
 
-        if (notifBtn) {
-            notifBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                notifPanel.classList.toggle('hidden');
-                displayNotifications();
-            });
+        const receivedRequests = JSON.parse(localStorage.getItem('receivedRequests') || '[]');
+
+        if (receivedRequests.length === 0) {
+            notifList.innerHTML = '<div class="notification-empty">No new notifications</div>';
+            return;
         }
 
-        // Close panel when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!notifPanel?.contains(e.target) && !notifBtn?.contains(e.target)) {
-                notifPanel?.classList.add('hidden');
-            }
-        });
-
-        function displayNotifications() {
-            const receivedRequests = JSON.parse(localStorage.getItem('receivedRequests') || '[]');
-
-            if (receivedRequests.length === 0) {
-                notifList.innerHTML = '<div class="notification-empty">No new notifications</div>';
-                return;
-            }
-
-            notifList.innerHTML = receivedRequests.map((request, index) => `
-                <div class="notification-item" data-index="${index}">
-                    <div class="notification-avatar">${request.avatar}</div>
-                    <div class="notification-content">
-                        <div class="notification-text">
-                            <strong>${request.from}</strong> sent you a friend request
-                        </div>
-                        <div class="notification-actions">
-                            <button class="notification-btn accept" data-action="accept">Accept</button>
-                            <button class="notification-btn decline" data-action="decline">Decline</button>
-                        </div>
+        notifList.innerHTML = receivedRequests.map((request, index) => `
+            <div class="notification-item" data-index="${index}">
+                <div class="notification-avatar">${request.avatar}</div>
+                <div class="notification-content">
+                    <div class="notification-text">
+                        <strong>${request.from}</strong> sent you a friend request
+                    </div>
+                    <div class="notification-actions">
+                        <button class="notification-btn accept" data-action="accept">Accept</button>
+                        <button class="notification-btn decline" data-action="decline">Decline</button>
                     </div>
                 </div>
-            `).join('');
+            </div>
+        `).join('');
 
-            // Add event listeners
-            notifList.querySelectorAll('.notification-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const action = btn.dataset.action;
-                    const item = btn.closest('.notification-item');
-                    const index = parseInt(item.dataset.index);
-                    handleFriendRequest(index, action);
-                    item.remove();
+        // Add event listeners
+        notifList.querySelectorAll('.notification-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const action = btn.dataset.action;
+                const item = btn.closest('.notification-item');
+                const index = parseInt(item.dataset.index);
+                this.handleFriendRequest(index, action);
+                item.remove();
 
-                    // Check if no more notifications
-                    if (notifList.children.length === 0) {
-                        notifList.innerHTML = '<div class="notification-empty">No new notifications</div>';
-                    }
-                });
+                // Check if no more notifications
+                if (notifList.children.length === 0) {
+                    notifList.innerHTML = '<div class="notification-empty">No new notifications</div>';
+                }
             });
-        }
+        });
+    }
 
-        function handleFriendRequest(index, action) {
-            let receivedRequests = JSON.parse(localStorage.getItem('receivedRequests') || '[]');
-            const request = receivedRequests[index];
+    handleFriendRequest(index, action) {
+        let receivedRequests = JSON.parse(localStorage.getItem('receivedRequests') || '[]');
+        const request = receivedRequests[index];
 
-            if (action === 'accept') {
-                // Add to friends list
-                const friends = JSON.parse(localStorage.getItem('friends') || '[]');
-                friends.push(request.fromId);
-                localStorage.setItem('friends', JSON.stringify(friends));
+        if (action === 'accept') {
+            // Add to friends list
+            const friends = JSON.parse(localStorage.getItem('friends') || '[]');
+            friends.push(request.fromId);
+            localStorage.setItem('friends', JSON.stringify(friends));
 
-                // Add to chat users list
-                const chatUsersList = document.getElementById('chatUsersList');
-                if (chatUsersList) {
-                    const newUserHTML = `
-                        <li class="chat-user-item" data-user="${request.from}">
-                            <div class="chat-user-avatar">${request.avatar}</div>
-                            <div class="chat-user-info">
-                                <div class="chat-user-name">${request.from}</div>
-                                <div class="chat-user-status">Online</div>
-                            </div>
-                            <div class="chat-status-indicator"></div>
-                        </li>
-                    `;
-                    chatUsersList.insertAdjacentHTML('beforeend', newUserHTML);
-                }
+            // Add to chat users list
+            const chatUsersList = document.getElementById('chatUsersList');
+            if (chatUsersList) {
+                const newUserHTML = `
+                    <li class="chat-user-item" data-user="${request.from}">
+                        <div class="chat-user-avatar">${request.avatar}</div>
+                        <div class="chat-user-info">
+                            <div class="chat-user-name">${request.from}</div>
+                            <div class="chat-user-status">Online</div>
+                        </div>
+                        <div class="chat-status-indicator"></div>
+                    </li>
+                `;
+                chatUsersList.insertAdjacentHTML('beforeend', newUserHTML);
             }
-
-            // Remove from received requests
-            receivedRequests.splice(index, 1);
-            localStorage.setItem('receivedRequests', JSON.stringify(receivedRequests));
-            updateNotificationBadge();
         }
 
-        function updateNotificationBadge() {
-            const receivedRequests = JSON.parse(localStorage.getItem('receivedRequests') || '[]');
-            const badge = document.getElementById('notificationBadge');
-            if (badge) {
-                if (receivedRequests.length > 0) {
-                    badge.textContent = receivedRequests.length;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
-                }
+        // Remove from received requests
+        receivedRequests.splice(index, 1);
+        localStorage.setItem('receivedRequests', JSON.stringify(receivedRequests));
+        this.updateNotificationBadge();
+    }
+
+    updateNotificationBadge() {
+        const receivedRequests = JSON.parse(localStorage.getItem('receivedRequests') || '[]');
+        const badge = document.getElementById('notificationBadge');
+        const navBadge = document.getElementById('navNotificationBadge');
+        
+        if (badge) {
+            if (receivedRequests.length > 0) {
+                badge.textContent = receivedRequests.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+        
+        if (navBadge) {
+            if (receivedRequests.length > 0) {
+                navBadge.textContent = receivedRequests.length;
+                navBadge.classList.remove('hidden');
+            } else {
+                navBadge.classList.add('hidden');
             }
         }
     }
 
     initNavbarButtons() {
-        const navSearchBtn = document.getElementById('navSearchBtn');
         const navNotifBtn = document.getElementById('navNotificationsBtn');
         const navNotifBadge = document.getElementById('navNotificationBadge');
 
@@ -2021,46 +2223,27 @@ class App {
             }
         }
 
-        // Search button - navigate to chat and open search modal
-        if (navSearchBtn) {
-            navSearchBtn.addEventListener('click', () => {
-                if (this.currentView !== 'chat') {
-                    this.loadView('chat');
-                    // Wait for chat view to load, then open search modal
-                    setTimeout(() => {
-                        const searchBtn = document.getElementById('searchUsersBtn');
-                        if (searchBtn) {
-                            searchBtn.click();
-                        }
-                    }, 100);
-                } else {
-                    const searchBtn = document.getElementById('searchUsersBtn');
-                    if (searchBtn) {
-                        searchBtn.click();
-                    }
-                }
-            });
+        // Notification button - toggle notification panel directly
+        if (navNotifBtn && !this.notificationClickHandler) {
+            this.notificationClickHandler = (e) => {
+                e.stopPropagation();
+                const notifPanel = document.getElementById('notificationPanel');
+                notifPanel?.classList.toggle('hidden');
+                this.displayNotifications();
+            };
+            navNotifBtn.addEventListener('click', this.notificationClickHandler);
         }
 
-        // Notification button - navigate to chat and open notification panel
-        if (navNotifBtn) {
-            navNotifBtn.addEventListener('click', () => {
-                if (this.currentView !== 'chat') {
-                    this.loadView('chat');
-                    // Wait for chat view to load, then open notification panel
-                    setTimeout(() => {
-                        const notifBtn = document.getElementById('notificationsBtn');
-                        if (notifBtn) {
-                            notifBtn.click();
-                        }
-                    }, 100);
-                } else {
-                    const notifBtn = document.getElementById('notificationsBtn');
-                    if (notifBtn) {
-                        notifBtn.click();
-                    }
+        // Close notification panel when clicking outside
+        if (!this.documentClickHandler) {
+            this.documentClickHandler = (e) => {
+                const notifPanel = document.getElementById('notificationPanel');
+                const navNotifBtn = document.getElementById('navNotificationsBtn');
+                if (notifPanel && !notifPanel.contains(e.target) && !navNotifBtn?.contains(e.target)) {
+                    notifPanel.classList.add('hidden');
                 }
-            });
+            };
+            document.addEventListener('click', this.documentClickHandler);
         }
     }
 }
