@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Your FT Transcendence Profile - View stats, achievements, and match history">
+    <meta name="theme-color" content="#6366f1">
+    <title>Profile - FT Transcendence</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏓</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="../css/main.css">
+    <script src="../js/theme.js" type="module"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h2><i class="fas fa-table-tennis"></i> FT Transcendence</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html#home">Home</a></li>
+                <li><a href="index.html#game">Play</a></li>
+                <li><a href="profile.html" class="active">Profile</a></li>
+                <li><a href="login.html" id="logoutBtn">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-container" role="main">
+        <div class="profile-new-container">
+            <!-- Profile Header -->
+            <section class="profile-header-section">
+                <div class="profile-avatar-large">
+                    <div class="avatar-circle-large" role="img" aria-label="Player avatar">
+                        <span id="avatarInitials">JD</span>
+                    </div>
+                    <button class="avatar-edit-btn" aria-label="Change avatar">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+                <div class="profile-header-info">
+                    <h1 class="profile-name-large">John Doe</h1>
+                    <p class="profile-username-large">@johndoe123</p>
+                    <div class="profile-badges">
+                        <span class="badge badge-rank"><i class="fas fa-trophy"></i> Rank #245</span>
+                        <span class="badge badge-level"><i class="fas fa-star"></i> Level 12</span>
+                    </div>
+                    <button class="btn btn-primary" id="editProfileBtn" aria-label="Edit profile">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </button>
+                </div>
+            </section>
+
+            <!-- Stats Grid -->
+            <section class="stats-grid-section">
+                <div class="stat-card-new">
+                    <div class="stat-icon-new">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <div class="stat-content-new">
+                        <div class="stat-value-new">42</div>
+                        <div class="stat-label-new">Total Games</div>
+                    </div>
+                </div>
+                <div class="stat-card-new">
+                    <div class="stat-icon-new stat-success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content-new">
+                        <div class="stat-value-new">28</div>
+                        <div class="stat-label-new">Wins</div>
+                    </div>
+                </div>
+                <div class="stat-card-new">
+                    <div class="stat-icon-new stat-danger">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="stat-content-new">
+                        <div class="stat-value-new">14</div>
+                        <div class="stat-label-new">Losses</div>
+                    </div>
+                </div>
+                <div class="stat-card-new">
+                    <div class="stat-icon-new stat-warning">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-content-new">
+                        <div class="stat-value-new">66.7%</div>
+                        <div class="stat-label-new">Win Rate</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Content Grid -->
+            <div class="profile-content-grid">
+                <!-- Profile Information -->
+                <article class="card profile-info-card">
+                    <header class="card-header">
+                        <h2><i class="fas fa-user"></i> Profile Information</h2>
+                    </header>
+                    <div class="card-body">
+                        <form id="profileForm" aria-label="Profile information form">
+                            <div class="form-group">
+                                <label for="profileFullname"><i class="fas fa-signature"></i> Full Name</label>
+                                <input type="text" id="profileFullname" value="John Doe" disabled autocomplete="name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="profileUsername"><i class="fas fa-at"></i> Username</label>
+                                <input type="text" id="profileUsername" value="johndoe123" disabled autocomplete="username">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="profileEmail"><i class="fas fa-envelope"></i> Email</label>
+                                <input type="email" id="profileEmail" value="john.doe@example.com" disabled autocomplete="email">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="profileCountry"><i class="fas fa-globe"></i> Country</label>
+                                <input type="text" id="profileCountry" value="United States" disabled autocomplete="country-name">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="profileBio"><i class="fas fa-align-left"></i> Bio</label>
+                                <textarea id="profileBio" rows="1" disabled>Ping pong enthusiast. Love playing competitive matches!</textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block" id="saveProfileBtn" style="display: none; margin-top: var(--space-2xl);" aria-label="Save profile changes">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </article>
+
+                <!-- Recent Matches -->
+                <article class="card matches-card">
+                    <header class="card-header">
+                        <h2><i class="fas fa-history"></i> Recent Matches</h2>
+                    </header>
+                    <div class="card-body">
+                        <div class="match-list-new">
+                            <div class="match-card-new win">
+                                <div class="match-header-new">
+                                    <span class="match-badge-new win">WIN</span>
+                                    <span class="match-time-new">2 hours ago</span>
+                                </div>
+                                <div class="match-body-new">
+                                    <div class="match-players-new">
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">JD</div>
+                                            <span>You</span>
+                                        </div>
+                                        <div class="match-vs-new">VS</div>
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">PX</div>
+                                            <span>PlayerX</span>
+                                        </div>
+                                    </div>
+                                    <div class="match-score-new">
+                                        <span class="score-large">5</span>
+                                        <span class="score-sep">-</span>
+                                        <span class="score-large">3</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="match-card-new win">
+                                <div class="match-header-new">
+                                    <span class="match-badge-new win">WIN</span>
+                                    <span class="match-time-new">1 day ago</span>
+                                </div>
+                                <div class="match-body-new">
+                                    <div class="match-players-new">
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">JD</div>
+                                            <span>You</span>
+                                        </div>
+                                        <div class="match-vs-new">VS</div>
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">GM</div>
+                                            <span>GameMaster</span>
+                                        </div>
+                                    </div>
+                                    <div class="match-score-new">
+                                        <span class="score-large">5</span>
+                                        <span class="score-sep">-</span>
+                                        <span class="score-large">2</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="match-card-new loss">
+                                <div class="match-header-new">
+                                    <span class="match-badge-new loss">LOSS</span>
+                                    <span class="match-time-new">2 days ago</span>
+                                </div>
+                                <div class="match-body-new">
+                                    <div class="match-players-new">
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">JD</div>
+                                            <span>You</span>
+                                        </div>
+                                        <div class="match-vs-new">VS</div>
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">PP</div>
+                                            <span>ProPlayer99</span>
+                                        </div>
+                                    </div>
+                                    <div class="match-score-new">
+                                        <span class="score-large">3</span>
+                                        <span class="score-sep">-</span>
+                                        <span class="score-large">5</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="match-card-new win">
+                                <div class="match-header-new">
+                                    <span class="match-badge-new win">WIN</span>
+                                    <span class="match-time-new">3 days ago</span>
+                                </div>
+                                <div class="match-body-new">
+                                    <div class="match-players-new">
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">JD</div>
+                                            <span>You</span>
+                                        </div>
+                                        <div class="match-vs-new">VS</div>
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">CA</div>
+                                            <span>ChampionAce</span>
+                                        </div>
+                                    </div>
+                                    <div class="match-score-new">
+                                        <span class="score-large">5</span>
+                                        <span class="score-sep">-</span>
+                                        <span class="score-large">4</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="match-card-new loss">
+                                <div class="match-header-new">
+                                    <span class="match-badge-new loss">LOSS</span>
+                                    <span class="match-time-new">4 days ago</span>
+                                </div>
+                                <div class="match-body-new">
+                                    <div class="match-players-new">
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">JD</div>
+                                            <span>You</span>
+                                        </div>
+                                        <div class="match-vs-new">VS</div>
+                                        <div class="player-info-new">
+                                            <div class="player-avatar-new">SD</div>
+                                            <span>SpeedDemon</span>
+                                        </div>
+                                    </div>
+                                    <div class="match-score-new">
+                                        <span class="score-large">2</span>
+                                        <span class="score-sep">-</span>
+                                        <span class="score-large">5</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/profile.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .test-box {
+            background: var(--surface);
+            border: 2px solid var(--primary);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            box-shadow: var(--shadow-lg);
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: var(--radius);
+        }
+        .success { background: var(--success); color: white; }
+        .error { background: var(--danger); color: white; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-box">
+            <h1>🎯 Test Page</h1>
+            <p>If you can see this styled page, HTML and CSS are working!</p>
+            
+            <div class="status success">
+                ✅ HTML: Loaded
+            </div>
+            <div class="status success">
+                ✅ CSS: Loaded (you can see colors and styling)
+            </div>
+            <div class="status" id="js-status">
+                ⏳ JavaScript: Checking...
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <a href="index.html" class="btn btn-primary">Go to Index</a>
+                <a href="login.html" class="btn btn-secondary">Go to Login</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('js-status').className = 'status success';
+        document.getElementById('js-status').innerHTML = '✅ JavaScript: Working!';
+        console.log('Test page JavaScript is working!');
+    </script>
+</body>
+</html>

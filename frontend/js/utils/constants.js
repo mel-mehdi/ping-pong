@@ -12,10 +12,10 @@ export const STORAGE_KEYS = {
 };
 
 export const ROUTES = {
-    LOGIN: 'pages/login.html',
-    REGISTER: 'pages/register.html',
-    HOME: '../index.html',
-    GAME: 'game.html',
+    LOGIN: 'login.html',
+    REGISTER: 'register.html',
+    HOME: 'index.html',
+    GAME: 'index.html#game',
     PROFILE: 'profile.html'
 };
 
