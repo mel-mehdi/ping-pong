@@ -1717,6 +1717,7 @@ svg.activity-icon {
 
 .form-group {
     height: clamp(3rem, 8vw, 4rem);
+    position: relative;
 }
 
 .form-group label {
@@ -1737,19 +1738,58 @@ svg.activity-icon {
     font-size: var(--text-base);
     transition: var(--transition);
     font-family: inherit;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.form-group input.error, .form-group textarea.error {
+    border-color: var(--danger);
+}
+
+.form-group .error-message {
+    display: none;
+}
+
+.form-group input, .form-group textarea {
+    width: 100%;
+    padding: var(--space-sm);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    transition: var(--transition);
+    font-family: inherit;
+    box-shadow: none !important;
+    transform: none !important;
 }
 
 .form-group input:focus, .form-group textarea:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+    transform: translateY(-1px) !important;
+    background: var(--bg-primary);
+    transition: var(--transition);
+}
+
+.form-group input:not(:focus), .form-group textarea:not(:focus) {
+    box-shadow: none !important;
+    transform: none !important;
+    transition: none;
+    background: var(--bg-primary);
 }
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
     color: var(--text-muted);
     opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.form-group input:focus::placeholder,
+.form-group textarea:focus::placeholder {
+    opacity: 0.4;
 }
 
 .form-group input:invalid:not(:placeholder-shown) {
@@ -1882,6 +1922,7 @@ svg.activity-icon {
     position: relative;
     z-index: 1;
     backdrop-filter: blur(10px);
+    overflow: visible;
 }
 
 .auth-brand {
@@ -2079,24 +2120,25 @@ svg.activity-icon {
 /* === THEME TOGGLE === */
 .theme-toggle {
     position: relative;
-    width: clamp(2.5rem, 6vw, 3rem);
-    height: clamp(2.5rem, 6vw, 3rem);
+    width: clamp(2rem, 4vw, 2.25rem);
+    height: clamp(2rem, 4vw, 2.25rem);
     background: transparent;
-    border: 2px solid var(--border);
+    border: 1.5px solid var(--border);
     border-radius: 50%;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: var(--transition);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--text-lg);
-    color: var(--text-primary);
+    font-size: clamp(0.875rem, 1.5vw, 0.95rem);
+    color: var(--text-secondary);
 }
 
 .theme-toggle:hover {
+    background: var(--bg-tertiary);
     color: var(--primary);
     border-color: var(--primary);
-    transform: scale(1.1) rotate(15deg);
+    transform: translateY(-2px);
 }
 
 .theme-toggle i {
@@ -2104,7 +2146,11 @@ svg.activity-icon {
 }
 
 .theme-toggle:hover i {
-    transform: scale(1.1);
+    transform: scale(1.05);
+}
+
+.theme-toggle:active {
+    transform: translateY(0);
 }
 
 /* Remove old emoji-based pseudo-elements */

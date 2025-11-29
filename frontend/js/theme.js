@@ -73,9 +73,14 @@ function createThemeToggle() {
     
     button.addEventListener('click', toggleTheme);
     
-    // Insert into navbar if exists, otherwise into body
+    // Insert into nav-actions if exists (right side of navbar), 
+    // otherwise into nav-menu, otherwise into body
+    const navActions = document.querySelector('.nav-actions');
     const navMenu = document.querySelector('.nav-menu');
-    if (navMenu) {
+    
+    if (navActions) {
+        navActions.appendChild(button);
+    } else if (navMenu) {
         const li = document.createElement('li');
         li.appendChild(button);
         navMenu.appendChild(li);

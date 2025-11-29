@@ -40,7 +40,7 @@ export const VALIDATION_RULES = {
 };
 
 export const ERROR_MESSAGES = {
-    REQUIRED_FIELD: 'This field is required',
+    REQUIRED_FIELD: 'is required',
     INVALID_EMAIL: 'Please enter a valid email address',
     INVALID_USERNAME: 'Username can only contain letters, numbers, and underscores',
     USERNAME_TOO_SHORT: `Username must be at least ${VALIDATION_RULES.MIN_USERNAME_LENGTH} characters`,

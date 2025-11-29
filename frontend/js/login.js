@@ -34,7 +34,7 @@ function initLoginForm(form) {
     addEvent(usernameInput, 'blur', () => {
         const result = validateRequired(usernameInput.value);
         if (!result.isValid) {
-            showError('username', result.message);
+            showError('username', 'Username ' + result.message);
         } else {
             clearError('username');
         }
@@ -43,7 +43,7 @@ function initLoginForm(form) {
     addEvent(passwordInput, 'blur', () => {
         const result = validateRequired(passwordInput.value);
         if (!result.isValid) {
-            showError('password', result.message);
+            showError('password', 'Password ' + result.message);
         } else {
             clearError('password');
         }
@@ -62,13 +62,13 @@ function initLoginForm(form) {
 
         const usernameValidation = validateRequired(username);
         if (!usernameValidation.isValid) {
-            showError('username', usernameValidation.message);
+            showError('username', 'Username ' + usernameValidation.message);
             isValid = false;
         }
 
         const passwordValidation = validateRequired(password);
         if (!passwordValidation.isValid) {
-            showError('password', passwordValidation.message);
+            showError('password', 'Password ' + passwordValidation.message);
             isValid = false;
         }
 

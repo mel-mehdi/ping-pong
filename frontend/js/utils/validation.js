@@ -25,7 +25,7 @@ export function validateRequired(value) {
  */
 export function validateEmail(email) {
     if (!email || email.trim().length === 0) {
-        return { isValid: false, message: ERROR_MESSAGES.REQUIRED_FIELD };
+        return { isValid: false, message: 'Email ' + ERROR_MESSAGES.REQUIRED_FIELD };
     }
     
     const isValid = VALIDATION_RULES.EMAIL_PATTERN.test(email);
@@ -42,7 +42,7 @@ export function validateEmail(email) {
  */
 export function validateUsername(username) {
     if (!username || username.trim().length === 0) {
-        return { isValid: false, message: ERROR_MESSAGES.REQUIRED_FIELD };
+        return { isValid: false, message: 'Username ' + ERROR_MESSAGES.REQUIRED_FIELD };
     }
     
     if (username.length < VALIDATION_RULES.MIN_USERNAME_LENGTH) {
@@ -67,7 +67,7 @@ export function validateUsername(username) {
  */
 export function validatePassword(password) {
     if (!password || password.length === 0) {
-        return { isValid: false, message: ERROR_MESSAGES.REQUIRED_FIELD };
+        return { isValid: false, message: 'Password ' + ERROR_MESSAGES.REQUIRED_FIELD };
     }
     
     const isValid = password.length >= VALIDATION_RULES.MIN_PASSWORD_LENGTH;
