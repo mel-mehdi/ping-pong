@@ -85,25 +85,48 @@ function initLoginForm(form) {
             return;
         }
 
-        // Simulate login
-        if (username && password) {
-            // Store user data
-            const userData = {
-                username: username,
-                fullname: 'John Doe',
-                email: 'john.doe@example.com',
+        // Import and use database
+        import('./utils/database.js').then(module => {
+            const db = module.default;
+            
+            // Authenticate user
+            const user = db.findOne('users', { username: username });
+            
+            if (!user) {
+                showError('username', 'User not found');
+                return;
+            }
+
+            if (!db.verifyPassword(password, user.passwordHash)) {
+                showError('password', 'Invalid password');
+                return;
+            }
+
+            // Create session
+            const sessionData = {
+                userId: user.id,
+                username: user.username,
+                email: user.email,
+                fullname: user.fullname,
+                avatar: user.avatar,
                 loggedIn: true,
                 loginTime: new Date().toISOString()
             };
             
-            setItem(STORAGE_KEYS.USER_DATA, userData);
+            setItem(STORAGE_KEYS.USER_DATA, sessionData);
+            
+            // Store session in database
+            db.insert('sessions', {
+                userId: user.id,
+                loginTime: new Date().toISOString()
+            });
             
             // Show success and redirect
             form.classList.add('loading');
             setTimeout(() => {
                 window.location.href = ROUTES.HOME;
             }, 500);
-        }
+        });
     });
 }
 

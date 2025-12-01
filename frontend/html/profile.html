@@ -39,11 +39,11 @@
                     </button>
                 </div>
                 <div class="profile-header-info">
-                    <h1 class="profile-name-large">John Doe</h1>
-                    <p class="profile-username-large">@johndoe123</p>
+                    <h1 class="profile-name-large" id="profileNameDisplay">Loading...</h1>
+                    <p class="profile-username-large" id="profileUsernameDisplay">@...</p>
                     <div class="profile-badges">
-                        <span class="badge badge-rank"><i class="fas fa-trophy"></i> Rank #245</span>
-                        <span class="badge badge-level"><i class="fas fa-star"></i> Level 12</span>
+                        <span class="badge badge-rank" id="profileRankBadge"><i class="fas fa-trophy"></i> Rank #?</span>
+                        <span class="badge badge-level" id="profileLevelBadge" style="display:none;"><i class="fas fa-star"></i> Level 1</span>
                     </div>
                     <button class="btn btn-primary" id="editProfileBtn" aria-label="Edit profile">
                         <i class="fas fa-edit"></i> Edit Profile
@@ -58,7 +58,7 @@
                         <i class="fas fa-gamepad"></i>
                     </div>
                     <div class="stat-content-new">
-                        <div class="stat-value-new">42</div>
+                        <div class="stat-value-new" id="profileGames">0</div>
                         <div class="stat-label-new">Total Games</div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div class="stat-content-new">
-                        <div class="stat-value-new">28</div>
+                        <div class="stat-value-new" id="profileWins">0</div>
                         <div class="stat-label-new">Wins</div>
                     </div>
                 </div>
@@ -76,7 +76,7 @@
                         <i class="fas fa-times-circle"></i>
                     </div>
                     <div class="stat-content-new">
-                        <div class="stat-value-new">14</div>
+                        <div class="stat-value-new" id="profileLosses">0</div>
                         <div class="stat-label-new">Losses</div>
                     </div>
                 </div>
@@ -85,7 +85,7 @@
                         <i class="fas fa-percentage"></i>
                     </div>
                     <div class="stat-content-new">
-                        <div class="stat-value-new">66.7%</div>
+                        <div class="stat-value-new" id="profileWinRate">0%</div>
                         <div class="stat-label-new">Win Rate</div>
                     </div>
                 </div>
@@ -102,22 +102,22 @@
                         <form id="profileForm" aria-label="Profile information form">
                             <div class="form-group">
                                 <label for="profileFullname"><i class="fas fa-signature"></i> Full Name</label>
-                                <input type="text" id="profileFullname" value="John Doe" disabled autocomplete="name">
+                                <input type="text" id="profileFullname" value="" disabled autocomplete="name">
                             </div>
                             
                             <div class="form-group">
                                 <label for="profileUsername"><i class="fas fa-at"></i> Username</label>
-                                <input type="text" id="profileUsername" value="johndoe123" disabled autocomplete="username">
+                                <input type="text" id="profileUsername" value="" disabled autocomplete="username">
                             </div>
 
                             <div class="form-group">
                                 <label for="profileEmail"><i class="fas fa-envelope"></i> Email</label>
-                                <input type="email" id="profileEmail" value="john.doe@example.com" disabled autocomplete="email">
+                                <input type="email" id="profileEmail" value="" disabled autocomplete="email">
                             </div>
 
                             <div class="form-group">
                                 <label for="profileCountry"><i class="fas fa-globe"></i> Country</label>
-                                <input type="text" id="profileCountry" value="United States" disabled autocomplete="country-name">
+                                <input type="text" id="profileCountry" value="" disabled autocomplete="country-name">
                             </div>
 
                             <div class="form-group">
@@ -138,131 +138,8 @@
                         <h2><i class="fas fa-history"></i> Recent Matches</h2>
                     </header>
                     <div class="card-body">
-                        <div class="match-list-new">
-                            <div class="match-card-new win">
-                                <div class="match-header-new">
-                                    <span class="match-badge-new win">WIN</span>
-                                    <span class="match-time-new">2 hours ago</span>
-                                </div>
-                                <div class="match-body-new">
-                                    <div class="match-players-new">
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">JD</div>
-                                            <span>You</span>
-                                        </div>
-                                        <div class="match-vs-new">VS</div>
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">PX</div>
-                                            <span>PlayerX</span>
-                                        </div>
-                                    </div>
-                                    <div class="match-score-new">
-                                        <span class="score-large">5</span>
-                                        <span class="score-sep">-</span>
-                                        <span class="score-large">3</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="match-card-new win">
-                                <div class="match-header-new">
-                                    <span class="match-badge-new win">WIN</span>
-                                    <span class="match-time-new">1 day ago</span>
-                                </div>
-                                <div class="match-body-new">
-                                    <div class="match-players-new">
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">JD</div>
-                                            <span>You</span>
-                                        </div>
-                                        <div class="match-vs-new">VS</div>
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">GM</div>
-                                            <span>GameMaster</span>
-                                        </div>
-                                    </div>
-                                    <div class="match-score-new">
-                                        <span class="score-large">5</span>
-                                        <span class="score-sep">-</span>
-                                        <span class="score-large">2</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="match-card-new loss">
-                                <div class="match-header-new">
-                                    <span class="match-badge-new loss">LOSS</span>
-                                    <span class="match-time-new">2 days ago</span>
-                                </div>
-                                <div class="match-body-new">
-                                    <div class="match-players-new">
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">JD</div>
-                                            <span>You</span>
-                                        </div>
-                                        <div class="match-vs-new">VS</div>
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">PP</div>
-                                            <span>ProPlayer99</span>
-                                        </div>
-                                    </div>
-                                    <div class="match-score-new">
-                                        <span class="score-large">3</span>
-                                        <span class="score-sep">-</span>
-                                        <span class="score-large">5</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="match-card-new win">
-                                <div class="match-header-new">
-                                    <span class="match-badge-new win">WIN</span>
-                                    <span class="match-time-new">3 days ago</span>
-                                </div>
-                                <div class="match-body-new">
-                                    <div class="match-players-new">
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">JD</div>
-                                            <span>You</span>
-                                        </div>
-                                        <div class="match-vs-new">VS</div>
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">CA</div>
-                                            <span>ChampionAce</span>
-                                        </div>
-                                    </div>
-                                    <div class="match-score-new">
-                                        <span class="score-large">5</span>
-                                        <span class="score-sep">-</span>
-                                        <span class="score-large">4</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="match-card-new loss">
-                                <div class="match-header-new">
-                                    <span class="match-badge-new loss">LOSS</span>
-                                    <span class="match-time-new">4 days ago</span>
-                                </div>
-                                <div class="match-body-new">
-                                    <div class="match-players-new">
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">JD</div>
-                                            <span>You</span>
-                                        </div>
-                                        <div class="match-vs-new">VS</div>
-                                        <div class="player-info-new">
-                                            <div class="player-avatar-new">SD</div>
-                                            <span>SpeedDemon</span>
-                                        </div>
-                                    </div>
-                                    <div class="match-score-new">
-                                        <span class="score-large">2</span>
-                                        <span class="score-sep">-</span>
-                                        <span class="score-large">5</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="match-list-new" id="matchHistoryList">
+                            <p class="text-muted">No matches played yet</p>
                         </div>
                     </div>
                 </article>

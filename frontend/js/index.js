@@ -12,6 +12,8 @@ import { GameView } from './views/game.js';
 import { TournamentView } from './views/tournament.js';
 import { ChatView } from './views/chat.js';
 import { ProfileView } from './views/profile.js';
+import { STORAGE_KEYS } from './utils/constants.js';
+import { getItem } from './utils/storage.js';
 
 console.log('All imports successful');
 
@@ -32,12 +34,6 @@ class App {
         this.chatView = new ChatView(this);
         this.profileView = new ProfileView(this);
         
-        // Set default user as logged in for demo
-        if (!localStorage.getItem('isLoggedIn')) {
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('username', 'Player');
-        }
-        
         // Initialize theme
         initTheme();
         
@@ -45,8 +41,20 @@ class App {
     }
 
     init() {
-        // Check hash on load and navigate to that view
+        // Check authentication on initial load
+        const userData = getItem(STORAGE_KEYS.USER_DATA);
         const hash = window.location.hash.slice(1) || 'home';
+        
+        // Protected routes that require authentication
+        const protectedRoutes = ['game', 'tournament', 'tournament-play', 'tournament-results', 'chat', 'profile'];
+        
+        if (protectedRoutes.includes(hash) && !userData) {
+            // Redirect to login if trying to access protected route without authentication
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        // Check hash on load and navigate to that view
         this.loadView(hash, false);
         
         // Handle browser back/forward buttons
@@ -69,6 +77,16 @@ class App {
     }
 
     loadView(viewName, addToHistory = true) {
+        // Check if user is authenticated for protected routes
+        const protectedRoutes = ['game', 'tournament', 'tournament-play', 'tournament-results', 'chat', 'profile'];
+        const userData = getItem(STORAGE_KEYS.USER_DATA);
+        
+        if (protectedRoutes.includes(viewName) && !userData) {
+            // Redirect to login page
+            window.location.href = 'login.html';
+            return;
+        }
+
         this.currentView = viewName;
         
         if (addToHistory) {

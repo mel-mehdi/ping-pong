@@ -15,6 +15,7 @@ import {
     clearAllErrors
 } from './utils/validation.js';
 import { getById, addEvent } from './utils/dom.js';
+import db from './utils/database.js';
 
 // Registration handling
 document.addEventListener('DOMContentLoaded', function() {
@@ -103,16 +104,49 @@ function initRegisterForm(form) {
             return;
         }
 
-        // Store user data
-        const userData = {
-            fullname: username, // Using username as fullname for simplicity
-            email: email,
+        // Check if user already exists
+        const existingUser = db.findOne('users', { username: username });
+        if (existingUser) {
+            showError('username', 'Username already taken');
+            return;
+        }
+
+        const existingEmail = db.findOne('users', { email: email });
+        if (existingEmail) {
+            showError('email', 'Email already registered');
+            return;
+        }
+
+        // Create new user
+        const newUser = db.insert('users', {
             username: username,
+            email: email,
+            fullname: username,
+            passwordHash: db.hashPassword(password),
+            avatar: null,
+            wins: 0,
+            losses: 0,
+            gamesPlayed: 0
+        });
+        
+        // Create session
+        const sessionData = {
+            userId: newUser.id,
+            username: newUser.username,
+            email: newUser.email,
+            fullname: newUser.fullname,
+            avatar: newUser.avatar,
             loggedIn: true,
-            registrationTime: new Date().toISOString()
+            loginTime: new Date().toISOString()
         };
         
-        setItem(STORAGE_KEYS.USER_DATA, userData);
+        setItem(STORAGE_KEYS.USER_DATA, sessionData);
+        
+        // Store session in database
+        db.insert('sessions', {
+            userId: newUser.id,
+            loginTime: new Date().toISOString()
+        });
         
         // Show success and redirect
         form.classList.add('loading');

@@ -274,32 +274,8 @@ class App {
                             <h2>Leaderboard</h2>
                         </header>
                         <div class="card-body">
-                            <ol class="leaderboard" aria-label="Top 5 players">
-                                <li class="leaderboard-item">
-                                    <span class="rank gold" aria-label="Rank 1">1</span>
-                                    <span class="player-name">MasterPlayer</span>
-                                    <span class="player-score" aria-label="1250 points">1250 pts</span>
-                                </li>
-                                <li class="leaderboard-item">
-                                    <span class="rank silver" aria-label="Rank 2">2</span>
-                                    <span class="player-name">ProGamer99</span>
-                                    <span class="player-score" aria-label="1180 points">1180 pts</span>
-                                </li>
-                                <li class="leaderboard-item">
-                                    <span class="rank bronze" aria-label="Rank 3">3</span>
-                                    <span class="player-name">ChampionAce</span>
-                                    <span class="player-score" aria-label="1120 points">1120 pts</span>
-                                </li>
-                                <li class="leaderboard-item">
-                                    <span class="rank" aria-label="Rank 4">4</span>
-                                    <span class="player-name">SpeedDemon</span>
-                                    <span class="player-score" aria-label="1050 points">1050 pts</span>
-                                </li>
-                                <li class="leaderboard-item">
-                                    <span class="rank" aria-label="Rank 5">5</span>
-                                    <span class="player-name">QuickReflexes</span>
-                                    <span class="player-score" aria-label="980 points">980 pts</span>
-                                </li>
+                            <ol class="leaderboard" aria-label="Top 5 players" id="leaderboardList">
+                                <li class="text-muted">No players yet. Be the first to play!</li>
                             </ol>
                         </div>
                     </article>
@@ -310,35 +286,8 @@ class App {
                             <h2><i class="fas fa-clipboard-list"></i> Recent Activity</h2>
                         </header>
                         <div class="card-body">
-                            <ul class="activity-list" aria-label="Your recent activities">
-                                <li class="activity-item">
-                                    <svg class="activity-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
-                                    <div class="activity-content">
-                                        <p class="activity-text">You won against <strong>PlayerX</strong></p>
-                                        <time class="activity-time" datetime="2025-11-24T10:00:00">2 hours ago</time>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <svg class="activity-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-                                    <div class="activity-content">
-                                        <p class="activity-text">Rank increased to <strong>#245</strong></p>
-                                        <time class="activity-time" datetime="2025-11-23T12:00:00">1 day ago</time>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <svg class="activity-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
-                                    <div class="activity-content">
-                                        <p class="activity-text">Played a match with <strong>GameMaster</strong></p>
-                                        <time class="activity-time" datetime="2025-11-23T10:00:00">1 day ago</time>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <i class="fas fa-star activity-icon" aria-label="Star"></i>
-                                    <div class="activity-content">
-                                        <p class="activity-text">Achievement unlocked: <strong>10 Win Streak</strong></p>
-                                        <time class="activity-time" datetime="2025-11-21T12:00:00">3 days ago</time>
-                                    </div>
-                                </li>
+                            <ul class="activity-list" aria-label="Your recent activities" id="activityList">
+                                <li class="text-muted">No recent activity</li>
                             </ul>
                         </div>
                     </article>
@@ -439,17 +388,18 @@ class App {
         
         this.navbarSearchInitialized = true;
 
-        // Sample player data for invitations
-        const playerData = [
-            { id: 1, name: 'MasterPlayer', status: 'Online', rank: '#1', avatar: 'M' },
-            { id: 2, name: 'ProGamer99', status: 'Online', rank: '#2', avatar: 'P' },
-            { id: 3, name: 'ChampionAce', status: 'Away', rank: '#3', avatar: 'C' },
-            { id: 4, name: 'SpeedDemon', status: 'Online', rank: '#4', avatar: 'S' },
-            { id: 5, name: 'QuickReflexes', status: 'Offline', rank: '#5', avatar: 'Q' },
-            { id: 6, name: 'Alice Johnson', status: 'Online', rank: '#12', avatar: 'A' },
-            { id: 7, name: 'Bob Smith', status: 'Away', rank: '#23', avatar: 'B' },
-            { id: 8, name: 'Charlie Brown', status: 'Online', rank: '#45', avatar: 'C' },
-        ];
+        // Load players from database
+        let playerData = [];
+        import('./utils/database.js').then(module => {
+            const db = module.default;
+            playerData = db.find('users').map(user => ({
+                id: user.id,
+                name: user.username,
+                status: 'Online',
+                rank: `#${user.rank || '?'}`,
+                avatar: user.username[0].toUpperCase()
+            }));
+        }).catch(err => console.error('Error loading players:', err));
 
         navSearchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase().trim();
@@ -537,31 +487,49 @@ class App {
         const searchInput = document.getElementById('mainSearchInput');
         const searchResults = document.getElementById('mainSearchResults');
 
-        // Sample searchable data
-        const searchData = {
-            players: [
-                { type: 'player', name: 'MasterPlayer', rank: '#1', status: 'Online', winRate: '92%' },
-                { type: 'player', name: 'ProGamer99', rank: '#2', status: 'Online', winRate: '85%' },
-                { type: 'player', name: 'ChampionAce', rank: '#3', status: 'Away', winRate: '78%' },
-                { type: 'player', name: 'SpeedDemon', rank: '#4', status: 'Online', winRate: '75%' },
-                { type: 'player', name: 'QuickReflexes', rank: '#5', status: 'Offline', winRate: '72%' },
-                { type: 'player', name: 'Alice Johnson', rank: '#12', status: 'Online', winRate: '68%' },
-                { type: 'player', name: 'Bob Smith', rank: '#23', status: 'Away', winRate: '65%' },
-                { type: 'player', name: 'Charlie Brown', rank: '#45', status: 'Online', winRate: '62%' },
-            ],
+        // Load searchable data from database
+        let searchData = {
+            players: [],
             games: [
                 { type: 'game', name: 'Quick Match', description: 'Fast-paced 1v1 game', icon: 'gamepad' },
                 { type: 'game', name: 'Tournament Mode', description: 'Compete in brackets', icon: 'trophy' },
-                { type: 'game', name: 'Practice Mode', description: 'Improve your skills', icon: 'dumbbell' },
-                { type: 'game', name: 'Online Match', description: 'Play against players worldwide', icon: 'globe' },
             ],
             features: [
                 { type: 'feature', name: 'Leaderboard', description: 'View top players', icon: 'ranking-star' },
                 { type: 'feature', name: 'Chat', description: 'Connect with players', icon: 'comments' },
-                { type: 'feature', name: 'Profile Stats', description: 'Track your progress', icon: 'chart-line' },
-                { type: 'feature', name: 'Achievements', description: 'Unlock rewards', icon: 'award' },
+                { type: 'feature', name: 'Profile', description: 'Manage your profile', icon: 'user' },
             ]
         };
+        
+        import('./utils/database.js').then(module => {
+            const db = module.default;
+            const users = db.find('users');
+            searchData.players = users.map(user => {
+                const total = user.wins + user.losses;
+                const winRate = total > 0 ? Math.round((user.wins / total) * 100) + '%' : '0%';
+                return {
+                    type: 'player',
+                    name: user.username,
+                    rank: `#${user.rank || '?'}`,
+                    status: 'Online',
+                    winRate
+                };
+            });
+        }).catch(err => console.error('Error loading search data:', err));
+
+        const gameData = [
+            { type: 'game', name: 'Quick Match', description: 'Fast-paced 1v1 game', icon: 'gamepad' },
+            { type: 'game', name: 'Tournament Mode', description: 'Compete in brackets', icon: 'trophy' },
+            { type: 'game', name: 'Practice Mode', description: 'Improve your skills', icon: 'dumbbell' },
+            { type: 'game', name: 'Online Match', description: 'Play against players worldwide', icon: 'globe' },
+        ];
+        
+        const featureData = [
+            { type: 'feature', name: 'Leaderboard', description: 'View top players', icon: 'ranking-star' },
+            { type: 'feature', name: 'Chat', description: 'Connect with players', icon: 'comments' },
+            { type: 'feature', name: 'Profile Stats', description: 'Track your progress', icon: 'chart-line' },
+            { type: 'feature', name: 'Achievements', description: 'Unlock rewards', icon: 'award' },
+        ];
 
         // Open search overlay
         if (searchBtn) {
@@ -632,13 +600,13 @@ class App {
                 );
                 
                 // Search games
-                const gameMatches = searchData.games.filter(item => 
+                const gameMatches = gameData.filter(item => 
                     item.name.toLowerCase().includes(query) || 
                     item.description.toLowerCase().includes(query)
                 );
                 
                 // Search features
-                const featureMatches = searchData.features.filter(item => 
+                const featureMatches = featureData.filter(item => 
                     item.name.toLowerCase().includes(query) || 
                     item.description.toLowerCase().includes(query)
                 );
@@ -1965,17 +1933,17 @@ class App {
         const searchInput = document.getElementById('userSearchInput');
         const searchResults = document.getElementById('searchResults');
 
-        // Sample users database
-        const allUsers = [
-            { id: 1, name: 'Emma Wilson', status: 'Online', avatar: 'E' },
-            { id: 2, name: 'James Smith', status: 'Away', avatar: 'J' },
-            { id: 3, name: 'Olivia Brown', status: 'Online', avatar: 'O' },
-            { id: 4, name: 'Noah Davis', status: 'Offline', avatar: 'N' },
-            { id: 5, name: 'Sophia Garcia', status: 'Online', avatar: 'S' },
-            { id: 6, name: 'Liam Martinez', status: 'Away', avatar: 'L' },
-            { id: 7, name: 'Ava Rodriguez', status: 'Online', avatar: 'A' },
-            { id: 8, name: 'William Lopez', status: 'Offline', avatar: 'W' }
-        ];
+        // Load users from database
+        let allUsers = [];
+        import('./utils/database.js').then(module => {
+            const db = module.default;
+            allUsers = db.find('users').map(user => ({
+                id: user.id,
+                name: user.username,
+                status: 'Online',
+                avatar: user.username[0].toUpperCase()
+            }));
+        }).catch(err => console.error('Error loading users:', err));
 
         let friendRequests = JSON.parse(localStorage.getItem('friendRequests') || '[]');
         let friends = JSON.parse(localStorage.getItem('friends') || '[]');

@@ -64,38 +64,7 @@ export class ChatView {
                                 <h3>Conversations</h3>
                             </div>
                             <ul class="chat-users-list" id="chatUsersList">
-                                <li class="chat-user-item active" data-user="Alice">
-                                    <div class="chat-user-avatar">A</div>
-                                    <div class="chat-user-info">
-                                        <div class="chat-user-name">Alice</div>
-                                        <div class="chat-user-status">Online</div>
-                                    </div>
-                                    <div class="chat-status-indicator"></div>
-                                </li>
-                                <li class="chat-user-item" data-user="Bob">
-                                    <div class="chat-user-avatar">B</div>
-                                    <div class="chat-user-info">
-                                        <div class="chat-user-name">Bob</div>
-                                        <div class="chat-user-status">Away</div>
-                                    </div>
-                                    <div class="chat-status-indicator"></div>
-                                </li>
-                                <li class="chat-user-item" data-user="Charlie">
-                                    <div class="chat-user-avatar">C</div>
-                                    <div class="chat-user-info">
-                                        <div class="chat-user-name">Charlie</div>
-                                        <div class="chat-user-status">Last seen 2h ago</div>
-                                    </div>
-                                    <div class="chat-status-indicator offline"></div>
-                                </li>
-                                <li class="chat-user-item" data-user="Diana">
-                                    <div class="chat-user-avatar">D</div>
-                                    <div class="chat-user-info">
-                                        <div class="chat-user-name">Diana</div>
-                                        <div class="chat-user-status">Online</div>
-                                    </div>
-                                    <div class="chat-status-indicator"></div>
-                                </li>
+                                <li class="text-muted" style="padding: 1rem; text-align: center;">No conversations yet</li>
                             </ul>
                         </aside>
 
@@ -103,47 +72,17 @@ export class ChatView {
                         <section class="chat-main">
                             <div class="chat-header">
                                 <div class="chat-header-info">
-                                    <div class="chat-user-avatar">A</div>
+                                    <div class="chat-user-avatar">?</div>
                                     <div>
-                                        <div class="chat-header-title">Alice</div>
-                                        <div class="chat-header-status">Online</div>
+                                        <div class="chat-header-title">Select a conversation</div>
+                                        <div class="chat-header-status">No active chat</div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="chat-messages" id="chatMessages">
-                                <div class="chat-date-divider">
-                                    <span class="chat-date-text">Today</span>
-                                </div>
-
-                                <div class="chat-message">
-                                    <div class="chat-message-avatar">A</div>
-                                    <div class="chat-message-content">
-                                        <div class="chat-message-bubble">
-                                            <p class="chat-message-text">Hey! Ready for a game?</p>
-                                        </div>
-                                        <div class="chat-message-time">10:30 AM</div>
-                                    </div>
-                                </div>
-
-                                <div class="chat-message own">
-                                    <div class="chat-message-avatar">${username.charAt(0).toUpperCase()}</div>
-                                    <div class="chat-message-content">
-                                        <div class="chat-message-bubble">
-                                            <p class="chat-message-text">Absolutely! Let's play!</p>
-                                        </div>
-                                        <div class="chat-message-time">10:31 AM</div>
-                                    </div>
-                                </div>
-
-                                <div class="chat-message">
-                                    <div class="chat-message-avatar">A</div>
-                                    <div class="chat-message-content">
-                                        <div class="chat-message-bubble">
-                                            <p class="chat-message-text">Great! I'll create a tournament room.</p>
-                                        </div>
-                                        <div class="chat-message-time">10:32 AM</div>
-                                    </div>
+                                <div class="text-muted" style="text-align: center; padding: 2rem;">
+                                    <p>No messages yet. Start a conversation!</p>
                                 </div>
                             </div>
 
@@ -257,36 +196,8 @@ export class ChatView {
                     chatInput.style.height = 'auto';
                     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                    // Simulate response after 1 second
-                    setTimeout(() => {
-                        const responseTime = new Date().toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
-                            minute: '2-digit' 
-                        });
-                        const responses = [
-                            'Sounds good!',
-                            'I agree!',
-                            'Let\'s do it!',
-                            'That works for me!',
-                            'Great idea!'
-                        ];
-                        const response = responses[Math.floor(Math.random() * responses.length)];
-
-                        const responseHTML = `
-                            <div class="chat-message">
-                                <div class="chat-message-avatar">${this.currentUser.charAt(0)}</div>
-                                <div class="chat-message-content">
-                                    <div class="chat-message-bubble">
-                                        <p class="chat-message-text">${response}</p>
-                                    </div>
-                                    <div class="chat-message-time">${responseTime}</div>
-                                </div>
-                            </div>
-                        `;
-
-                        chatMessages.insertAdjacentHTML('beforeend', responseHTML);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    }, 1000);
+                    // TODO: Send message to backend/database
+                    // For now, messages are only displayed locally
                 }
             });
         }
@@ -338,17 +249,20 @@ export class ChatView {
         const searchInput = document.getElementById('userSearchInput');
         const searchResults = document.getElementById('searchResults');
 
-        // Sample users database
-        const allUsers = [
-            { id: 1, name: 'Emma Wilson', status: 'Online', avatar: 'E' },
-            { id: 2, name: 'James Smith', status: 'Away', avatar: 'J' },
-            { id: 3, name: 'Olivia Brown', status: 'Online', avatar: 'O' },
-            { id: 4, name: 'Noah Davis', status: 'Offline', avatar: 'N' },
-            { id: 5, name: 'Sophia Garcia', status: 'Online', avatar: 'S' },
-            { id: 6, name: 'Liam Martinez', status: 'Away', avatar: 'L' },
-            { id: 7, name: 'Ava Rodriguez', status: 'Online', avatar: 'A' },
-            { id: 8, name: 'William Lopez', status: 'Offline', avatar: 'W' }
-        ];
+        // Load users from database
+        let allUsers = [];
+        import('../utils/database.js').then(module => {
+            const db = module.default;
+            const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+            allUsers = db.find('users')
+                .filter(user => user.id !== currentUser.userId)
+                .map(user => ({
+                    id: user.id,
+                    name: user.username,
+                    status: 'Online',
+                    avatar: user.username[0].toUpperCase()
+                }));
+        }).catch(err => console.error('Error loading users:', err));
 
         let friendRequests = JSON.parse(localStorage.getItem('friendRequests') || '[]');
         let friends = JSON.parse(localStorage.getItem('friends') || '[]');

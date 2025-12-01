@@ -3,14 +3,18 @@
  * Renders the home page with dashboard, leaderboard, and game options
  */
 
+import { STORAGE_KEYS } from '../utils/constants.js';
+import { getItem } from '../utils/storage.js';
+
 export class HomeView {
     constructor(app) {
         this.app = app;
     }
 
     render() {
-        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-        const username = localStorage.getItem('username') || 'Guest';
+        const userData = getItem(STORAGE_KEYS.USER_DATA);
+        const isLoggedIn = !!userData;
+        const username = userData?.username || 'Guest';
         
         this.app.appContainer.innerHTML = `
             <nav class="navbar" role="navigation" aria-label="Main navigation">
@@ -20,9 +24,9 @@ export class HomeView {
                     </div>
                     <ul class="nav-menu">
                         <li><a href="#home" class="active" aria-current="page">Home</a></li>
-                        <li><a href="#game" id="navPlayBtn">Play</a></li>
-                        <li><a href="#chat">Chat</a></li>
-                        <li><a href="profile.html">Profile</a></li>
+                        ${isLoggedIn ? '<li><a href="#game" id="navPlayBtn">Play</a></li>' : ''}
+                        ${isLoggedIn ? '<li><a href="#chat">Chat</a></li>' : ''}
+                        ${isLoggedIn ? '<li><a href="profile.html">Profile</a></li>' : ''}
                         ${isLoggedIn ? 
                             '<li><a href="login.html" id="logoutBtn">Logout</a></li>' : 
                             '<li><a href="login.html">Login</a></li><li><a href="register.html">Sign Up</a></li>'
@@ -106,22 +110,22 @@ export class HomeView {
                     <article class="dashboard-card">
                         <div class="card-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></div>
                         <h3>Total Wins</h3>
-                        <p class="big-number" aria-label="28 wins">28</p>
-                        <p class="sub-text">Keep it up!</p>
+                        <p class="big-number" aria-label="wins">0</p>
+                        <p class="sub-text">Keep playing!</p>
                     </article>
 
                     <article class="dashboard-card">
                         <div class="card-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg></div>
                         <h3>Win Rate</h3>
-                        <p class="big-number" aria-label="66.7 percent win rate">66.7%</p>
-                        <p class="sub-text">Great performance</p>
+                        <p class="big-number" aria-label="win rate">0%</p>
+                        <p class="sub-text">Play more games</p>
                     </article>
 
                     <article class="dashboard-card">
                         <div class="card-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
                         <h3>Ranking</h3>
-                        <p class="big-number" aria-label="Rank 245">#245</p>
-                        <p class="sub-text">Keep climbing!</p>
+                        <p class="big-number" aria-label="Rank">-</p>
+                        <p class="sub-text">Start competing!</p>
                     </article>
                 </section>
                 ` : ''}
@@ -176,32 +180,8 @@ export class HomeView {
                             <h2>Leaderboard</h2>
                         </header>
                         <div class="card-body">
-                            <ol class="leaderboard" aria-label="Top 5 players">
-                                <li class="leaderboard-item">
-                                    <span class="rank gold" aria-label="Rank 1">1</span>
-                                    <span class="player-name">MasterPlayer</span>
-                                    <span class="player-score" aria-label="1250 points">1250 pts</span>
-                                </li>
-                                <li class="leaderboard-item">
-                                    <span class="rank silver" aria-label="Rank 2">2</span>
-                                    <span class="player-name">ProGamer99</span>
-                                    <span class="player-score" aria-label="1180 points">1180 pts</span>
-                                </li>
-                                <li class="leaderboard-item">
-                                    <span class="rank bronze" aria-label="Rank 3">3</span>
-                                    <span class="player-name">ChampionAce</span>
-                                    <span class="player-score" aria-label="1120 points">1120 pts</span>
-                                </li>
-                                <li class="leaderboard-item">
-                                    <span class="rank" aria-label="Rank 4">4</span>
-                                    <span class="player-name">SpeedDemon</span>
-                                    <span class="player-score" aria-label="1050 points">1050 pts</span>
-                                </li>
-                                <li class="leaderboard-item">
-                                    <span class="rank" aria-label="Rank 5">5</span>
-                                    <span class="player-name">QuickReflexes</span>
-                                    <span class="player-score" aria-label="980 points">980 pts</span>
-                                </li>
+                            <ol class="leaderboard" aria-label="Top players" id="leaderboardList">
+                                <li class="text-muted">No players yet. Be the first to play!</li>
                             </ol>
                         </div>
                     </article>
@@ -212,35 +192,8 @@ export class HomeView {
                             <h2><i class="fas fa-clipboard-list"></i> Recent Activity</h2>
                         </header>
                         <div class="card-body">
-                            <ul class="activity-list" aria-label="Your recent activities">
-                                <li class="activity-item">
-                                    <svg class="activity-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
-                                    <div class="activity-content">
-                                        <p class="activity-text">You won against <strong>PlayerX</strong></p>
-                                        <time class="activity-time" datetime="2025-11-24T10:00:00">2 hours ago</time>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <svg class="activity-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-                                    <div class="activity-content">
-                                        <p class="activity-text">Rank increased to <strong>#245</strong></p>
-                                        <time class="activity-time" datetime="2025-11-23T12:00:00">1 day ago</time>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <svg class="activity-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
-                                    <div class="activity-content">
-                                        <p class="activity-text">Played a match with <strong>GameMaster</strong></p>
-                                        <time class="activity-time" datetime="2025-11-23T10:00:00">1 day ago</time>
-                                    </div>
-                                </li>
-                                <li class="activity-item">
-                                    <i class="fas fa-star activity-icon" aria-label="Star"></i>
-                                    <div class="activity-content">
-                                        <p class="activity-text">Achievement unlocked: <strong>10 Win Streak</strong></p>
-                                        <time class="activity-time" datetime="2025-11-21T12:00:00">3 days ago</time>
-                                    </div>
-                                </li>
+                            <ul class="activity-list" aria-label="Your recent activities" id="activityList">
+                                <li class="text-muted">No recent activity</li>
                             </ul>
                         </div>
                     </article>
@@ -298,11 +251,18 @@ export class HomeView {
     }
 
     attachEventListeners() {
+        const userData = getItem(STORAGE_KEYS.USER_DATA);
+        const isLoggedIn = !!userData;
+
         // Navigation
         const navPlayBtn = document.getElementById('navPlayBtn');
         if (navPlayBtn) {
             navPlayBtn.addEventListener('click', (e) => {
                 e.preventDefault();
+                if (!isLoggedIn) {
+                    window.location.href = 'login.html';
+                    return;
+                }
                 this.app.loadView('game');
             });
         }
@@ -311,29 +271,179 @@ export class HomeView {
         const quickMatchBtn = document.getElementById('quickMatchBtn');
         if (quickMatchBtn) {
             quickMatchBtn.addEventListener('click', () => {
+                if (!isLoggedIn) {
+                    window.location.href = 'login.html';
+                    return;
+                }
                 this.app.loadView('game');
             });
         }
 
         // Play options
         document.getElementById('quickPlayBtn')?.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+                return;
+            }
             this.app.loadView('game');
         });
 
         document.getElementById('onlinePlayBtn')?.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+                return;
+            }
             alert('Online game mode coming soon!');
         });
 
         document.getElementById('tournamentBtn')?.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+                return;
+            }
             this.app.loadView('tournament');
         });
 
         document.getElementById('startTournamentBtn')?.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+                return;
+            }
             this.app.loadView('tournament');
         });
 
         // Initialize search
         this.app.initNavbarSearch();
         this.app.initNetflixSearch();
+
+        // Load dynamic data from database
+        this.loadLeaderboard();
+        if (userData) {
+            this.loadUserStats();
+            this.loadRecentActivity();
+        }
+    }
+
+    /**
+     * Load leaderboard from database
+     */
+    loadLeaderboard() {
+        import('../utils/database.js').then(module => {
+            const db = module.default;
+            const users = db.find('users')
+                .sort((a, b) => (b.wins || 0) - (a.wins || 0))
+                .slice(0, 5);
+
+            const leaderboardList = document.getElementById('leaderboardList');
+            if (!leaderboardList) return;
+
+            if (users.length === 0) {
+                leaderboardList.innerHTML = '<li class="text-muted">No players yet. Be the first to play!</li>';
+                return;
+            }
+
+            leaderboardList.innerHTML = users.map((user, index) => {
+                const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+                const points = (user.wins || 0) * 10;
+                return `
+                    <li class="leaderboard-item">
+                        <span class="rank ${rankClass}" aria-label="Rank ${index + 1}">${index + 1}</span>
+                        <span class="player-name">${user.username}</span>
+                        <span class="player-score" aria-label="${points} points">${points} pts</span>
+                    </li>
+                `;
+            }).join('');
+        });
+    }
+
+    /**
+     * Load user stats from database
+     */
+    loadUserStats() {
+        const userDataStr = localStorage.getItem('userData');
+        if (!userDataStr) return;
+        
+        const userData = JSON.parse(userDataStr);
+
+        import('../utils/database.js').then(module => {
+            const db = module.default;
+            const user = db.findOne('users', { id: userData.userId });
+            if (!user) return;
+
+            // Update dashboard stats
+            document.querySelectorAll('.big-number').forEach((el, index) => {
+                if (index === 0) el.textContent = user.wins || 0; // Total wins
+                if (index === 1) {
+                    const winRate = user.gamesPlayed > 0 
+                        ? ((user.wins / user.gamesPlayed) * 100).toFixed(1) 
+                        : 0;
+                    el.textContent = winRate + '%';
+                }
+            });
+        }).catch(err => {
+            console.error('Error loading user stats:', err);
+        });
+    }
+
+    /**
+     * Load recent activity from database
+     */
+    loadRecentActivity() {
+        const userDataStr = localStorage.getItem('userData');
+        if (!userDataStr) return;
+        
+        const userData = JSON.parse(userDataStr);
+
+        import('../utils/database.js').then(module => {
+            const db = module.default;
+            const matches = db.find('matches', { userId: userData.userId })
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .slice(0, 5);
+
+            const activityList = document.getElementById('activityList');
+            if (!activityList) return;
+
+            if (matches.length === 0) {
+                activityList.innerHTML = '<li class="text-muted">No recent activity</li>';
+                return;
+            }
+
+            activityList.innerHTML = matches.map(match => {
+                const icon = match.result === 'win' 
+                    ? '<svg class="activity-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>'
+                    : '<i class="fas fa-times-circle activity-icon"></i>';
+                const action = match.result === 'win' ? 'won against' : 'lost to';
+                const timeAgo = this.getTimeAgo(match.createdAt);
+                
+                return `
+                    <li class="activity-item">
+                        ${icon}
+                        <div class="activity-content">
+                            <p class="activity-text">You ${action} <strong>${match.opponent}</strong></p>
+                            <time class="activity-time">${timeAgo}</time>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        }).catch(err => {
+            console.error('Error loading recent activity:', err);
+        });
+    }
+
+    /**
+     * Get time ago string
+     * @param {string} dateString - ISO date string
+     * @returns {string} Time ago string
+     */
+    getTimeAgo(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+        
+        if (seconds < 60) return 'Just now';
+        if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes ago';
+        if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
+        if (seconds < 604800) return Math.floor(seconds / 86400) + ' days ago';
+        return date.toLocaleDateString();
     }
 }
