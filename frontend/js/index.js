@@ -2,8 +2,6 @@
  * Main SPA Application Controller
  */
 
-console.log('index.js loaded');
-
 import { PongGame } from './pong-engine.js';
 import { TournamentManager } from './tournament.js';
 import { initTheme } from './theme.js';
@@ -16,8 +14,6 @@ import { STORAGE_KEYS } from './utils/constants.js';
 import { getItem } from './utils/storage.js';
 import { initNavbarSearch as initNavbarSearchUtil, initNotifications as initNotificationsUtil } from './utils/navbar.js';
 import { initMainSearch } from './utils/search.js';
-
-console.log('All imports successful');
 
 class App {
     constructor() {
@@ -158,10 +154,8 @@ class App {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing App...');
     try {
         new App();
-        console.log('App initialized successfully');
     } catch (error) {
         console.error('Error initializing App:', error);
         document.getElementById('app').innerHTML = `
