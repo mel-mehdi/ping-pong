@@ -3,6 +3,10 @@
  * Handles user profile display and editing
  */
 
+import { renderNavbar } from '../components/navbar.js';
+import { STORAGE_KEYS } from '../utils/constants.js';
+import { getItem } from '../utils/storage.js';
+
 export class ProfileView {
     constructor(app) {
         this.app = app;
@@ -12,47 +16,13 @@ export class ProfileView {
      * Render profile view
      */
     render() {
-        const username = localStorage.getItem('username') || 'Player';
-        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        const userData = getItem(STORAGE_KEYS.USER_DATA);
+        const username = userData?.username || 'Player';
+        const isLoggedIn = !!userData;
+        const userAvatar = localStorage.getItem('userAvatar');
         
         this.app.appContainer.innerHTML = `
-            <nav class="navbar">
-                <div class="nav-container">
-                    <div class="nav-brand">
-                        <h2>FT Transcendence</h2>
-                    </div>
-                    <ul class="nav-menu">
-                        <li><a href="#home">Home</a></li>
-                        <li><a href="#game">Play</a></li>
-                        <li><a href="#chat">Chat</a></li>
-                        <li><a href="profile.html" class="active">Profile</a></li>
-                        ${isLoggedIn ? 
-                            '<li><a href="login.html" id="logoutBtn">Logout</a></li>' : 
-                            '<li><a href="login.html">Login</a></li><li><a href="register.html">Sign Up</a></li>'
-                        }
-                    </ul>
-                    <div class="nav-actions">
-                        <div class="nav-search-input-wrapper">
-                            <i class="fas fa-search nav-search-icon"></i>
-                            <input 
-                                type="text" 
-                                class="nav-search-input" 
-                                id="navSearchInput"
-                                placeholder="Search players to invite..."
-                                autocomplete="off"
-                            />
-                            <div class="nav-search-results hidden" id="navSearchResults"></div>
-                        </div>
-                        <button class="nav-icon-btn" id="navNotificationsBtn" title="Notifications" aria-label="Notifications">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                            </svg>
-                            <span class="notification-badge hidden" id="navNotificationBadge">0</span>
-                        </button>
-                    </div>
-                </div>
-            </nav>
+            ${renderNavbar('profile')}
 
             <main class="main-container">
                 <div class="profile-view">
@@ -60,7 +30,10 @@ export class ProfileView {
                         <div class="profile-header">
                             <div class="profile-avatar">
                                 <div class="avatar-circle">
-                                    ${username.charAt(0).toUpperCase()}
+                                    ${userAvatar ? 
+                                        `<img src="${userAvatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : 
+                                        username.charAt(0).toUpperCase()
+                                    }
                                 </div>
                                 <button class="avatar-edit-btn" id="editAvatarBtn"><i class="fas fa-camera"></i></button>
                             </div>
@@ -75,28 +48,28 @@ export class ProfileView {
                             <div class="stat-card">
                                 <div class="stat-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg></div>
                                 <div class="stat-content">
-                                    <div class="stat-value">127</div>
+                                    <div class="stat-value" id="gamesPlayed">0</div>
                                     <div class="stat-label">Games Played</div>
                                 </div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></div>
                                 <div class="stat-content">
-                                    <div class="stat-value">89</div>
+                                    <div class="stat-value" id="totalWins">0</div>
                                     <div class="stat-label">Wins</div>
                                 </div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>
                                 <div class="stat-content">
-                                    <div class="stat-value">70%</div>
+                                    <div class="stat-value" id="winRate">0%</div>
                                     <div class="stat-label">Win Rate</div>
                                 </div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
                                 <div class="stat-content">
-                                    <div class="stat-value">#42</div>
+                                    <div class="stat-value" id="userRank">-</div>
                                     <div class="stat-label">Rank</div>
                                 </div>
                             </div>
@@ -107,38 +80,9 @@ export class ProfileView {
                                 <div class="section-header">
                                     <h2>Recent Matches</h2>
                                 </div>
-                                <div class="matches-list">
-                                    <div class="match-item win">
-                                        <div class="match-icon">W</div>
-                                        <div class="match-details">
-                                            <div class="match-opponent">vs Bob</div>
-                                            <div class="match-time">2 hours ago</div>
-                                        </div>
-                                        <div class="match-score">11 - 8</div>
-                                    </div>
-                                    <div class="match-item win">
-                                        <div class="match-icon">W</div>
-                                        <div class="match-details">
-                                            <div class="match-opponent">vs Alice</div>
-                                            <div class="match-time">5 hours ago</div>
-                                        </div>
-                                        <div class="match-score">11 - 7</div>
-                                    </div>
-                                    <div class="match-item loss">
-                                        <div class="match-icon">L</div>
-                                        <div class="match-details">
-                                            <div class="match-opponent">vs Charlie</div>
-                                            <div class="match-time">1 day ago</div>
-                                        </div>
-                                        <div class="match-score">9 - 11</div>
-                                    </div>
-                                    <div class="match-item win">
-                                        <div class="match-icon">W</div>
-                                        <div class="match-details">
-                                            <div class="match-opponent">vs Diana</div>
-                                            <div class="match-time">2 days ago</div>
-                                        </div>
-                                        <div class="match-score">11 - 6</div>
+                                <div class="matches-list" id="recentMatches">
+                                    <div class="empty-state">
+                                        <p>No matches played yet</p>
                                     </div>
                                 </div>
                             </div>
@@ -147,30 +91,9 @@ export class ProfileView {
                                 <div class="section-header">
                                     <h2>Achievements</h2>
                                 </div>
-                                <div class="achievements-grid">
-                                    <div class="achievement-item unlocked">
-                                        <div class="achievement-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>
-                                        <div class="achievement-name">First Win</div>
-                                    </div>
-                                    <div class="achievement-item unlocked">
-                                        <div class="achievement-icon"><i class="fas fa-fire"></i></div>
-                                        <div class="achievement-name">5 Win Streak</div>
-                                    </div>
-                                    <div class="achievement-item unlocked">
-                                        <div class="achievement-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
-                                        <div class="achievement-name">100 Games</div>
-                                    </div>
-                                    <div class="achievement-item">
-                                        <div class="achievement-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20"></path><path d="m3.5 6 2 8h13l2-8"></path><path d="m7 11 2-5"></path><path d="m15 11-2-5"></path><path d="M12 16v-6"></path></svg></div>
-                                        <div class="achievement-name">Champion</div>
-                                    </div>
-                                    <div class="achievement-item">
-                                        <div class="achievement-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"></circle><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path></svg></div>
-                                        <div class="achievement-name">Legend</div>
-                                    </div>
-                                    <div class="achievement-item">
-                                        <div class="achievement-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>
-                                        <div class="achievement-name">Perfect Game</div>
+                                <div class="achievements-grid" id="achievementsList">
+                                    <div class="empty-state">
+                                        <p>Play games to unlock achievements</p>
                                     </div>
                                 </div>
                             </div>
@@ -223,6 +146,159 @@ export class ProfileView {
         `;
 
         this.initEditProfile();
+        this.initAvatarEdit();
+        this.loadUserStats(userData);
+    }
+
+    loadUserStats(userData) {
+        if (!userData || !userData.userId) return;
+        
+        import('../utils/database.js').then(module => {
+            const db = module.default;
+            
+            // Get user from database
+            const user = db.findOne('users', { id: userData.userId });
+            if (!user) return;
+            
+            // Get all matches for this user
+            const matches = db.find('matches', match => 
+                match.player1Id === userData.userId || match.player2Id === userData.userId
+            );
+            
+            // Calculate stats
+            const gamesPlayed = matches.length;
+            const wins = matches.filter(match => {
+                if (match.player1Id === userData.userId) {
+                    return match.player1Score > match.player2Score;
+                } else {
+                    return match.player2Score > match.player1Score;
+                }
+            }).length;
+            
+            const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
+            
+            // Update UI
+            const gamesPlayedEl = document.getElementById('gamesPlayed');
+            const totalWinsEl = document.getElementById('totalWins');
+            const winRateEl = document.getElementById('winRate');
+            const userRankEl = document.getElementById('userRank');
+            
+            if (gamesPlayedEl) gamesPlayedEl.textContent = gamesPlayed;
+            if (totalWinsEl) totalWinsEl.textContent = wins;
+            if (winRateEl) winRateEl.textContent = `${winRate}%`;
+            if (userRankEl) userRankEl.textContent = user.rank ? `#${user.rank}` : '-';
+            
+            // Load recent matches
+            if (matches.length > 0) {
+                this.loadRecentMatches(matches, userData.userId);
+            }
+        }).catch(err => {
+            console.error('Error loading user stats:', err);
+        });
+    }
+    
+    loadRecentMatches(matches, userId) {
+        const recentMatchesEl = document.getElementById('recentMatches');
+        if (!recentMatchesEl || matches.length === 0) return;
+        
+        // Sort by date and take last 5
+        const recentMatches = matches
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(0, 5);
+        
+        import('../utils/database.js').then(module => {
+            const db = module.default;
+            
+            recentMatchesEl.innerHTML = recentMatches.map(match => {
+                const isPlayer1 = match.player1Id === userId;
+                const userScore = isPlayer1 ? match.player1Score : match.player2Score;
+                const opponentScore = isPlayer1 ? match.player2Score : match.player1Score;
+                const opponentId = isPlayer1 ? match.player2Id : match.player1Id;
+                const opponent = db.findOne('users', { id: opponentId });
+                const opponentName = opponent ? opponent.username : 'Unknown';
+                const isWin = userScore > opponentScore;
+                
+                // Format time
+                const matchDate = new Date(match.date);
+                const now = new Date();
+                const diffMs = now - matchDate;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                let timeStr;
+                if (diffMins < 60) {
+                    timeStr = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+                } else if (diffHours < 24) {
+                    timeStr = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                } else {
+                    timeStr = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+                }
+                
+                return `
+                    <div class="match-item ${isWin ? 'win' : 'loss'}">
+                        <div class="match-icon">${isWin ? 'W' : 'L'}</div>
+                        <div class="match-details">
+                            <div class="match-opponent">vs ${opponentName}</div>
+                            <div class="match-time">${timeStr}</div>
+                        </div>
+                        <div class="match-score">${userScore} - ${opponentScore}</div>
+                    </div>
+                `;
+            }).join('');
+        });
+    }
+
+    /**
+     * Initialize avatar editing functionality
+     */
+    initAvatarEdit() {
+        const editAvatarBtn = document.getElementById('editAvatarBtn');
+        
+        if (editAvatarBtn) {
+            editAvatarBtn.addEventListener('click', () => {
+                // Create file input dynamically
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = 'image/*';
+                
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        // Validate file size (max 2MB)
+                        if (file.size > 2 * 1024 * 1024) {
+                            alert('Image size must be less than 2MB');
+                            return;
+                        }
+                        
+                        // Validate file type
+                        if (!file.type.startsWith('image/')) {
+                            alert('Please select a valid image file');
+                            return;
+                        }
+                        
+                        // Read and store image as base64
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const imageData = event.target.result;
+                            localStorage.setItem('userAvatar', imageData);
+                            
+                            // Update avatar display
+                            const avatarCircle = document.querySelector('.avatar-circle');
+                            if (avatarCircle) {
+                                avatarCircle.innerHTML = `<img src="${imageData}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                            }
+                            
+                            alert('Avatar updated successfully!');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+                
+                // Trigger file input click
+                fileInput.click();
+            });
+        }
     }
 
     /**

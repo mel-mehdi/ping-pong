@@ -14,6 +14,8 @@ import { ChatView } from './views/chat.js';
 import { ProfileView } from './views/profile.js';
 import { STORAGE_KEYS } from './utils/constants.js';
 import { getItem } from './utils/storage.js';
+import { initNavbarSearch as initNavbarSearchUtil, initNotifications as initNotificationsUtil } from './utils/navbar.js';
+import { initMainSearch } from './utils/search.js';
 
 console.log('All imports successful');
 
@@ -135,59 +137,17 @@ class App {
         initTheme();
         
         // Initialize navbar features if present
-        this.initNavbarButtons();
-        this.initNavbarSearch();
+        initNavbarSearchUtil(this);
+        initNotificationsUtil(this);
     }
 
-    initNavbarButtons() {
-        const navNotifBtn = document.getElementById('navNotificationsBtn');
-        const navNotifBadge = document.getElementById('navNotificationBadge');
-
-        // Update notification badge from localStorage
-        if (navNotifBadge) {
-            const receivedRequests = JSON.parse(localStorage.getItem('receivedRequests') || '[]');
-            if (receivedRequests.length > 0) {
-                navNotifBadge.textContent = receivedRequests.length;
-                navNotifBadge.classList.remove('hidden');
-            } else {
-                navNotifBadge.classList.add('hidden');
-            }
-        }
-
-        // Notification button - toggle notification panel directly
-        if (navNotifBtn && !this.notificationClickHandler) {
-            this.notificationClickHandler = (e) => {
-                e.stopPropagation();
-                const notifPanel = document.getElementById('notificationPanel');
-                notifPanel?.classList.toggle('hidden');
-                this.displayNotifications();
-            };
-            navNotifBtn.addEventListener('click', this.notificationClickHandler);
-        }
-
-        // Close notification panel when clicking outside
-        if (!this.documentClickHandler) {
-            this.documentClickHandler = (e) => {
-                const notifPanel = document.getElementById('notificationPanel');
-                const navNotifBtn = document.getElementById('navNotificationsBtn');
-                if (notifPanel && !notifPanel.contains(e.target) && !navNotifBtn?.contains(e.target)) {
-                    notifPanel.classList.add('hidden');
-                }
-            };
-            document.addEventListener('click', this.documentClickHandler);
-        }
-    }
-
+    // Wrapper methods for view modules to call
     initNavbarSearch() {
-        // Stub for navbar search functionality - implement in view modules as needed
+        initNavbarSearchUtil(this);
     }
 
     initNetflixSearch() {
-        // Stub for Netflix-style search functionality - implement in view modules as needed
-    }
-
-    displayNotifications() {
-        // Stub for displaying notifications - implement as needed
+        initMainSearch(this);
     }
 
     highlightMatch(text, query) {

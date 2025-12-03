@@ -4,6 +4,7 @@
  */
 
 import { PongGame } from '../pong-engine.js';
+import { renderNavbar } from '../components/navbar.js';
 
 export class GameView {
     constructor(app) {
@@ -14,43 +15,7 @@ export class GameView {
         const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
         
         this.app.appContainer.innerHTML = `
-            <nav class="navbar">
-                <div class="nav-container">
-                    <div class="nav-brand">
-                        <h2>FT Transcendence</h2>
-                    </div>
-                    <ul class="nav-menu">
-                        <li><a href="#home">Home</a></li>
-                        <li><a href="#game" class="active">Play</a></li>
-                        <li><a href="#chat">Chat</a></li>
-                        <li><a href="profile.html">Profile</a></li>
-                        ${isLoggedIn ? 
-                            '<li><a href="login.html" id="logoutBtn">Logout</a></li>' : 
-                            '<li><a href="login.html">Login</a></li><li><a href="register.html">Sign Up</a></li>'
-                        }
-                    </ul>
-                    <div class="nav-actions">
-                        <div class="nav-search-input-wrapper">
-                            <i class="fas fa-search nav-search-icon"></i>
-                            <input 
-                                type="text" 
-                                class="nav-search-input" 
-                                id="navSearchInput"
-                                placeholder="Search players to invite..."
-                                autocomplete="off"
-                            />
-                            <div class="nav-search-results hidden" id="navSearchResults"></div>
-                        </div>
-                        <button class="nav-icon-btn" id="navNotificationsBtn" title="Notifications" aria-label="Notifications">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                            </svg>
-                            <span class="notification-badge hidden" id="navNotificationBadge">0</span>
-                        </button>
-                    </div>
-                </div>
-            </nav>
+            ${renderNavbar('game')}
 
             <main class="main-container">
                 <div class="game-view">
