@@ -3,6 +3,8 @@
  * Netflix-style search functionality
  */
 
+import api from './api.js';
+
 export function initMainSearch(app) {
     const searchBtn = document.getElementById('mainSearchBtn');
     const searchOverlay = document.getElementById('searchOverlay');
@@ -12,35 +14,27 @@ export function initMainSearch(app) {
 
     if (!searchOverlay || !searchInput || !searchResults) return;
 
-    // Load searchable data from database
-    let searchData = {
-        players: [],
-        games: [
-            { type: 'game', name: 'Quick Match', description: 'Fast-paced 1v1 game', icon: 'gamepad' },
-            { type: 'game', name: 'Tournament Mode', description: 'Compete in brackets', icon: 'trophy' },
-        ],
-        features: [
-            { type: 'feature', name: 'Leaderboard', description: 'View top players', icon: 'ranking-star' },
-            { type: 'feature', name: 'Chat', description: 'Connect with players', icon: 'comments' },
-            { type: 'feature', name: 'Profile', description: 'Manage your profile', icon: 'user' },
-        ]
-    };
-    
-    import('./database.js').then(module => {
-        const db = module.default;
-        const users = db.find('users');
-        searchData.players = users.map(user => {
-            const total = user.wins + user.losses;
-            const winRate = total > 0 ? Math.round((user.wins / total) * 100) + '%' : '0%';
-            return {
-                type: 'player',
-                name: user.username,
-                rank: `#${user.rank || '?'}`,
-                status: 'Online',
-                winRate
-            };
-        });
-    }).catch(err => console.error('Error loading search data:', err));
+    // Function to load fresh player data from database
+    async function loadPlayersFromDatabase() {
+        try {
+            const users = await api.getAllUsers();
+            console.log('Loaded users for search:', users);
+            return users.map(user => {
+                const total = user.wins + user.losses;
+                const winRate = total > 0 ? Math.round((user.wins / total) * 100) + '%' : '0%';
+                return {
+                    type: 'player',
+                    name: user.username,
+                    rank: `#${user.rank || '?'}`,
+                    status: 'Online',
+                    winRate
+                };
+            });
+        } catch (error) {
+            console.error('Error loading users:', error);
+            return [];
+        }
+    }
 
     const gameData = [
         { type: 'game', name: 'Quick Match', description: 'Fast-paced 1v1 game', icon: 'gamepad' },
@@ -87,7 +81,7 @@ export function initMainSearch(app) {
         let debounceTimer;
         searchInput.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
+            debounceTimer = setTimeout(async () => {
                 const query = e.target.value.toLowerCase().trim();
 
                 if (!query) {
@@ -100,13 +94,19 @@ export function initMainSearch(app) {
                     return;
                 }
 
+                // Load fresh player data from database
+                const players = await loadPlayersFromDatabase();
+                console.log('Search query:', query);
+                console.log('Players loaded:', players);
+
                 // Filter all data
                 const allResults = [];
                 
                 // Search players
-                const playerMatches = searchData.players.filter(item => 
+                const playerMatches = players.filter(item => 
                     item.name.toLowerCase().includes(query)
                 );
+                console.log('Player matches:', playerMatches);
                 
                 // Search games
                 const gameMatches = gameData.filter(item => 

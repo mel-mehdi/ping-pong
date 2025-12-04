@@ -1,0 +1,46 @@
+{
+  "users": [
+    {
+      "id": "miret67etw7wihc75",
+      "username": "test",
+      "email": "test@gmail.com",
+      "fullname": "test",
+      "passwordHash": "n7qt9z",
+      "avatar": null,
+      "wins": 0,
+      "losses": 0,
+      "gamesPlayed": 0,
+      "createdAt": "2025-12-04T12:25:54.602Z"
+    },
+    {
+      "id": "miretb8aqnx39zb2v",
+      "username": "melmehdi",
+      "email": "mehdimahfoud321@gmail.com",
+      "fullname": "melmehdi",
+      "passwordHash": "n7qt9z",
+      "avatar": null,
+      "wins": 0,
+      "losses": 0,
+      "gamesPlayed": 0,
+      "createdAt": "2025-12-04T12:26:01.114Z"
+    }
+  ],
+  "sessions": [],
+  "gameInvitations": [
+    {
+      "id": "mireu9i0z4w9g4cec",
+      "from": "mehdi",
+      "fromId": "mirdc39lbu26glo90",
+      "to": "test",
+      "toId": "miret67etw7wihc75",
+      "type": "game",
+      "status": "pending",
+      "timestamp": 1764851205528,
+      "createdAt": "2025-12-04T12:26:45.528Z"
+    }
+  ],
+  "friendRequests": [],
+  "matches": [],
+  "tournaments": [],
+  "messages": []
+}

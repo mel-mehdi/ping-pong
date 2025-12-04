@@ -12,7 +12,7 @@ import {
     clearAllErrors
 } from './utils/validation.js';
 import { getById, addEvent } from './utils/dom.js';
-import db from './utils/database.js';
+import api from './utils/api.js';
 
 // Authentication handling
 document.addEventListener('DOMContentLoaded', function() {
@@ -50,7 +50,7 @@ function initLoginForm(form) {
         }
     });
 
-    addEvent(form, 'submit', function(e) {
+    addEvent(form, 'submit', async function(e) {
         e.preventDefault();
         clearAllErrors(form);
         
@@ -77,42 +77,43 @@ function initLoginForm(form) {
             return;
         }
 
-        // Authenticate user
-        const user = db.findOne('users', { username: username });
-        
-        if (!user) {
-            showError('username', 'User not found');
-            return;
-        }
-
-        if (!db.verifyPassword(password, user.passwordHash)) {
-            showError('password', 'Invalid password');
-            return;
-        }
-
-        // Create session
-        const sessionData = {
-            userId: user.id,
-            username: user.username,
-            email: user.email,
-            fullname: user.fullname,
-            avatar: user.avatar,
-            loggedIn: true,
-            loginTime: new Date().toISOString()
-        };
-        
-        setItem(STORAGE_KEYS.USER_DATA, sessionData);
-        
-        // Store session in database
-        db.insert('sessions', {
-            userId: user.id,
-            loginTime: new Date().toISOString()
-        });
-        
-        // Show success and redirect
+        // Show loading state
         form.classList.add('loading');
-        setTimeout(() => {
-            window.location.href = ROUTES.HOME;
-        }, 500);
+
+        try {
+            // Authenticate user via API
+            const response = await api.login(username, password);
+            const user = response.user;
+
+            // Create session
+            const sessionData = {
+                userId: user.id,
+                username: user.username,
+                email: user.email,
+                fullname: user.fullname,
+                avatar: user.avatar,
+                loggedIn: true,
+                loginTime: new Date().toISOString()
+            };
+            
+            setItem(STORAGE_KEYS.USER_DATA, sessionData);
+            
+            console.log('✅ Login successful! User:', user.username);
+            
+            // Redirect to home
+            setTimeout(() => {
+                window.location.href = ROUTES.HOME;
+            }, 500);
+            
+        } catch (error) {
+            form.classList.remove('loading');
+            console.error('Login error:', error);
+            
+            if (error.message.includes('Invalid credentials')) {
+                showError('password', 'Invalid username or password');
+            } else {
+                alert('Login failed: ' + error.message);
+            }
+        }
     });
 }

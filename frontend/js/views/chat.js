@@ -4,6 +4,7 @@
  */
 
 import { renderNavbar } from '../components/navbar.js';
+import api from '../utils/api.js';
 
 export class ChatView {
     constructor(app) {
@@ -99,6 +100,17 @@ export class ChatView {
         this.initChat();
         this.initUserSearch();
 
+        // Listen for friend updates
+        window.addEventListener('friendsUpdated', () => {
+            console.log('Friends updated, reloading conversations...');
+            this.loadConversations();
+        });
+
+        // Auto-refresh conversations every 5 seconds to check for new friends
+        this.conversationInterval = setInterval(() => {
+            this.loadConversations();
+        }, 5000);
+
         if (isLoggedIn) {
             document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -119,6 +131,12 @@ export class ChatView {
         const chatUsersList = document.getElementById('chatUsersList');
         const username = localStorage.getItem('username') || 'Player';
 
+        // Load accepted friends/conversations
+        this.loadConversations();
+
+        // Store current chat friend
+        this.currentChatFriend = null;
+
         // Auto-resize textarea
         if (chatInput) {
             chatInput.addEventListener('input', function() {
@@ -137,40 +155,51 @@ export class ChatView {
 
         // Send message
         if (chatSendBtn) {
-            chatSendBtn.addEventListener('click', () => {
+            chatSendBtn.addEventListener('click', async () => {
                 const message = chatInput.value.trim();
-                if (message) {
-                    const time = new Date().toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit' 
-                    });
+                if (message && this.currentChatFriend) {
+                    const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+                    
+                    try {
+                        // Send message to backend
+                        await api.sendMessage(currentUser.userId, this.currentChatFriend.id, message);
+                        
+                        const time = new Date().toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit' 
+                        });
 
-                    const messageHTML = `
-                        <div class="chat-message own">
-                            <div class="chat-message-avatar">${username.charAt(0).toUpperCase()}</div>
-                            <div class="chat-message-content">
-                                <div class="chat-message-bubble">
-                                    <p class="chat-message-text">${this.escapeHtml(message)}</p>
+                        const messageHTML = `
+                            <div class="chat-message own">
+                                <div class="chat-message-avatar">${username.charAt(0).toUpperCase()}</div>
+                                <div class="chat-message-content">
+                                    <div class="chat-message-bubble">
+                                        <p class="chat-message-text">${this.escapeHtml(message)}</p>
+                                    </div>
+                                    <div class="chat-message-time">${time}</div>
                                 </div>
-                                <div class="chat-message-time">${time}</div>
                             </div>
-                        </div>
-                    `;
+                        `;
 
-                    chatMessages.insertAdjacentHTML('beforeend', messageHTML);
-                    chatInput.value = '';
-                    chatInput.style.height = 'auto';
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-                    // TODO: Send message to backend/database
-                    // For now, messages are only displayed locally
+                        chatMessages.insertAdjacentHTML('beforeend', messageHTML);
+                        chatInput.value = '';
+                        chatInput.style.height = 'auto';
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        
+                        console.log('✅ Message sent successfully!');
+                    } catch (error) {
+                        console.error('Error sending message:', error);
+                        alert('Failed to send message: ' + error.message);
+                    }
+                } else if (!this.currentChatFriend) {
+                    alert('Please select a friend to chat with!');
                 }
             });
         }
 
         // Switch users
         if (chatUsersList) {
-            chatUsersList.addEventListener('click', (e) => {
+            chatUsersList.addEventListener('click', async (e) => {
                 const userItem = e.target.closest('.chat-user-item');
                 if (userItem) {
                     // Update active state
@@ -179,29 +208,82 @@ export class ChatView {
                     });
                     userItem.classList.add('active');
 
+                    // Get friend info
+                    const friendId = userItem.dataset.userId;
+                    const friendName = userItem.querySelector('.chat-user-name').textContent;
+                    const friendAvatar = userItem.querySelector('.chat-user-avatar').textContent;
+                    
+                    this.currentChatFriend = {
+                        id: friendId,
+                        name: friendName,
+                        avatar: friendAvatar
+                    };
+
                     // Update header
-                    this.currentUser = userItem.dataset.user;
-                    const avatar = userItem.querySelector('.chat-user-avatar').textContent;
-                    const name = userItem.querySelector('.chat-user-name').textContent;
-                    const status = userItem.querySelector('.chat-user-status').textContent;
+                    document.querySelector('.chat-header-title').textContent = friendName;
+                    document.querySelector('.chat-header-status').textContent = 'Online';
+                    document.querySelector('.chat-header .chat-user-avatar').textContent = friendAvatar;
 
-                    document.querySelector('.chat-header-title').textContent = name;
-                    document.querySelector('.chat-header-status').textContent = status;
-                    document.querySelector('.chat-header .chat-user-avatar').textContent = avatar;
-
-                    // Clear messages and show new conversation
-                    chatMessages.innerHTML = `
-                        <div class="chat-date-divider">
-                            <span class="chat-date-text">Today</span>
-                        </div>
-                        <div class="chat-empty-state">
-                            <div class="chat-empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></div>
-                            <div class="chat-empty-text">Start a conversation with ${name}</div>
-                            <div class="chat-empty-subtext">Send a message to get started</div>
-                        </div>
-                    `;
+                    // Load messages for this conversation
+                    await this.loadMessages(friendId);
                 }
             });
+        }
+    }
+
+    /**
+     * Load messages between current user and a friend
+     */
+    async loadMessages(friendId) {
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return;
+
+        try {
+            const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+            const messages = await api.getMessages(currentUser.userId, friendId);
+            
+            if (messages.length === 0) {
+                chatMessages.innerHTML = `
+                    <div class="text-muted" style="text-align: center; padding: 2rem;">
+                        <p>No messages yet. Start the conversation!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Display messages
+            chatMessages.innerHTML = messages.map(msg => {
+                const isOwn = msg.fromId === currentUser.userId;
+                const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit' 
+                });
+                const avatar = isOwn ? currentUser.username.charAt(0).toUpperCase() : this.currentChatFriend.avatar;
+
+                return `
+                    <div class="chat-message ${isOwn ? 'own' : ''}">
+                        <div class="chat-message-avatar">${avatar}</div>
+                        <div class="chat-message-content">
+                            <div class="chat-message-bubble">
+                                <p class="chat-message-text">${this.escapeHtml(msg.message)}</p>
+                            </div>
+                            <div class="chat-message-time">${time}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Mark messages as read
+            await api.markMessagesAsRead(currentUser.userId, friendId);
+        } catch (error) {
+            console.error('Error loading messages:', error);
+            chatMessages.innerHTML = `
+                <div class="text-muted" style="text-align: center; padding: 2rem;">
+                    <p>Error loading messages</p>
+                </div>
+            `;
         }
     }
 
@@ -217,21 +299,29 @@ export class ChatView {
 
         // Load users from database
         let allUsers = [];
-        import('../utils/database.js').then(module => {
-            const db = module.default;
-            const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
-            allUsers = db.find('users')
-                .filter(user => user.id !== currentUser.userId)
-                .map(user => ({
-                    id: user.id,
-                    name: user.username,
-                    status: 'Online',
-                    avatar: user.username[0].toUpperCase()
-                }));
-        }).catch(err => console.error('Error loading users:', err));
+        
+        async function loadUsers() {
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+                const users = await api.getAllUsers();
+                allUsers = users
+                    .filter(user => user.id !== currentUser.userId)
+                    .map(user => ({
+                        id: user.id,
+                        name: user.username,
+                        status: 'Online',
+                        avatar: user.username[0].toUpperCase()
+                    }));
+                console.log('Loaded users for chat:', allUsers);
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+        
+        loadUsers();
 
-        let friendRequests = JSON.parse(localStorage.getItem('friendRequests') || '[]');
-        let friends = JSON.parse(localStorage.getItem('friends') || '[]');
+        let friendRequests = [];
+        let friends = [];
 
         // Open modal
         if (searchBtn) {
@@ -312,10 +402,20 @@ export class ChatView {
 
             // Add event listeners to add buttons
             searchResults.querySelectorAll('.add-user-btn:not([disabled])').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const userId = parseInt(btn.dataset.userId);
+                btn.addEventListener('click', async () => {
+                    const userId = btn.dataset.userId;
+                    console.log('Button clicked for userId:', userId);
+                    console.log('All users:', allUsers);
                     const user = allUsers.find(u => u.id === userId);
-                    sendFriendRequest(user);
+                    console.log('Found user:', user);
+                    
+                    if (!user) {
+                        console.error('User not found!');
+                        alert('Error: User not found');
+                        return;
+                    }
+                    
+                    await sendFriendRequest(user);
                     btn.disabled = true;
                     btn.classList.add('pending');
                     btn.textContent = 'Pending';
@@ -323,27 +423,112 @@ export class ChatView {
             });
         };
 
-        const sendFriendRequest = (user) => {
-            const username = localStorage.getItem('username') || 'Player';
-            friendRequests.push({
-                from: username,
-                to: user.id,
-                toName: user.name,
-                timestamp: Date.now()
-            });
-            localStorage.setItem('friendRequests', JSON.stringify(friendRequests));
-
-            // Simulate receiving the request (in real app, this would be server-side)
-            const receivedRequests = JSON.parse(localStorage.getItem('receivedRequests') || '[]');
-            receivedRequests.push({
-                from: username,
-                fromId: 0,
-                avatar: username.charAt(0).toUpperCase(),
-                timestamp: Date.now()
-            });
-            localStorage.setItem('receivedRequests', JSON.stringify(receivedRequests));
-            this.app.updateNotificationBadge();
+        const sendFriendRequest = async (user) => {
+            const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+            const username = currentUser.username || localStorage.getItem('username') || 'Player';
+            const userId = currentUser.userId || 0;
+            
+            console.log('Sending friend request from:', username, 'to:', user.name);
+            
+            try {
+                // Send friend request via API
+                await api.sendFriendRequest(
+                    userId,
+                    username,
+                    user.id,
+                    user.name
+                );
+                
+                console.log('✅ Friend request sent successfully!');
+                alert(`Friend request sent to ${user.name}!`);
+                
+                // Update notification badge
+                if (this.app.updateNotificationBadge) {
+                    this.app.updateNotificationBadge();
+                }
+                
+            } catch (error) {
+                console.error('Error sending friend request:', error);
+                alert('Failed to send friend request: ' + error.message);
+            }
         };
+    }
+
+    /**
+     * Load conversations from accepted friend requests and invitations
+     */
+    async loadConversations() {
+        const chatUsersList = document.getElementById('chatUsersList');
+        if (!chatUsersList) return;
+
+        try {
+            const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+            
+            if (!currentUser.userId) {
+                return;
+            }
+
+            // Get accepted invitations and friend requests
+            const invitations = await api.getInvitations(currentUser.userId);
+            const acceptedInvitations = invitations.filter(inv => 
+                inv.status === 'accepted' && 
+                (inv.toId === currentUser.userId || inv.fromId === currentUser.userId)
+            );
+
+            const friendRequests = await api.getFriendRequests(currentUser.userId);
+            const acceptedRequests = friendRequests.filter(req => 
+                req.status === 'accepted' &&
+                (req.toId === currentUser.userId || req.fromId === currentUser.userId)
+            );
+
+            // Combine and deduplicate friends
+            const friends = new Map();
+
+            acceptedInvitations.forEach(inv => {
+                const friendId = inv.toId === currentUser.userId ? inv.fromId : inv.toId;
+                const friendName = inv.toId === currentUser.userId ? inv.from : inv.to;
+                friends.set(friendId, {
+                    id: friendId,
+                    name: friendName,
+                    avatar: friendName.charAt(0).toUpperCase()
+                });
+            });
+
+            acceptedRequests.forEach(req => {
+                const friendId = req.toId === currentUser.userId ? req.fromId : req.toId;
+                const friendName = req.toId === currentUser.userId ? req.from : req.to;
+                if (!friends.has(friendId)) {
+                    friends.set(friendId, {
+                        id: friendId,
+                        name: friendName,
+                        avatar: friendName.charAt(0).toUpperCase()
+                    });
+                }
+            });
+
+            // Display friends in chat list
+            if (friends.size === 0) {
+                chatUsersList.innerHTML = '<li class="text-muted" style="padding: 1rem; text-align: center;">No conversations yet. Add friends to start chatting!</li>';
+            } else {
+                chatUsersList.innerHTML = Array.from(friends.values()).map(friend => `
+                    <li class="chat-user-item" data-user-id="${friend.id}">
+                        <div class="chat-user-avatar">${friend.avatar}</div>
+                        <div class="chat-user-info">
+                            <div class="chat-user-name">${friend.name}</div>
+                            <div class="chat-user-last-message">Click to start chatting</div>
+                        </div>
+                        <div class="chat-user-meta">
+                            <span class="chat-user-time">Now</span>
+                            <span class="chat-user-status online"></span>
+                        </div>
+                    </li>
+                `).join('');
+            }
+
+            console.log('Loaded conversations:', friends.size, 'friends');
+        } catch (error) {
+            console.error('Error loading conversations:', error);
+        }
     }
 
     /**

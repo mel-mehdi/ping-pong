@@ -15,7 +15,7 @@ import {
     clearAllErrors
 } from './utils/validation.js';
 import { getById, addEvent } from './utils/dom.js';
-import db from './utils/database.js';
+import api from './utils/api.js';
 
 // Registration handling
 document.addEventListener('DOMContentLoaded', function() {
@@ -58,7 +58,7 @@ function initRegisterForm(form) {
         showError('confirmPassword', result.isValid ? '' : result.message);
     });
 
-    addEvent(form, 'submit', function(e) {
+    addEvent(form, 'submit', async function(e) {
         e.preventDefault();
         clearAllErrors(form);
         
@@ -104,54 +104,49 @@ function initRegisterForm(form) {
             return;
         }
 
-        // Check if user already exists
-        const existingUser = db.findOne('users', { username: username });
-        if (existingUser) {
-            showError('username', 'Username already taken');
-            return;
-        }
-
-        const existingEmail = db.findOne('users', { email: email });
-        if (existingEmail) {
-            showError('email', 'Email already registered');
-            return;
-        }
-
-        // Create new user
-        const newUser = db.insert('users', {
-            username: username,
-            email: email,
-            fullname: username,
-            passwordHash: db.hashPassword(password),
-            avatar: null,
-            wins: 0,
-            losses: 0,
-            gamesPlayed: 0
-        });
-        
-        // Create session
-        const sessionData = {
-            userId: newUser.id,
-            username: newUser.username,
-            email: newUser.email,
-            fullname: newUser.fullname,
-            avatar: newUser.avatar,
-            loggedIn: true,
-            loginTime: new Date().toISOString()
-        };
-        
-        setItem(STORAGE_KEYS.USER_DATA, sessionData);
-        
-        // Store session in database
-        db.insert('sessions', {
-            userId: newUser.id,
-            loginTime: new Date().toISOString()
-        });
-        
-        // Show success and redirect
+        // Show loading state
         form.classList.add('loading');
-        setTimeout(() => {
-            window.location.href = ROUTES.HOME;
-        }, 500);
+
+        try {
+            // Register user via API
+            const newUser = await api.register(username, email, password);
+            
+            console.log('✅ Registration successful! User:', newUser);
+            
+            // Create session data
+            const sessionData = {
+                userId: newUser.id,
+                username: newUser.username,
+                email: newUser.email,
+                fullname: newUser.fullname,
+                avatar: newUser.avatar,
+                loggedIn: true,
+                loginTime: new Date().toISOString()
+            };
+            
+            setItem(STORAGE_KEYS.USER_DATA, sessionData);
+            
+            alert(`Registration successful! Welcome ${username}!`);
+            
+            // Redirect to home
+            setTimeout(() => {
+                window.location.href = ROUTES.HOME;
+            }, 500);
+            
+        } catch (error) {
+            form.classList.remove('loading');
+            console.error('Registration error:', error);
+            
+            // Show appropriate error
+            if (error.message.includes('already exists')) {
+                if (error.message.includes('email')) {
+                    showError('email', 'Email already registered');
+                } else {
+                    showError('username', 'Username already taken');
+                }
+            } else {
+                alert('Registration failed: ' + error.message);
+            }
+        }
     });
 }

@@ -26,6 +26,7 @@ class Database {
     getCollection(collectionName) {
         const key = DB_PREFIX + collectionName;
         const data = localStorage.getItem(key);
+        console.log(`Getting collection '${collectionName}' with key '${key}':`, data ? JSON.parse(data) : []);
         return data ? JSON.parse(data) : [];
     }
 
@@ -36,6 +37,7 @@ class Database {
      */
     saveCollection(collectionName, data) {
         const key = DB_PREFIX + collectionName;
+        console.log(`Saving collection '${collectionName}' with key '${key}':`, data);
         localStorage.setItem(key, JSON.stringify(data));
     }
 

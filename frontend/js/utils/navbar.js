@@ -3,22 +3,31 @@
  * Handles navbar search and notifications
  */
 
+import api from './api.js';
+
 export function initNavbarSearch(app) {
     // Remove the initialization guard to allow re-initialization on view changes
     // This ensures the event listeners work after navigating between views
     
     // Load players from database
     let playerData = [];
-    import('./database.js').then(module => {
-        const db = module.default;
-        playerData = db.find('users').map(user => ({
-            id: user.id,
-            name: user.username,
-            status: 'Online',
-            rank: `#${user.rank || '?'}`,
-            avatar: user.username[0].toUpperCase()
-        }));
-    }).catch(err => console.error('Error loading players:', err));
+    
+    async function loadPlayers() {
+        try {
+            const users = await api.getAllUsers();
+            playerData = users.map(user => ({
+                id: user.id,
+                name: user.username,
+                status: 'Online',
+                rank: `#${user.rank || '?'}`,
+                avatar: user.username[0].toUpperCase()
+            }));
+        } catch (error) {
+            console.error('Error loading players:', error);
+        }
+    }
+    
+    loadPlayers();
 
     const navSearchInput = document.getElementById('navSearchInput');
     const navSearchResults = document.getElementById('navSearchResults');
@@ -59,10 +68,34 @@ export function initNavbarSearch(app) {
             // Attach event listeners after rendering
             setTimeout(() => {
                 navSearchResults.querySelectorAll('.result-action-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
+                    btn.addEventListener('click', async (e) => {
                         e.stopPropagation();
                         const playerName = btn.dataset.playerName;
-                        alert(`Game invitation sent to ${playerName}!`);
+                        const playerId = btn.closest('.nav-search-result-item').dataset.playerId;
+                        
+                        console.log('Sending invitation to:', playerName, 'ID:', playerId);
+                        
+                        // Get current user data
+                        const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+                        const username = currentUser.username || 'Player';
+                        
+                        try {
+                            // Send invitation via API
+                            await api.sendInvitation(
+                                currentUser.userId,
+                                username,
+                                playerId,
+                                playerName
+                            );
+                            
+                            console.log('✅ Game invitation sent successfully!');
+                            alert(`Game invitation sent to ${playerName}!`);
+                            
+                        } catch (error) {
+                            console.error('Error sending invitation:', error);
+                            alert('Failed to send invitation: ' + error.message);
+                        }
+                        
                         navSearchInput.value = '';
                         navSearchResults.classList.add('hidden');
                     });
@@ -111,72 +144,135 @@ export function initNotifications(app) {
     updateNotificationBadge();
 }
 
-function displayNotifications() {
+async function displayNotifications() {
     const notificationList = document.getElementById('notificationList');
     if (!notificationList) return;
 
-    const friendRequests = JSON.parse(localStorage.getItem('friendRequests') || '[]');
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+        
+        if (!currentUser.userId) {
+            notificationList.innerHTML = '<div class="notification-empty">Please login to see notifications</div>';
+            return;
+        }
 
-    if (friendRequests.length === 0) {
-        notificationList.innerHTML = '<div class="notification-empty">No new notifications</div>';
-        return;
-    }
+        // Fetch invitations from API
+        const invitations = await api.getInvitations(currentUser.userId);
+        const pendingInvitations = invitations.filter(inv => inv.status === 'pending' && inv.toId === currentUser.userId);
+        
+        // Fetch friend requests from API
+        const friendRequests = await api.getFriendRequests(currentUser.userId);
+        const pendingRequests = friendRequests.filter(req => req.status === 'pending');
 
-    notificationList.innerHTML = friendRequests.map((request, index) => `
-        <div class="notification-item">
-            <div class="notification-avatar">${request.avatar || request.name?.charAt(0)?.toUpperCase() || '?'}</div>
-            <div class="notification-content">
-                <p><strong>${request.name || 'Unknown User'}</strong> sent you a friend request</p>
-                <div class="notification-actions">
-                    <button class="btn-accept" data-index="${index}">Accept</button>
-                    <button class="btn-decline" data-index="${index}">Decline</button>
+        const totalNotifications = pendingInvitations.length + pendingRequests.length;
+
+        if (totalNotifications === 0) {
+            notificationList.innerHTML = '<div class="notification-empty">No new notifications</div>';
+            return;
+        }
+
+        let html = '';
+
+        // Display game invitations
+        pendingInvitations.forEach(invitation => {
+            html += `
+                <div class="notification-item">
+                    <div class="notification-avatar">${invitation.from.charAt(0).toUpperCase()}</div>
+                    <div class="notification-content">
+                        <p><strong>${invitation.from}</strong> invited you to a game</p>
+                        <div class="notification-actions">
+                            <button class="btn-accept" data-id="${invitation.id}" data-type="invitation">Accept</button>
+                            <button class="btn-decline" data-id="${invitation.id}" data-type="invitation">Decline</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    `).join('');
-
-    notificationList.querySelectorAll('.btn-accept').forEach(btn => {
-        btn.addEventListener('click', () => handleFriendRequest(parseInt(btn.dataset.index), 'accept'));
-    });
-
-    notificationList.querySelectorAll('.btn-decline').forEach(btn => {
-        btn.addEventListener('click', () => handleFriendRequest(parseInt(btn.dataset.index), 'decline'));
-    });
-}
-
-function handleFriendRequest(index, action) {
-    let friendRequests = JSON.parse(localStorage.getItem('friendRequests') || '[]');
-    const request = friendRequests[index];
-
-    if (action === 'accept') {
-        let friends = JSON.parse(localStorage.getItem('friends') || '[]');
-        friends.push({
-            id: request.id,
-            name: request.name,
-            avatar: request.avatar,
-            status: request.status
+            `;
         });
-        localStorage.setItem('friends', JSON.stringify(friends));
+
+        // Display friend requests
+        pendingRequests.forEach(request => {
+            html += `
+                <div class="notification-item">
+                    <div class="notification-avatar">${request.from.charAt(0).toUpperCase()}</div>
+                    <div class="notification-content">
+                        <p><strong>${request.from}</strong> sent you a friend request</p>
+                        <div class="notification-actions">
+                            <button class="btn-accept" data-id="${request.id}" data-type="friend">Accept</button>
+                            <button class="btn-decline" data-id="${request.id}" data-type="friend">Decline</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        notificationList.innerHTML = html;
+
+        // Attach event listeners
+        notificationList.querySelectorAll('.btn-accept').forEach(btn => {
+            btn.addEventListener('click', () => handleNotification(btn.dataset.id, btn.dataset.type, 'accept'));
+        });
+
+        notificationList.querySelectorAll('.btn-decline').forEach(btn => {
+            btn.addEventListener('click', () => handleNotification(btn.dataset.id, btn.dataset.type, 'decline'));
+        });
+        
+    } catch (error) {
+        console.error('Error loading notifications:', error);
+        notificationList.innerHTML = '<div class="notification-empty">Error loading notifications</div>';
     }
-
-    friendRequests.splice(index, 1);
-    localStorage.setItem('friendRequests', JSON.stringify(friendRequests));
-
-    displayNotifications();
-    updateNotificationBadge();
 }
 
-function updateNotificationBadge() {
-    const badge = document.getElementById('navNotificationBadge');
-    if (!badge) return;
+async function handleNotification(id, type, action) {
+    try {
+        if (type === 'invitation') {
+            await api.updateInvitation(id, action === 'accept' ? 'accepted' : 'declined');
+            console.log(`Game invitation ${action}ed`);
+        } else if (type === 'friend') {
+            await api.updateFriendRequest(id, action === 'accept' ? 'accepted' : 'declined');
+            console.log(`Friend request ${action}ed`);
+        }
 
-    const friendRequests = JSON.parse(localStorage.getItem('friendRequests') || '[]');
-    const count = friendRequests.length;
+        // Refresh notifications
+        displayNotifications();
+        updateNotificationBadge();
+        
+        alert(`${type === 'invitation' ? 'Game invitation' : 'Friend request'} ${action}ed! ${action === 'accept' ? 'Check the Chat page to start a conversation!' : ''}`);
+        
+        // Trigger chat refresh event for other views
+        window.dispatchEvent(new CustomEvent('friendsUpdated'));
+    } catch (error) {
+        console.error('Error handling notification:', error);
+        alert('Error: ' + error.message);
+    }
+}
 
-    if (count > 0) {
-        badge.textContent = count;
-        badge.classList.remove('hidden');
-    } else {
-        badge.classList.add('hidden');
+async function updateNotificationBadge() {
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+        
+        if (!currentUser.userId) {
+            return;
+        }
+
+        // Get pending invitations and friend requests
+        const invitations = await api.getInvitations(currentUser.userId);
+        const pendingInvitations = invitations.filter(inv => inv.status === 'pending' && inv.toId === currentUser.userId);
+        
+        const friendRequests = await api.getFriendRequests(currentUser.userId);
+        const pendingRequests = friendRequests.filter(req => req.status === 'pending');
+
+        const count = pendingInvitations.length + pendingRequests.length;
+        
+        const badge = document.querySelector('.notification-badge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    } catch (error) {
+        console.error('Error updating notification badge:', error);
     }
 }
