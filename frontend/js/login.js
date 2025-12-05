@@ -1,7 +1,4 @@
-/**
- * Login Page Module
- * Handles user login form and validation
- */
+
 
 import { STORAGE_KEYS, ROUTES } from './utils/constants.js';
 import { setItem } from './utils/storage.js';
@@ -14,7 +11,6 @@ import {
 import { getById, addEvent } from './utils/dom.js';
 import api from './utils/api.js';
 
-// Authentication handling
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = getById('loginForm');
 
@@ -23,15 +19,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-/**
- * Initialize login form with validation and submission
- * @param {HTMLFormElement} form - Login form element
- */
 function initLoginForm(form) {
     const usernameInput = getById('username');
     const passwordInput = getById('password');
 
-    // Real-time validation
     addEvent(usernameInput, 'blur', () => {
         const result = validateRequired(usernameInput.value);
         if (!result.isValid) {
@@ -58,7 +49,6 @@ function initLoginForm(form) {
         const password = passwordInput.value;
         const remember = document.querySelector('input[name="remember"]').checked;
 
-        // Validate all fields
         let isValid = true;
 
         const usernameValidation = validateRequired(username);
@@ -77,15 +67,13 @@ function initLoginForm(form) {
             return;
         }
 
-        // Show loading state
         form.classList.add('loading');
 
         try {
-            // Authenticate user via API
+            
             const response = await api.login(username, password);
             const user = response.user;
 
-            // Create session
             const sessionData = {
                 userId: user.id,
                 username: user.username,
@@ -99,8 +87,7 @@ function initLoginForm(form) {
             setItem(STORAGE_KEYS.USER_DATA, sessionData);
             
             console.log('✅ Login successful! User:', user.username);
-            
-            // Redirect to home
+
             setTimeout(() => {
                 window.location.href = ROUTES.HOME;
             }, 500);
@@ -112,7 +99,7 @@ function initLoginForm(form) {
             if (error.message.includes('Invalid credentials')) {
                 showError('password', 'Invalid username or password');
             } else {
-                alert('Login failed: ' + error.message);
+                showError('password', 'Login failed: ' + error.message);
             }
         }
     });

@@ -1,8 +1,3 @@
-/**
- * Authentication Module
- * Handles user login, registration, and authentication checks
- */
-
 import { STORAGE_KEYS, ROUTES, PUBLIC_PAGES } from './utils/constants.js';
 import { getItem, setItem, removeItem } from './utils/storage.js';
 import {
@@ -17,7 +12,6 @@ import {
 } from './utils/validation.js';
 import { getById, addEvent } from './utils/dom.js';
 
-// Authentication handling
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = getById('loginForm');
     const registerForm = getById('registerForm');
@@ -31,15 +25,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-/**
- * Initialize login form with validation and submission
- * @param {HTMLFormElement} form - Login form element
- */
 function initLoginForm(form) {
     const usernameInput = getById('username');
     const passwordInput = getById('password');
 
-    // Real-time validation
     addEvent(usernameInput, 'blur', () => {
         const result = validateRequired(usernameInput.value);
         if (!result.isValid) {
@@ -66,7 +55,6 @@ function initLoginForm(form) {
         const password = passwordInput.value;
         const remember = document.querySelector('input[name="remember"]').checked;
 
-        // Validate all fields
         let isValid = true;
 
         const usernameValidation = validateRequired(username);
@@ -85,11 +73,9 @@ function initLoginForm(form) {
             return;
         }
 
-        // Import and use database
         import('./utils/database.js').then(module => {
             const db = module.default;
-            
-            // Authenticate user
+
             const user = db.findOne('users', { username: username });
             
             if (!user) {
@@ -102,7 +88,6 @@ function initLoginForm(form) {
                 return;
             }
 
-            // Create session
             const sessionData = {
                 userId: user.id,
                 username: user.username,
@@ -114,14 +99,12 @@ function initLoginForm(form) {
             };
             
             setItem(STORAGE_KEYS.USER_DATA, sessionData);
-            
-            // Store session in database
+
             db.insert('sessions', {
                 userId: user.id,
                 loginTime: new Date().toISOString()
             });
-            
-            // Show success and redirect
+
             form.classList.add('loading');
             setTimeout(() => {
                 window.location.href = ROUTES.HOME;
@@ -130,10 +113,6 @@ function initLoginForm(form) {
     });
 }
 
-/**
- * Initialize register form with validation and submission
- * @param {HTMLFormElement} form - Register form element
- */
 function initRegisterForm(form) {
     const fullnameInput = getById('fullname');
     const emailInput = getById('email');
@@ -142,7 +121,6 @@ function initRegisterForm(form) {
     const confirmPasswordInput = getById('confirmPassword');
     const termsCheckbox = getById('terms');
 
-    // Real-time validation
     addEvent(fullnameInput, 'blur', () => {
         const result = validateRequired(fullnameInput.value);
         showError('fullname', result.isValid ? '' : result.message);
@@ -179,7 +157,6 @@ function initRegisterForm(form) {
         const confirmPassword = confirmPasswordInput.value;
         const terms = termsCheckbox.checked;
 
-        // Validate all fields
         let isValid = true;
 
         const fullnameValidation = validateRequired(fullname);
@@ -221,7 +198,6 @@ function initRegisterForm(form) {
             return;
         }
 
-        // Store user data
         const userData = {
             fullname: fullname,
             email: email,
@@ -231,8 +207,7 @@ function initRegisterForm(form) {
         };
         
         setItem(STORAGE_KEYS.USER_DATA, userData);
-        
-        // Show success and redirect
+
         form.classList.add('loading');
         setTimeout(() => {
             window.location.href = ROUTES.HOME;
@@ -240,9 +215,6 @@ function initRegisterForm(form) {
     });
 }
 
-/**
- * Check if user is logged in
- */
 function checkAuth() {
     const userData = getItem(STORAGE_KEYS.USER_DATA);
     const currentPage = window.location.pathname.split('/').pop();
@@ -252,14 +224,9 @@ function checkAuth() {
     }
 }
 
-/**
- * Logout function
- */
 export function logout() {
     removeItem(STORAGE_KEYS.USER_DATA);
     window.location.href = ROUTES.LOGIN;
 }
 
-// Run auth check on page load
 checkAuth();
-

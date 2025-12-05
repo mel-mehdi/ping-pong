@@ -1,8 +1,3 @@
-/**
- * Navbar Component
- * Consistent navbar across all views
- */
-
 export function renderNavbar(activeView = 'home') {
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true' || 
                        !!JSON.parse(localStorage.getItem('userData') || 'null');

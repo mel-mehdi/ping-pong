@@ -1,7 +1,4 @@
-/**
- * Register Page Module
- * Handles user registration form and validation
- */
+
 
 import { STORAGE_KEYS, ROUTES } from './utils/constants.js';
 import { setItem } from './utils/storage.js';
@@ -17,7 +14,6 @@ import {
 import { getById, addEvent } from './utils/dom.js';
 import api from './utils/api.js';
 
-// Registration handling
 document.addEventListener('DOMContentLoaded', function() {
     const registerForm = getById('registerForm');
 
@@ -26,10 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-/**
- * Initialize register form with validation and submission
- * @param {HTMLFormElement} form - Register form element
- */
 function initRegisterForm(form) {
     const emailInput = getById('email');
     const usernameInput = getById('username');
@@ -37,7 +29,6 @@ function initRegisterForm(form) {
     const confirmPasswordInput = getById('confirmPassword');
     const termsCheckbox = getById('terms');
 
-    // Real-time validation
     addEvent(emailInput, 'blur', () => {
         const result = validateEmail(emailInput.value);
         showError('email', result.isValid ? '' : result.message);
@@ -68,7 +59,6 @@ function initRegisterForm(form) {
         const confirmPassword = confirmPasswordInput.value;
         const terms = termsCheckbox ? termsCheckbox.checked : false;
 
-        // Validate all fields
         let isValid = true;
 
         const emailValidation = validateEmail(email);
@@ -104,16 +94,14 @@ function initRegisterForm(form) {
             return;
         }
 
-        // Show loading state
         form.classList.add('loading');
 
         try {
-            // Register user via API
+            
             const newUser = await api.register(username, email, password);
             
             console.log('✅ Registration successful! User:', newUser);
-            
-            // Create session data
+
             const sessionData = {
                 userId: newUser.id,
                 username: newUser.username,
@@ -126,9 +114,8 @@ function initRegisterForm(form) {
             
             setItem(STORAGE_KEYS.USER_DATA, sessionData);
             
-            alert(`Registration successful! Welcome ${username}!`);
-            
-            // Redirect to home
+            console.log(`Registration successful! Welcome ${username}!`);
+
             setTimeout(() => {
                 window.location.href = ROUTES.HOME;
             }, 500);
@@ -136,8 +123,7 @@ function initRegisterForm(form) {
         } catch (error) {
             form.classList.remove('loading');
             console.error('Registration error:', error);
-            
-            // Show appropriate error
+
             if (error.message.includes('already exists')) {
                 if (error.message.includes('email')) {
                     showError('email', 'Email already registered');
@@ -145,7 +131,7 @@ function initRegisterForm(form) {
                     showError('username', 'Username already taken');
                 }
             } else {
-                alert('Registration failed: ' + error.message);
+                showError('username', 'Registration failed: ' + error.message);
             }
         }
     });

@@ -1,15 +1,9 @@
-/**
- * Navbar Utilities
- * Handles navbar search and notifications
- */
+
 
 import api from './api.js';
 
 export function initNavbarSearch(app) {
-    // Remove the initialization guard to allow re-initialization on view changes
-    // This ensures the event listeners work after navigating between views
-    
-    // Load players from database
+
     let playerData = [];
     
     async function loadPlayers() {
@@ -42,8 +36,11 @@ export function initNavbarSearch(app) {
             return;
         }
 
+        const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+        const currentUserId = currentUser.userId;
+
         const matches = playerData.filter(player =>
-            player.name.toLowerCase().includes(query)
+            player.name.toLowerCase().includes(query) && player.id !== currentUserId
         ).slice(0, 5);
 
         if (matches.length === 0) {
@@ -65,7 +62,6 @@ export function initNavbarSearch(app) {
 
             navSearchResults.classList.remove('hidden');
 
-            // Attach event listeners after rendering
             setTimeout(() => {
                 navSearchResults.querySelectorAll('.result-action-btn').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
@@ -74,13 +70,12 @@ export function initNavbarSearch(app) {
                         const playerId = btn.closest('.nav-search-result-item').dataset.playerId;
                         
                         console.log('Sending invitation to:', playerName, 'ID:', playerId);
-                        
-                        // Get current user data
+
                         const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
                         const username = currentUser.username || 'Player';
                         
                         try {
-                            // Send invitation via API
+                            
                             await api.sendInvitation(
                                 currentUser.userId,
                                 username,
@@ -89,11 +84,12 @@ export function initNavbarSearch(app) {
                             );
                             
                             console.log('✅ Game invitation sent successfully!');
-                            alert(`Game invitation sent to ${playerName}!`);
+                            console.log(`Game invitation sent to ${playerName}!`);
+                            
+                            window.dispatchEvent(new CustomEvent('invitationSent'));
                             
                         } catch (error) {
                             console.error('Error sending invitation:', error);
-                            alert('Failed to send invitation: ' + error.message);
                         }
                         
                         navSearchInput.value = '';
@@ -104,7 +100,6 @@ export function initNavbarSearch(app) {
         }
     });
 
-    // Close search results when clicking outside
     document.addEventListener('click', (e) => {
         if (!navSearchInput.contains(e.target) && !navSearchResults.contains(e.target)) {
             navSearchResults.classList.add('hidden');
@@ -142,6 +137,18 @@ export function initNotifications(app) {
 
     document.addEventListener('click', app.documentClickHandler);
     updateNotificationBadge();
+    
+    if (app.notificationInterval) {
+        clearInterval(app.notificationInterval);
+    }
+    
+    app.notificationInterval = setInterval(() => {
+        updateNotificationBadge();
+    }, 5000);
+    
+    window.addEventListener('invitationSent', () => {
+        updateNotificationBadge();
+    });
 }
 
 async function displayNotifications() {
@@ -156,13 +163,11 @@ async function displayNotifications() {
             return;
         }
 
-        // Fetch invitations from API
         const invitations = await api.getInvitations(currentUser.userId);
         const pendingInvitations = invitations.filter(inv => inv.status === 'pending' && inv.toId === currentUser.userId);
-        
-        // Fetch friend requests from API
+
         const friendRequests = await api.getFriendRequests(currentUser.userId);
-        const pendingRequests = friendRequests.filter(req => req.status === 'pending');
+        const pendingRequests = friendRequests.filter(req => req.status === 'pending' && req.toId === currentUser.userId);
 
         const totalNotifications = pendingInvitations.length + pendingRequests.length;
 
@@ -173,7 +178,6 @@ async function displayNotifications() {
 
         let html = '';
 
-        // Display game invitations
         pendingInvitations.forEach(invitation => {
             html += `
                 <div class="notification-item">
@@ -189,7 +193,6 @@ async function displayNotifications() {
             `;
         });
 
-        // Display friend requests
         pendingRequests.forEach(request => {
             html += `
                 <div class="notification-item">
@@ -207,7 +210,6 @@ async function displayNotifications() {
 
         notificationList.innerHTML = html;
 
-        // Attach event listeners
         notificationList.querySelectorAll('.btn-accept').forEach(btn => {
             btn.addEventListener('click', () => handleNotification(btn.dataset.id, btn.dataset.type, 'accept'));
         });
@@ -232,17 +234,14 @@ async function handleNotification(id, type, action) {
             console.log(`Friend request ${action}ed`);
         }
 
-        // Refresh notifications
         displayNotifications();
         updateNotificationBadge();
         
-        alert(`${type === 'invitation' ? 'Game invitation' : 'Friend request'} ${action}ed! ${action === 'accept' ? 'Check the Chat page to start a conversation!' : ''}`);
-        
-        // Trigger chat refresh event for other views
+        console.log(`${type === 'invitation' ? 'Game invitation' : 'Friend request'} ${action}ed! ${action === 'accept' ? 'Check the Chat page to start a conversation!' : ''}`);
+
         window.dispatchEvent(new CustomEvent('friendsUpdated'));
     } catch (error) {
         console.error('Error handling notification:', error);
-        alert('Error: ' + error.message);
     }
 }
 
@@ -254,12 +253,11 @@ async function updateNotificationBadge() {
             return;
         }
 
-        // Get pending invitations and friend requests
         const invitations = await api.getInvitations(currentUser.userId);
         const pendingInvitations = invitations.filter(inv => inv.status === 'pending' && inv.toId === currentUser.userId);
         
         const friendRequests = await api.getFriendRequests(currentUser.userId);
-        const pendingRequests = friendRequests.filter(req => req.status === 'pending');
+        const pendingRequests = friendRequests.filter(req => req.status === 'pending' && req.toId === currentUser.userId);
 
         const count = pendingInvitations.length + pendingRequests.length;
         
@@ -276,3 +274,5 @@ async function updateNotificationBadge() {
         console.error('Error updating notification badge:', error);
     }
 }
+
+export { updateNotificationBadge };

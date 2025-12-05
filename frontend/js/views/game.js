@@ -1,8 +1,3 @@
-/**
- * Game View Module
- * Renders the Pong game interface
- */
-
 import { PongGame } from '../pong-engine.js';
 import { renderNavbar } from '../components/navbar.js';
 
@@ -57,7 +52,7 @@ export class GameView {
     }
 
     initializeGame() {
-        // Initialize Pong Game
+
         this.app.pongGame = new PongGame('pongCanvas', {
             player1Name: 'Player 1',
             player2Name: 'Player 2',

@@ -1,8 +1,3 @@
-/**
- * Home View Module
- * Renders the home page with dashboard, leaderboard, and game options
- */
-
 import { STORAGE_KEYS } from '../utils/constants.js';
 import { getItem } from '../utils/storage.js';
 import { renderNavbar } from '../components/navbar.js';
@@ -211,7 +206,6 @@ export class HomeView {
         const userData = getItem(STORAGE_KEYS.USER_DATA);
         const isLoggedIn = !!userData;
 
-        // Navigation
         const navPlayBtn = document.getElementById('navPlayBtn');
         if (navPlayBtn) {
             navPlayBtn.addEventListener('click', (e) => {
@@ -224,7 +218,6 @@ export class HomeView {
             });
         }
 
-        // Quick match button
         const quickMatchBtn = document.getElementById('quickMatchBtn');
         if (quickMatchBtn) {
             quickMatchBtn.addEventListener('click', () => {
@@ -236,7 +229,6 @@ export class HomeView {
             });
         }
 
-        // Play options
         document.getElementById('quickPlayBtn')?.addEventListener('click', () => {
             if (!isLoggedIn) {
                 window.location.href = 'login.html';
@@ -250,7 +242,7 @@ export class HomeView {
                 window.location.href = 'login.html';
                 return;
             }
-            alert('Online game mode coming soon!');
+            console.log('Online game mode coming soon!');
         });
 
         document.getElementById('tournamentBtn')?.addEventListener('click', () => {
@@ -269,11 +261,9 @@ export class HomeView {
             this.app.loadView('tournament');
         });
 
-        // Initialize search
         this.app.initNavbarSearch();
         this.app.initNetflixSearch();
 
-        // Load dynamic data from database
         this.loadLeaderboard();
         if (userData) {
             this.loadUserStats();
@@ -281,9 +271,6 @@ export class HomeView {
         }
     }
 
-    /**
-     * Load leaderboard from database
-     */
     loadLeaderboard() {
         import('../utils/database.js').then(module => {
             const db = module.default;
@@ -313,9 +300,6 @@ export class HomeView {
         });
     }
 
-    /**
-     * Load user stats from database
-     */
     loadUserStats() {
         const userDataStr = localStorage.getItem('userData');
         if (!userDataStr) return;
@@ -327,9 +311,8 @@ export class HomeView {
             const user = db.findOne('users', { id: userData.userId });
             if (!user) return;
 
-            // Update dashboard stats
             document.querySelectorAll('.big-number').forEach((el, index) => {
-                if (index === 0) el.textContent = user.wins || 0; // Total wins
+                if (index === 0) el.textContent = user.wins || 0; 
                 if (index === 1) {
                     const winRate = user.gamesPlayed > 0 
                         ? ((user.wins / user.gamesPlayed) * 100).toFixed(1) 
@@ -342,9 +325,6 @@ export class HomeView {
         });
     }
 
-    /**
-     * Load recent activity from database
-     */
     loadRecentActivity() {
         const userDataStr = localStorage.getItem('userData');
         if (!userDataStr) return;
@@ -387,11 +367,6 @@ export class HomeView {
         });
     }
 
-    /**
-     * Get time ago string
-     * @param {string} dateString - ISO date string
-     * @returns {string} Time ago string
-     */
     getTimeAgo(dateString) {
         const date = new Date(dateString);
         const now = new Date();

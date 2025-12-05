@@ -1,8 +1,3 @@
-/**
- * Application Constants
- * Central location for all constant values used across the application
- */
-
 export const APP_NAME = 'Ping Pong';
 
 export const STORAGE_KEYS = {

@@ -1,8 +1,3 @@
-/**
- * Profile View Module
- * Handles user profile display and editing
- */
-
 import { renderNavbar } from '../components/navbar.js';
 import { STORAGE_KEYS } from '../utils/constants.js';
 import { getItem } from '../utils/storage.js';
@@ -12,9 +7,6 @@ export class ProfileView {
         this.app = app;
     }
 
-    /**
-     * Render profile view
-     */
     render() {
         const userData = getItem(STORAGE_KEYS.USER_DATA);
         const username = userData?.username || 'Player';
@@ -155,17 +147,14 @@ export class ProfileView {
         
         import('../utils/database.js').then(module => {
             const db = module.default;
-            
-            // Get user from database
+
             const user = db.findOne('users', { id: userData.userId });
             if (!user) return;
-            
-            // Get all matches for this user
+
             const matches = db.find('matches', match => 
                 match.player1Id === userData.userId || match.player2Id === userData.userId
             );
-            
-            // Calculate stats
+
             const gamesPlayed = matches.length;
             const wins = matches.filter(match => {
                 if (match.player1Id === userData.userId) {
@@ -176,8 +165,7 @@ export class ProfileView {
             }).length;
             
             const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
-            
-            // Update UI
+
             const gamesPlayedEl = document.getElementById('gamesPlayed');
             const totalWinsEl = document.getElementById('totalWins');
             const winRateEl = document.getElementById('winRate');
@@ -187,8 +175,7 @@ export class ProfileView {
             if (totalWinsEl) totalWinsEl.textContent = wins;
             if (winRateEl) winRateEl.textContent = `${winRate}%`;
             if (userRankEl) userRankEl.textContent = user.rank ? `#${user.rank}` : '-';
-            
-            // Load recent matches
+
             if (matches.length > 0) {
                 this.loadRecentMatches(matches, userData.userId);
             }
@@ -200,8 +187,7 @@ export class ProfileView {
     loadRecentMatches(matches, userId) {
         const recentMatchesEl = document.getElementById('recentMatches');
         if (!recentMatchesEl || matches.length === 0) return;
-        
-        // Sort by date and take last 5
+
         const recentMatches = matches
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .slice(0, 5);
@@ -217,8 +203,7 @@ export class ProfileView {
                 const opponent = db.findOne('users', { id: opponentId });
                 const opponentName = opponent ? opponent.username : 'Unknown';
                 const isWin = userScore > opponentScore;
-                
-                // Format time
+
                 const matchDate = new Date(match.date);
                 const now = new Date();
                 const diffMs = now - matchDate;
@@ -249,134 +234,103 @@ export class ProfileView {
         });
     }
 
-    /**
-     * Initialize avatar editing functionality
-     */
     initAvatarEdit() {
         const editAvatarBtn = document.getElementById('editAvatarBtn');
         
         if (editAvatarBtn) {
             editAvatarBtn.addEventListener('click', () => {
-                // Create file input dynamically
+
                 const fileInput = document.createElement('input');
                 fileInput.type = 'file';
                 fileInput.accept = 'image/*';
                 
-                fileInput.addEventListener('change', (e) => {
+                fileInput.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                        // Validate file size (max 2MB)
-                        if (file.size > 2 * 1024 * 1024) {
-                            alert('Image size must be less than 2MB');
-                            return;
-                        }
-                        
-                        // Validate file type
-                        if (!file.type.startsWith('image/')) {
-                            alert('Please select a valid image file');
-                            return;
-                        }
-                        
-                        // Read and store image as base64
                         const reader = new FileReader();
                         reader.onload = (event) => {
-                            const imageData = event.target.result;
-                            localStorage.setItem('userAvatar', imageData);
+                            const avatarUrl = event.target.result;
+                            localStorage.setItem('userAvatar', avatarUrl);
                             
-                            // Update avatar display
                             const avatarCircle = document.querySelector('.avatar-circle');
                             if (avatarCircle) {
-                                avatarCircle.innerHTML = `<img src="${imageData}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                                avatarCircle.innerHTML = `<img src="${avatarUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                             }
-                            
-                            alert('Avatar updated successfully!');
                         };
                         reader.readAsDataURL(file);
                     }
-                });
+                };
                 
-                // Trigger file input click
                 fileInput.click();
             });
         }
     }
 
-    /**
-     * Initialize profile editing functionality
-     */
     initEditProfile() {
         const editProfileBtn = document.getElementById('editProfileBtn');
         const editProfileModal = document.getElementById('editProfileModal');
-        const closeModalBtn = document.getElementById('closeEditProfileModal');
-        const cancelBtn = document.getElementById('cancelEditProfile');
+        const closeEditProfileModal = document.getElementById('closeEditProfileModal');
+        const cancelEditProfile = document.getElementById('cancelEditProfile');
         const editProfileForm = document.getElementById('editProfileForm');
 
-        // Open modal
-        if (editProfileBtn) {
+        if (editProfileBtn && editProfileModal) {
             editProfileBtn.addEventListener('click', () => {
                 editProfileModal.classList.remove('hidden');
             });
-        }
 
-        // Close modal functions
-        const closeModal = () => {
-            editProfileModal.classList.add('hidden');
-        };
-
-        if (closeModalBtn) {
-            closeModalBtn.addEventListener('click', closeModal);
-        }
-
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', closeModal);
-        }
-
-        // Close on overlay click
-        editProfileModal?.addEventListener('click', (e) => {
-            if (e.target === editProfileModal) {
-                closeModal();
+            if (closeEditProfileModal) {
+                closeEditProfileModal.addEventListener('click', () => {
+                    editProfileModal.classList.add('hidden');
+                });
             }
-        });
 
-        // Handle form submission
-        if (editProfileForm) {
-            editProfileForm.addEventListener('submit', (e) => {
-                e.preventDefault();
+            if (cancelEditProfile) {
+                cancelEditProfile.addEventListener('click', () => {
+                    editProfileModal.classList.add('hidden');
+                });
+            }
 
-                const username = document.getElementById('editUsername').value.trim();
-                const email = document.getElementById('editEmail').value.trim();
-                const bio = document.getElementById('editBio').value.trim();
-                const location = document.getElementById('editLocation').value.trim();
-                const password = document.getElementById('editPassword').value;
-                const confirmPassword = document.getElementById('editConfirmPassword').value;
-
-                // Validate passwords match if provided
-                if (password || confirmPassword) {
-                    if (password !== confirmPassword) {
-                        alert('Passwords do not match!');
-                        return;
-                    }
-                    if (password.length < 6) {
-                        alert('Password must be at least 6 characters!');
-                        return;
-                    }
+            editProfileModal.addEventListener('click', (e) => {
+                if (e.target === editProfileModal) {
+                    editProfileModal.classList.add('hidden');
                 }
-
-                // Save to localStorage
-                localStorage.setItem('username', username);
-                localStorage.setItem('userEmail', email);
-                localStorage.setItem('userBio', bio);
-                localStorage.setItem('userLocation', location);
-
-                if (password) {
-                    localStorage.setItem('userPassword', password);
-                }
-
-                // Show success message and reload profile
-                alert('Profile updated successfully!');
-                closeModal();
-                this.app.loadView('profile');
             });
+
+            if (editProfileForm) {
+                editProfileForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const username = document.getElementById('editUsername').value;
+                    const email = document.getElementById('editEmail').value;
+                    const bio = document.getElementById('editBio').value;
+                    const location = document.getElementById('editLocation').value;
+                    const password = document.getElementById('editPassword').value;
+                    const confirmPassword = document.getElementById('editConfirmPassword').value;
+
+                    if (password && password !== confirmPassword) {
+                        console.error('Passwords do not match!');
+                        return;
+                    }
+
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('userEmail', email);
+                    localStorage.setItem('userBio', bio);
+                    localStorage.setItem('userLocation', location);
+
+                    const userData = getItem(STORAGE_KEYS.USER_DATA);
+                    if (userData) {
+                        userData.username = username;
+                        userData.email = email;
+                        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+                    }
+
+                    editProfileModal.classList.add('hidden');
+                    
+                    console.log('Profile updated successfully!');
+                    
+                    this.render();
+                });
+            }
         }
     }
 }

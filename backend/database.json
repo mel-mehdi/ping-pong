@@ -1,46 +1,75 @@
 {
   "users": [
     {
-      "id": "miret67etw7wihc75",
-      "username": "test",
-      "email": "test@gmail.com",
-      "fullname": "test",
-      "passwordHash": "n7qt9z",
-      "avatar": null,
-      "wins": 0,
-      "losses": 0,
-      "gamesPlayed": 0,
-      "createdAt": "2025-12-04T12:25:54.602Z"
-    },
-    {
-      "id": "miretb8aqnx39zb2v",
+      "id": "mislwz1cy50dweihr",
       "username": "melmehdi",
       "email": "mehdimahfoud321@gmail.com",
       "fullname": "melmehdi",
-      "passwordHash": "n7qt9z",
+      "passwordHash": "okp7y8",
       "avatar": null,
       "wins": 0,
       "losses": 0,
       "gamesPlayed": 0,
-      "createdAt": "2025-12-04T12:26:01.114Z"
+      "createdAt": "2025-12-05T08:32:35.424Z"
+    },
+    {
+      "id": "mislxy8oldzueoj9z",
+      "username": "test",
+      "email": "test@gmail.com",
+      "fullname": "test",
+      "passwordHash": "okp7y8",
+      "avatar": null,
+      "wins": 0,
+      "losses": 0,
+      "gamesPlayed": 0,
+      "createdAt": "2025-12-05T08:33:21.048Z"
     }
   ],
   "sessions": [],
   "gameInvitations": [
     {
-      "id": "mireu9i0z4w9g4cec",
-      "from": "mehdi",
-      "fromId": "mirdc39lbu26glo90",
+      "id": "mislyzuwuj6bmx5dd",
+      "from": "melmehdi",
+      "fromId": "mislwz1cy50dweihr",
       "to": "test",
-      "toId": "miret67etw7wihc75",
+      "toId": "mislxy8oldzueoj9z",
       "type": "game",
-      "status": "pending",
-      "timestamp": 1764851205528,
-      "createdAt": "2025-12-04T12:26:45.528Z"
+      "status": "accepted",
+      "timestamp": 1764923649800,
+      "createdAt": "2025-12-05T08:34:09.800Z",
+      "updatedAt": "2025-12-05T08:34:17.066Z"
     }
   ],
   "friendRequests": [],
   "matches": [],
   "tournaments": [],
-  "messages": []
+  "messages": [
+    {
+      "id": "mislzfz8qeozup9wc",
+      "fromId": "mislwz1cy50dweihr",
+      "toId": "mislxy8oldzueoj9z",
+      "message": "test",
+      "timestamp": 1764923670692,
+      "createdAt": "2025-12-05T08:34:30.692Z",
+      "read": true
+    },
+    {
+      "id": "mislzkmpjqa60y7kw",
+      "fromId": "mislxy8oldzueoj9z",
+      "toId": "mislwz1cy50dweihr",
+      "message": "hello",
+      "timestamp": 1764923676721,
+      "createdAt": "2025-12-05T08:34:36.721Z",
+      "read": true
+    },
+    {
+      "id": "mislzuxbh5szbnl0a",
+      "fromId": "mislwz1cy50dweihr",
+      "toId": "mislxy8oldzueoj9z",
+      "message": "nice",
+      "timestamp": 1764923690063,
+      "createdAt": "2025-12-05T08:34:50.063Z",
+      "read": true
+    }
+  ]
 }

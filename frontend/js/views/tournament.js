@@ -1,8 +1,3 @@
-/**
- * Tournament View Module
- * Handles tournament setup, play, results, and bracket visualization
- */
-
 import { PongGame } from '../pong-engine.js';
 import { TournamentManager } from '../tournament.js';
 import { renderNavbar } from '../components/navbar.js';
@@ -12,9 +7,6 @@ export class TournamentView {
         this.app = app;
     }
 
-    /**
-     * Render tournament setup page
-     */
     renderSetup() {
         const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
         
@@ -51,9 +43,6 @@ export class TournamentView {
         this.initSetupHandlers();
     }
 
-    /**
-     * Initialize tournament setup event handlers
-     */
     initSetupHandlers() {
         const playerInputsContainer = document.getElementById('playerInputs');
         const addPlayerBtn = document.getElementById('addPlayerBtn');
@@ -97,7 +86,7 @@ export class TournamentView {
             
             removeBtn.addEventListener('click', () => {
                 inputGroup.remove();
-                // Renumber remaining inputs
+
                 Array.from(playerInputsContainer.children).forEach((group, idx) => {
                     group.querySelector('.player-number').textContent = `#${idx + 1}`;
                     group.querySelector('input').placeholder = `Player ${idx + 1}`;
@@ -109,7 +98,6 @@ export class TournamentView {
             updatePlayerCount();
         };
 
-        // Add initial 4 inputs
         for (let i = 0; i < 4; i++) {
             addPlayerInput();
         }
@@ -133,9 +121,6 @@ export class TournamentView {
         });
     }
 
-    /**
-     * Render tournament play page
-     */
     renderPlay() {
         if (!this.app.tournament) {
             this.app.loadView('tournament');
@@ -221,9 +206,6 @@ export class TournamentView {
         this.initPlayGame(currentMatch);
     }
 
-    /**
-     * Render bracket preview in tournament play view
-     */
     renderBracketPreview() {
         const bracketPreview = document.getElementById('bracketPreview');
         if (!bracketPreview) return;
@@ -246,9 +228,6 @@ export class TournamentView {
         }).join('');
     }
 
-    /**
-     * Initialize pong game for current tournament match
-     */
     initPlayGame(currentMatch) {
         this.app.pongGame = new PongGame('pongCanvas', {
             player1Name: currentMatch.player1,
@@ -273,9 +252,6 @@ export class TournamentView {
         });
     }
 
-    /**
-     * Show match end dialog with next match or tournament complete
-     */
     showMatchEnd(winner) {
         const msgEl = document.getElementById('gameMessage');
         
@@ -293,14 +269,11 @@ export class TournamentView {
                 this.app.loadView('tournament-play');
             });
         } else {
-            // Tournament complete
+
             this.app.loadView('tournament-results');
         }
     }
 
-    /**
-     * Render tournament results page
-     */
     renderResults() {
         if (!this.app.tournament) {
             this.app.loadView('home');
@@ -359,9 +332,6 @@ export class TournamentView {
         this.initResultsHandlers();
     }
 
-    /**
-     * Initialize tournament results event handlers
-     */
     initResultsHandlers() {
         document.getElementById('newTournamentBtn').addEventListener('click', () => {
             this.app.tournament = null;
@@ -374,9 +344,6 @@ export class TournamentView {
         });
     }
 
-    /**
-     * Render match history for tournament results
-     */
     renderMatchHistory(matches) {
         if (!matches || matches.length === 0) {
             return '<p>No matches played yet.</p>';
@@ -386,12 +353,11 @@ export class TournamentView {
         let currentRound = 1;
         
         matches.forEach((match, idx) => {
-            // Start a new round section when round number changes
+
             if (match.round !== currentRound) {
                 currentRound = match.round;
             }
-            
-            // Add round header if this is the first match of this round
+
             const isFirstOfRound = idx === 0 || matches[idx - 1].round !== match.round;
             if (isFirstOfRound) {
                 const roundName = match.round === this.app.tournament.totalRounds ? 'Finals' : 

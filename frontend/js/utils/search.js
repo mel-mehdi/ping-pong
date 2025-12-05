@@ -1,8 +1,3 @@
-/**
- * Main Search Overlay
- * Netflix-style search functionality
- */
-
 import api from './api.js';
 
 export function initMainSearch(app) {
@@ -14,11 +9,9 @@ export function initMainSearch(app) {
 
     if (!searchOverlay || !searchInput || !searchResults) return;
 
-    // Function to load fresh player data from database
     async function loadPlayersFromDatabase() {
         try {
             const users = await api.getAllUsers();
-            console.log('Loaded users for search:', users);
             return users.map(user => {
                 const total = user.wins + user.losses;
                 const winRate = total > 0 ? Math.round((user.wins / total) * 100) + '%' : '0%';
@@ -47,7 +40,6 @@ export function initMainSearch(app) {
         { type: 'feature', name: 'Profile', description: 'Manage your profile', icon: 'user' },
     ];
 
-    // Open search overlay
     if (searchBtn) {
         searchBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -59,7 +51,6 @@ export function initMainSearch(app) {
         });
     }
 
-    // Close search overlay
     if (closeSearchBtn) {
         closeSearchBtn.addEventListener('click', () => {
             searchOverlay.classList.remove('active');
@@ -76,7 +67,6 @@ export function initMainSearch(app) {
         });
     }
 
-    // Search functionality
     if (searchInput) {
         let debounceTimer;
         searchInput.addEventListener('input', (e) => {
@@ -94,33 +84,24 @@ export function initMainSearch(app) {
                     return;
                 }
 
-                // Load fresh player data from database
                 const players = await loadPlayersFromDatabase();
-                console.log('Search query:', query);
-                console.log('Players loaded:', players);
 
-                // Filter all data
                 const allResults = [];
-                
-                // Search players
+
                 const playerMatches = players.filter(item => 
                     item.name.toLowerCase().includes(query)
                 );
-                console.log('Player matches:', playerMatches);
-                
-                // Search games
+
                 const gameMatches = gameData.filter(item => 
                     item.name.toLowerCase().includes(query) || 
                     item.description.toLowerCase().includes(query)
                 );
-                
-                // Search features
+
                 const featureMatches = featureData.filter(item => 
                     item.name.toLowerCase().includes(query) || 
                     item.description.toLowerCase().includes(query)
                 );
 
-                // Display results
                 if (playerMatches.length === 0 && gameMatches.length === 0 && featureMatches.length === 0) {
                     searchResults.innerHTML = `
                         <div class="search-no-results">
@@ -189,7 +170,6 @@ export function initMainSearch(app) {
         });
     }
 
-    // Close on escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !searchOverlay.classList.contains('hidden')) {
             closeSearchBtn?.click();

@@ -1,7 +1,4 @@
-/**
- * Chat View Module
- * Handles chat interface and messaging functionality
- */
+
 
 import { renderNavbar } from '../components/navbar.js';
 import api from '../utils/api.js';
@@ -10,11 +7,10 @@ export class ChatView {
     constructor(app) {
         this.app = app;
         this.currentUser = 'Alice';
+        this.messagePollingInterval = null;
+        this.lastMessageTimestamp = 0;
     }
 
-    /**
-     * Render chat view
-     */
     render() {
         const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
         const username = localStorage.getItem('username') || 'Player';
@@ -100,13 +96,11 @@ export class ChatView {
         this.initChat();
         this.initUserSearch();
 
-        // Listen for friend updates
         window.addEventListener('friendsUpdated', () => {
             console.log('Friends updated, reloading conversations...');
             this.loadConversations();
         });
 
-        // Auto-refresh conversations every 5 seconds to check for new friends
         this.conversationInterval = setInterval(() => {
             this.loadConversations();
         }, 5000);
@@ -114,6 +108,7 @@ export class ChatView {
         if (isLoggedIn) {
             document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
                 e.preventDefault();
+                this.stopMessagePolling();
                 localStorage.removeItem('isLoggedIn');
                 localStorage.removeItem('username');
                 window.location.href = 'login.html';
@@ -121,9 +116,13 @@ export class ChatView {
         }
     }
 
-    /**
-     * Initialize chat functionality
-     */
+    cleanup() {
+        if (this.conversationInterval) {
+            clearInterval(this.conversationInterval);
+        }
+        this.stopMessagePolling();
+    }
+
     initChat() {
         const chatInput = document.getElementById('chatInput');
         const chatSendBtn = document.getElementById('chatSendBtn');
@@ -131,20 +130,16 @@ export class ChatView {
         const chatUsersList = document.getElementById('chatUsersList');
         const username = localStorage.getItem('username') || 'Player';
 
-        // Load accepted friends/conversations
         this.loadConversations();
 
-        // Store current chat friend
         this.currentChatFriend = null;
 
-        // Auto-resize textarea
         if (chatInput) {
             chatInput.addEventListener('input', function() {
                 this.style.height = 'auto';
                 this.style.height = Math.min(this.scrollHeight, 120) + 'px';
             });
 
-            // Send on Enter (Shift+Enter for new line)
             chatInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -153,62 +148,41 @@ export class ChatView {
             });
         }
 
-        // Send message
         if (chatSendBtn) {
             chatSendBtn.addEventListener('click', async () => {
                 const message = chatInput.value.trim();
+                
                 if (message && this.currentChatFriend) {
                     const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
                     
                     try {
-                        // Send message to backend
                         await api.sendMessage(currentUser.userId, this.currentChatFriend.id, message);
                         
-                        const time = new Date().toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
-                            minute: '2-digit' 
-                        });
-
-                        const messageHTML = `
-                            <div class="chat-message own">
-                                <div class="chat-message-avatar">${username.charAt(0).toUpperCase()}</div>
-                                <div class="chat-message-content">
-                                    <div class="chat-message-bubble">
-                                        <p class="chat-message-text">${this.escapeHtml(message)}</p>
-                                    </div>
-                                    <div class="chat-message-time">${time}</div>
-                                </div>
-                            </div>
-                        `;
-
-                        chatMessages.insertAdjacentHTML('beforeend', messageHTML);
                         chatInput.value = '';
                         chatInput.style.height = 'auto';
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                        await this.loadMessages(this.currentChatFriend.id, true);
                         
                         console.log('✅ Message sent successfully!');
                     } catch (error) {
-                        console.error('Error sending message:', error);
-                        alert('Failed to send message: ' + error.message);
+                        console.error('❌ Error sending message:', error);
                     }
                 } else if (!this.currentChatFriend) {
-                    alert('Please select a friend to chat with!');
+                    console.log('⚠️ Please select a friend to chat with!');
                 }
             });
         }
 
-        // Switch users
         if (chatUsersList) {
             chatUsersList.addEventListener('click', async (e) => {
                 const userItem = e.target.closest('.chat-user-item');
                 if (userItem) {
-                    // Update active state
+                    
                     document.querySelectorAll('.chat-user-item').forEach(item => {
                         item.classList.remove('active');
                     });
                     userItem.classList.add('active');
 
-                    // Get friend info
                     const friendId = userItem.dataset.userId;
                     const friendName = userItem.querySelector('.chat-user-name').textContent;
                     const friendAvatar = userItem.querySelector('.chat-user-avatar').textContent;
@@ -219,28 +193,54 @@ export class ChatView {
                         avatar: friendAvatar
                     };
 
-                    // Update header
                     document.querySelector('.chat-header-title').textContent = friendName;
                     document.querySelector('.chat-header-status').textContent = 'Online';
                     document.querySelector('.chat-header .chat-user-avatar').textContent = friendAvatar;
 
-                    // Load messages for this conversation
-                    await this.loadMessages(friendId);
+                    this.lastMessageTimestamp = 0;
+                    await this.loadMessages(friendId, true);
+
+                    this.startMessagePolling();
                 }
             });
         }
     }
 
-    /**
-     * Load messages between current user and a friend
-     */
-    async loadMessages(friendId) {
+    startMessagePolling() {
+        
+        if (this.messagePollingInterval) {
+            clearInterval(this.messagePollingInterval);
+        }
+
+        this.messagePollingInterval = setInterval(async () => {
+            if (this.currentChatFriend) {
+                await this.loadMessages(this.currentChatFriend.id, false);
+            }
+        }, 3000);
+    }
+
+    stopMessagePolling() {
+        if (this.messagePollingInterval) {
+            clearInterval(this.messagePollingInterval);
+            this.messagePollingInterval = null;
+        }
+    }
+
+    async loadMessages(friendId, forceUpdate = false) {
         const chatMessages = document.getElementById('chatMessages');
         if (!chatMessages) return;
 
         try {
             const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
             const messages = await api.getMessages(currentUser.userId, friendId);
+
+            const latestTimestamp = messages.length > 0 ? Math.max(...messages.map(m => m.timestamp)) : 0;
+
+            if (!forceUpdate && latestTimestamp === this.lastMessageTimestamp) {
+                return; 
+            }
+            
+            this.lastMessageTimestamp = latestTimestamp;
             
             if (messages.length === 0) {
                 chatMessages.innerHTML = `
@@ -251,8 +251,7 @@ export class ChatView {
                 return;
             }
 
-            // Display messages
-            chatMessages.innerHTML = messages.map(msg => {
+            const messagesHTML = messages.map(msg => {
                 const isOwn = msg.fromId === currentUser.userId;
                 const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { 
                     hour: 'numeric', 
@@ -272,10 +271,10 @@ export class ChatView {
                     </div>
                 `;
             }).join('');
-
+            
+            chatMessages.innerHTML = messagesHTML;
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // Mark messages as read
             await api.markMessagesAsRead(currentUser.userId, friendId);
         } catch (error) {
             console.error('Error loading messages:', error);
@@ -287,9 +286,6 @@ export class ChatView {
         }
     }
 
-    /**
-     * Initialize user search functionality
-     */
     initUserSearch() {
         const searchBtn = document.getElementById('searchUsersBtn');
         const searchModal = document.getElementById('searchModal');
@@ -297,7 +293,6 @@ export class ChatView {
         const searchInput = document.getElementById('userSearchInput');
         const searchResults = document.getElementById('searchResults');
 
-        // Load users from database
         let allUsers = [];
         
         async function loadUsers() {
@@ -323,7 +318,6 @@ export class ChatView {
         let friendRequests = [];
         let friends = [];
 
-        // Open modal
         if (searchBtn) {
             searchBtn.addEventListener('click', () => {
                 searchModal.classList.remove('hidden');
@@ -332,7 +326,6 @@ export class ChatView {
             });
         }
 
-        // Close modal
         if (closeModal) {
             closeModal.addEventListener('click', () => {
                 searchModal.classList.add('hidden');
@@ -340,7 +333,6 @@ export class ChatView {
             });
         }
 
-        // Close on overlay click
         searchModal?.addEventListener('click', (e) => {
             if (e.target === searchModal) {
                 searchModal.classList.add('hidden');
@@ -348,7 +340,6 @@ export class ChatView {
             }
         });
 
-        // Search functionality
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase().trim();
@@ -400,7 +391,6 @@ export class ChatView {
                 `;
             }).join('');
 
-            // Add event listeners to add buttons
             searchResults.querySelectorAll('.add-user-btn:not([disabled])').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const userId = btn.dataset.userId;
@@ -411,7 +401,6 @@ export class ChatView {
                     
                     if (!user) {
                         console.error('User not found!');
-                        alert('Error: User not found');
                         return;
                     }
                     
@@ -431,7 +420,7 @@ export class ChatView {
             console.log('Sending friend request from:', username, 'to:', user.name);
             
             try {
-                // Send friend request via API
+                
                 await api.sendFriendRequest(
                     userId,
                     username,
@@ -440,23 +429,18 @@ export class ChatView {
                 );
                 
                 console.log('✅ Friend request sent successfully!');
-                alert(`Friend request sent to ${user.name}!`);
-                
-                // Update notification badge
+                console.log(`Friend request sent to ${user.name}!`);
+
                 if (this.app.updateNotificationBadge) {
                     this.app.updateNotificationBadge();
                 }
                 
             } catch (error) {
                 console.error('Error sending friend request:', error);
-                alert('Failed to send friend request: ' + error.message);
             }
         };
     }
 
-    /**
-     * Load conversations from accepted friend requests and invitations
-     */
     async loadConversations() {
         const chatUsersList = document.getElementById('chatUsersList');
         if (!chatUsersList) return;
@@ -468,7 +452,6 @@ export class ChatView {
                 return;
             }
 
-            // Get accepted invitations and friend requests
             const invitations = await api.getInvitations(currentUser.userId);
             const acceptedInvitations = invitations.filter(inv => 
                 inv.status === 'accepted' && 
@@ -481,7 +464,6 @@ export class ChatView {
                 (req.toId === currentUser.userId || req.fromId === currentUser.userId)
             );
 
-            // Combine and deduplicate friends
             const friends = new Map();
 
             acceptedInvitations.forEach(inv => {
@@ -506,7 +488,6 @@ export class ChatView {
                 }
             });
 
-            // Display friends in chat list
             if (friends.size === 0) {
                 chatUsersList.innerHTML = '<li class="text-muted" style="padding: 1rem; text-align: center;">No conversations yet. Add friends to start chatting!</li>';
             } else {
@@ -531,9 +512,6 @@ export class ChatView {
         }
     }
 
-    /**
-     * Escape HTML to prevent XSS
-     */
     escapeHtml(text) {
         const map = {
             '&': '&amp;',

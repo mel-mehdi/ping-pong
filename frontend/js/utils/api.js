@@ -1,36 +1,31 @@
-/**
- * API Client for backend communication
- */
-
 const API_BASE_URL = 'http://localhost:3000/api';
 
 class ApiClient {
-    /**
-     * Make API request
-     */
+    
     async request(endpoint, options = {}) {
         try {
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            const url = `${API_BASE_URL}${endpoint}`;
+            const config = {
                 ...options,
                 headers: {
                     'Content-Type': 'application/json',
                     ...options.headers
                 }
-            });
+            };
+
+            const response = await fetch(url, config);
+            const data = await response.json();
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'API request failed');
+                throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
-            return await response.json();
+            return data;
         } catch (error) {
-            console.error('API Error:', error);
+            console.error(`API Error [${endpoint}]:`, error.message);
             throw error;
         }
     }
-
-    // ===== USER METHODS =====
 
     async getAllUsers() {
         return this.request('/users');
@@ -58,8 +53,6 @@ class ApiClient {
         return this.request(`/search?q=${encodeURIComponent(query)}`);
     }
 
-    // ===== INVITATION METHODS =====
-
     async getInvitations(userId) {
         return this.request(`/invitations/${userId}`);
     }
@@ -78,8 +71,6 @@ class ApiClient {
         });
     }
 
-    // ===== FRIEND REQUEST METHODS =====
-
     async getFriendRequests(userId) {
         return this.request(`/friend-requests/${userId}`);
     }
@@ -97,8 +88,6 @@ class ApiClient {
             body: JSON.stringify({ status })
         });
     }
-
-    // ===== MESSAGE METHODS =====
 
     async getMessages(userId1, userId2) {
         return this.request(`/messages/${userId1}/${userId2}`);
@@ -119,7 +108,6 @@ class ApiClient {
     }
 }
 
-// Create singleton instance
 const apiClient = new ApiClient();
 
 export default apiClient;

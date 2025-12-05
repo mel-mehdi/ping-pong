@@ -1,15 +1,5 @@
-/**
- * Form Validation Utility Functions
- * Provides reusable validation functions for forms
- */
-
 import { VALIDATION_RULES, ERROR_MESSAGES } from './constants.js';
 
-/**
- * Validate if field is not empty
- * @param {string} value - Field value
- * @returns {Object} Validation result
- */
 export function validateRequired(value) {
     const isValid = value && value.trim().length > 0;
     return {
@@ -18,11 +8,6 @@ export function validateRequired(value) {
     };
 }
 
-/**
- * Validate email format
- * @param {string} email - Email address
- * @returns {Object} Validation result
- */
 export function validateEmail(email) {
     if (!email || email.trim().length === 0) {
         return { isValid: false, message: 'Email ' + ERROR_MESSAGES.REQUIRED_FIELD };
@@ -35,11 +20,6 @@ export function validateEmail(email) {
     };
 }
 
-/**
- * Validate username format and length
- * @param {string} username - Username
- * @returns {Object} Validation result
- */
 export function validateUsername(username) {
     if (!username || username.trim().length === 0) {
         return { isValid: false, message: 'Username ' + ERROR_MESSAGES.REQUIRED_FIELD };
@@ -60,11 +40,6 @@ export function validateUsername(username) {
     };
 }
 
-/**
- * Validate password length
- * @param {string} password - Password
- * @returns {Object} Validation result
- */
 export function validatePassword(password) {
     if (!password || password.length === 0) {
         return { isValid: false, message: 'Password ' + ERROR_MESSAGES.REQUIRED_FIELD };
@@ -77,12 +52,6 @@ export function validatePassword(password) {
     };
 }
 
-/**
- * Validate password confirmation
- * @param {string} password - Original password
- * @param {string} confirmPassword - Confirmation password
- * @returns {Object} Validation result
- */
 export function validatePasswordMatch(password, confirmPassword) {
     const isValid = password === confirmPassword && password.length > 0;
     return {
@@ -91,11 +60,6 @@ export function validatePasswordMatch(password, confirmPassword) {
     };
 }
 
-/**
- * Display error message for a field
- * @param {string} fieldId - Field ID
- * @param {string} message - Error message
- */
 export function showError(fieldId, message) {
     const errorElement = document.getElementById(`${fieldId}Error`);
     const inputElement = document.getElementById(fieldId);
@@ -115,18 +79,10 @@ export function showError(fieldId, message) {
     }
 }
 
-/**
- * Clear error message for a field
- * @param {string} fieldId - Field ID
- */
 export function clearError(fieldId) {
     showError(fieldId, '');
 }
 
-/**
- * Clear all errors in a form
- * @param {HTMLFormElement} form - Form element
- */
 export function clearAllErrors(form) {
     const errorElements = form.querySelectorAll('.error-message');
     errorElements.forEach(el => el.textContent = '');
