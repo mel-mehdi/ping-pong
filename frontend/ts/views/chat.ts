@@ -56,7 +56,7 @@ export class ChatView {
                                 </div>
                             </div>
 
-                            <div class="card-body p-4 chat-messages-area" id="chatMessages" style="overflow-y: auto;">
+                            <div class="card-body p-4 chat-messages-area" id="chatMessages" style="overflow-y: auto; max-height: calc(100vh - 280px); min-height: 400px;">
                                 <div class="text-center py-5 text-muted">
                                     <i class="fas fa-comment-dots fa-4x mb-3 opacity-25"></i>
                                     <h5>No messages yet</h5>
