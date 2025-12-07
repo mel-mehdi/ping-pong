@@ -4876,6 +4876,15 @@ a:hover i {
 }
 
 /* Simple Professional Chat Design */
+.chat-card {
+    background-color: #ffffff;
+}
+
+.chat-card .card-header,
+.chat-card .card-footer {
+    background-color: #ffffff;
+}
+
 .chat-messages-area {
     background-color: #fafafa;
 }
@@ -4923,6 +4932,21 @@ a:hover i {
 }
 
 /* Dark mode for simple chat */
+[data-theme="dark"] .chat-card {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .chat-card .card-header,
+[data-theme="dark"] .chat-card .card-footer {
+    background-color: var(--bg-tertiary) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .chat-card .card-body {
+    background-color: var(--bg-secondary) !important;
+}
+
 [data-theme="dark"] .chat-messages-area {
     background-color: var(--bg-primary) !important;
 }
@@ -4938,17 +4962,8 @@ a:hover i {
     border-color: var(--border) !important;
 }
 
-[data-theme="dark"] .card-header.bg-white,
-[data-theme="dark"] .card-footer.bg-white {
-    background-color: var(--bg-tertiary) !important;
-}
-
 [data-theme="dark"] .card-body {
     background-color: var(--bg-secondary) !important;
-}
-
-[data-theme="dark"] .card-body[style*="background-color"] {
-    background-color: var(--bg-primary) !important;
 }
 
 [data-theme="dark"] #chatMessages {
@@ -4969,28 +4984,26 @@ a:hover i {
     background-color: rgba(13, 110, 253, 0.2) !important;
 }
 
-[data-theme="dark"] #chatInput {
-    background-color: var(--bg-tertiary) !important;
-    border-color: var(--border) !important;
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] #chatInput::placeholder {
-    color: var(--text-muted) !important;
-}
-
+[data-theme="dark"] #chatInput,
 [data-theme="dark"] .form-control {
     background-color: var(--bg-tertiary) !important;
     border-color: var(--border) !important;
     color: var(--text-primary) !important;
 }
 
+[data-theme="dark"] #chatInput::placeholder,
+[data-theme="dark"] .form-control::placeholder {
+    color: var(--text-muted) !important;
+}
+
 [data-theme="dark"] .text-muted {
     color: var(--text-muted) !important;
 }
 
-[data-theme="dark"] .bg-white {
-    background-color: var(--bg-tertiary) !important;
+[data-theme="dark"] h5, 
+[data-theme="dark"] h6,
+[data-theme="dark"] .fw-semibold {
+    color: var(--text-primary) !important;
 }
 
 [data-theme="dark"] .border {

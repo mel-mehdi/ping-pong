@@ -22,7 +22,7 @@ export class ChatView {
                 <div class="row g-3" style="height: calc(100vh - 100px);">
                     <!-- Conversations List -->
                     <div class="col-lg-4">
-                        <div class="card h-100 border">
+                        <div class="card chat-card h-100 border">
                             <div class="card-header border-bottom d-flex align-items-center justify-content-between py-3">
                                 <h5 class="mb-0 fw-semibold">Conversations</h5>
                                 <button class="btn btn-sm btn-primary" id="newChatBtn">
@@ -42,7 +42,7 @@ export class ChatView {
 
                     <!-- Chat Area -->
                     <div class="col-lg-8">
-                        <div class="card h-100 border">
+                        <div class="card chat-card h-100 border">
                             <div class="card-header border-bottom py-3">
                                 <div class="d-flex align-items-center">
                                     <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" 
