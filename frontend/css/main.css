@@ -4952,7 +4952,15 @@ a:hover i {
     border-color: var(--border) !important;
 }
 
+[data-theme="dark"] .card-header.bg-white {
+    background: var(--bg-tertiary) !important;
+}
+
 [data-theme="dark"] .card-body {
+    background: var(--bg-primary) !important;
+}
+
+[data-theme="dark"] .card-body[style*="background"] {
     background: var(--bg-primary) !important;
 }
 
@@ -5004,6 +5012,10 @@ a:hover i {
     color: var(--text-primary) !important;
 }
 
+[data-theme="dark"] .input-group-text.bg-white {
+    background: var(--bg-tertiary) !important;
+}
+
 [data-theme="dark"] .form-control {
     background: var(--bg-tertiary) !important;
     border-color: var(--border) !important;
@@ -5017,6 +5029,18 @@ a:hover i {
 [data-theme="dark"] .bg-white {
     background: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] #chatMessages {
+    background: var(--bg-primary) !important;
+}
+
+[data-theme="dark"] #chatMessages[style*="background"] {
+    background: var(--bg-primary) !important;
+}
+
+[data-theme="dark"] .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* Responsive chat adjustments */
