@@ -18,112 +18,62 @@ export class ChatView {
         this.app.appContainer.innerHTML = `
             ${renderNavbar('chat')}
 
-            <main class="container-fluid py-3" style="max-width: 1400px;">
-                <div class="row g-3" style="height: calc(100vh - 120px);">
-                    <!-- Chat Sidebar -->
-                    <div class="col-lg-4 col-xl-3">
-                        <div class="card border-0 shadow-lg h-100" style="border-radius: 20px; overflow: hidden;">
-                            <div class="card-header border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem;">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <h5 class="mb-0 text-white fw-bold">
-                                        <i class="fas fa-comments me-2"></i>Messages
-                                    </h5>
-                                    <button class="btn btn-light btn-sm rounded-circle" style="width: 36px; height: 36px;" title="New Chat">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                </div>
-                                <div class="mt-3">
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-white border-0">
-                                            <i class="fas fa-search text-muted"></i>
-                                        </span>
-                                        <input type="text" class="form-control border-0" placeholder="Search conversations..." id="searchConversations">
-                                    </div>
-                                </div>
+            <main class="container-fluid px-4 py-3" style="max-width: 1600px;">
+                <div class="row g-3" style="height: calc(100vh - 100px);">
+                    <!-- Conversations List -->
+                    <div class="col-lg-4">
+                        <div class="card h-100 border">
+                            <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+                                <h5 class="mb-0 fw-semibold">Conversations</h5>
+                                <button class="btn btn-sm btn-primary" id="newChatBtn">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
-                            <div class="card-body p-0" style="overflow-y: auto; background: #f8f9fa;">
+                            <div class="card-body p-0" style="overflow-y: auto;">
                                 <ul class="list-group list-group-flush" id="chatUsersList">
-                                    <li class="text-muted text-center py-4">
-                                        <i class="fas fa-inbox fa-2x mb-2 opacity-25"></i>
-                                        <p class="mb-0 small">No conversations yet</p>
+                                    <li class="list-group-item text-center text-muted py-5">
+                                        <i class="fas fa-comments fa-3x mb-3 opacity-50"></i>
+                                        <p class="mb-0">No conversations</p>
                                     </li>
                                 </ul>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Main Chat Area -->
-                    <div class="col-lg-8 col-xl-9">
-                        <div class="card border-0 shadow-lg h-100" style="border-radius: 20px; overflow: hidden;">
-                            <!-- Chat Header -->
-                            <div class="card-header border-0 bg-white" style="padding: 1.25rem 1.5rem;">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="d-flex align-items-center">
-                                        <div class="position-relative me-3">
-                                            <div class="rounded-circle bg-gradient d-flex align-items-center justify-content-center text-white" 
-                                                 style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                                <i class="fas fa-user"></i>
-                                            </div>
-                                            <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-2 border-white" 
-                                                  style="width: 14px; height: 14px; padding: 0;"></span>
-                                        </div>
-                                        <div>
-                                            <h6 class="mb-0 fw-bold chat-header-title">Select a conversation</h6>
-                                            <small class="text-muted chat-header-status">
-                                                <i class="fas fa-circle text-success" style="font-size: 8px;"></i>
-                                                No active chat
-                                            </small>
-                                        </div>
+                    <!-- Chat Area -->
+                    <div class="col-lg-8">
+                        <div class="card h-100 border">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" 
+                                         style="width: 42px; height: 42px; font-weight: 600;">
+                                        <i class="fas fa-user"></i>
                                     </div>
-                                    <div class="d-flex gap-2">
-                                        <button class="btn btn-light btn-sm rounded-circle" style="width: 36px; height: 36px;" title="Call">
-                                            <i class="fas fa-phone"></i>
-                                        </button>
-                                        <button class="btn btn-light btn-sm rounded-circle" style="width: 36px; height: 36px;" title="Video Call">
-                                            <i class="fas fa-video"></i>
-                                        </button>
-                                        <button class="btn btn-light btn-sm rounded-circle" style="width: 36px; height: 36px;" title="More">
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </button>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold chat-header-title">Select a conversation</h6>
+                                        <small class="text-muted chat-header-status">Start chatting</small>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Messages Container -->
-                            <div class="card-body px-4 py-3" id="chatMessages" 
-                                 style="overflow-y: auto; background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%); max-height: calc(100vh - 340px);">
-                                <div class="text-center py-5">
-                                    <div class="mb-4">
-                                        <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" 
-                                             style="width: 80px; height: 80px;">
-                                            <i class="fas fa-comments fa-2x text-muted opacity-25"></i>
-                                        </div>
-                                    </div>
-                                    <h5 class="text-muted">No messages yet</h5>
-                                    <p class="text-muted small">Start a conversation with your friends!</p>
+                            <div class="card-body p-4" id="chatMessages" style="overflow-y: auto; background-color: #fafafa;">
+                                <div class="text-center py-5 text-muted">
+                                    <i class="fas fa-comment-dots fa-4x mb-3 opacity-25"></i>
+                                    <h5>No messages yet</h5>
+                                    <p>Select a conversation to start chatting</p>
                                 </div>
                             </div>
 
-                            <!-- Chat Input -->
-                            <div class="card-footer border-0 bg-white" style="padding: 1rem 1.5rem;">
-                                <div class="d-flex align-items-end gap-2">
-                                    <button class="btn btn-light rounded-circle" style="width: 40px; height: 40px;" title="Attach">
-                                        <i class="fas fa-paperclip"></i>
-                                    </button>
-                                    <button class="btn btn-light rounded-circle" style="width: 40px; height: 40px;" title="Emoji">
-                                        <i class="fas fa-smile"></i>
-                                    </button>
-                                    <div class="flex-grow-1">
-                                        <textarea 
-                                            class="form-control border-0 shadow-sm" 
-                                            id="chatInput" 
-                                            placeholder="Type your message..."
-                                            rows="1"
-                                            style="resize: none; border-radius: 20px; padding: 0.75rem 1.25rem; background: #f8f9fa;"
-                                        ></textarea>
-                                    </div>
-                                    <button class="btn btn-primary rounded-circle shadow-sm" id="chatSendBtn" type="button" 
-                                            style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                            <div class="card-footer bg-white border-top p-3">
+                                <div class="d-flex gap-2 align-items-end">
+                                    <textarea 
+                                        class="form-control" 
+                                        id="chatInput" 
+                                        placeholder="Type a message..."
+                                        rows="1"
+                                        style="resize: none; max-height: 120px;"
+                                    ></textarea>
+                                    <button class="btn btn-primary px-4" id="chatSendBtn" type="button">
                                         <i class="fas fa-paper-plane"></i>
                                     </button>
                                 </div>
@@ -260,10 +210,10 @@ export class ChatView {
                     };
 
                     document.querySelector('.chat-header-title').textContent = friendName;
-                    document.querySelector('.chat-header-status').innerHTML = `<i class="fas fa-circle text-success" style="font-size: 8px;"></i> Online`;
+                    document.querySelector('.chat-header-status').textContent = 'Online';
                     const headerAvatar = document.querySelector('.card-header .rounded-circle i');
                     if (headerAvatar && headerAvatar.parentElement) {
-                        headerAvatar.parentElement.innerHTML = `<span class="fw-bold">${friendAvatar}</span>`;
+                        headerAvatar.parentElement.innerHTML = `<span class="fw-semibold">${friendAvatar}</span>`;
                     }
 
                     this.lastMessageTimestamp = 0;
@@ -313,15 +263,10 @@ export class ChatView {
             
             if (messages.length === 0) {
                 chatMessages.innerHTML = `
-                    <div class="text-center py-5">
-                        <div class="mb-4">
-                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" 
-                                 style="width: 80px; height: 80px;">
-                                <i class="fas fa-comments fa-2x text-muted opacity-25"></i>
-                            </div>
-                        </div>
-                        <h5 class="text-muted">No messages yet</h5>
-                        <p class="text-muted small">Start the conversation with ${this.currentChatFriend.name}!</p>
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-comment-dots fa-4x mb-3 opacity-25"></i>
+                        <h5>No messages yet</h5>
+                        <p>Start the conversation with ${this.currentChatFriend.name}</p>
                     </div>
                 `;
                 return;
@@ -336,28 +281,23 @@ export class ChatView {
                 const avatar = isOwn ? currentUser.username.charAt(0).toUpperCase() : this.currentChatFriend.avatar;
 
                 return `
-                    <div class="d-flex mb-3 ${isOwn ? 'justify-content-end' : 'justify-content-start'} message-fade-in">
+                    <div class="d-flex mb-3 ${isOwn ? 'justify-content-end' : 'justify-content-start'}">
                         ${!isOwn ? `
-                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white me-2 flex-shrink-0" 
-                                 style="width: 36px; height: 36px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-size: 0.9rem; font-weight: 600;">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2 flex-shrink-0" 
+                                 style="width: 36px; height: 36px; font-weight: 600;">
                                 ${avatar}
                             </div>
                         ` : ''}
                         <div style="max-width: 65%;">
-                            <div class="px-3 py-2 ${isOwn ? 'text-white' : 'bg-white'}" 
-                                 style="border-radius: ${isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px'}; 
-                                        ${isOwn ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);' : 'box-shadow: 0 1px 2px rgba(0,0,0,0.1);'}
-                                        word-wrap: break-word;">
-                                <p class="mb-0" style="line-height: 1.5;">${this.escapeHtml(msg.message)}</p>
+                            <div class="p-3 ${isOwn ? 'bg-primary text-white' : 'bg-white border'}" 
+                                 style="border-radius: ${isOwn ? '12px 12px 0 12px' : '12px 12px 12px 0'};">
+                                <p class="mb-0">${this.escapeHtml(msg.message)}</p>
                             </div>
-                            <div class="d-flex align-items-center gap-2 mt-1 px-2">
-                                <small class="text-muted" style="font-size: 0.7rem;">${time}</small>
-                                ${isOwn ? '<i class="fas fa-check-double text-info" style="font-size: 0.7rem;"></i>' : ''}
-                            </div>
+                            <small class="text-muted d-block mt-1 px-2" style="font-size: 0.75rem;">${time}</small>
                         </div>
                         ${isOwn ? `
-                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white ms-2 flex-shrink-0" 
-                                 style="width: 36px; height: 36px; background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); font-size: 0.9rem; font-weight: 600;">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center ms-2 flex-shrink-0" 
+                                 style="width: 36px; height: 36px; font-weight: 600;">
                                 ${avatar}
                             </div>
                         ` : ''}
@@ -580,33 +520,27 @@ export class ChatView {
 
             if (friends.size === 0) {
                 chatUsersList.innerHTML = `
-                    <li class="text-muted text-center py-4">
-                        <i class="fas fa-inbox fa-2x mb-2 opacity-25"></i>
-                        <p class="mb-0 small">No conversations yet</p>
-                        <p class="mb-0 small">Add friends to start chatting!</p>
+                    <li class="list-group-item text-center text-muted py-5">
+                        <i class="fas fa-comments fa-3x mb-3 opacity-50"></i>
+                        <p class="mb-0">No conversations</p>
+                        <small>Add friends to start chatting</small>
                     </li>
                 `;
             } else {
                 chatUsersList.innerHTML = Array.from(friends.values()).map(friend => `
-                    <li class="list-group-item list-group-item-action border-0 chat-user-item" data-user-id="${friend.id}" 
-                        style="cursor: pointer; transition: all 0.2s; padding: 1rem 1.25rem;">
-                        <div class="d-flex align-items-center">
-                            <div class="position-relative me-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" 
-                                     style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-size: 1.25rem;">
-                                    ${friend.avatar}
-                                </div>
-                                <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-2 border-white" 
-                                      style="width: 12px; height: 12px; padding: 0;"></span>
+                    <li class="list-group-item list-group-item-action chat-user-item" data-user-id="${friend.id}" 
+                        style="cursor: pointer; border-left: 3px solid transparent; transition: all 0.2s;">
+                        <div class="d-flex align-items-center py-2">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3 flex-shrink-0" 
+                                 style="width: 45px; height: 45px; font-weight: 600; font-size: 1.1rem;">
+                                ${friend.avatar}
                             </div>
-                            <div class="flex-grow-1 min-width-0">
+                            <div class="flex-grow-1 overflow-hidden">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <h6 class="mb-0 fw-bold chat-user-name text-truncate">${friend.name}</h6>
-                                    <small class="text-muted">Just now</small>
+                                    <h6 class="mb-0 fw-semibold chat-user-name">${friend.name}</h6>
+                                    <small class="text-muted">2m</small>
                                 </div>
-                                <p class="mb-0 small text-muted text-truncate chat-user-last-message">
-                                    <i class="fas fa-check-double text-info me-1"></i>Click to start chatting
-                                </p>
+                                <p class="mb-0 text-muted small text-truncate chat-user-last-message">Click to start chatting</p>
                             </div>
                         </div>
                     </li>
