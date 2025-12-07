@@ -5,7 +5,7 @@
   "main": "pages/login.html",
   "type": "module",
   "scripts": {
-    "build": "babel js --out-dir dist --extensions '.ts' --copy-files && find dist -name '*.js' -type f -exec sed -i 's/\\.ts\"/\\.js\"/g' {} +",
+    "build": "babel ts --out-dir dist --extensions '.ts' --copy-files && find dist -name '*.js' -type f -exec sed -i 's/\\.ts\"/\\.js\"/g' {} +",
     "dev": "npm run build && npx http-server -p 8000 -o pages/login.html",
     "start": "npm run build && npx http-server -p 8000",
     "lint": "eslint scripts/**/*.js",

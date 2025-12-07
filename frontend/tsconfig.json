@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "outDir": "./dist",
-    "rootDir": "./js",
+    "rootDir": "./ts",
     "sourceMap": true,
     "declaration": false,
     "declarationMap": false,
@@ -21,6 +21,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["js/**/*"],
+  "include": ["ts/**/*"],
   "exclude": ["node_modules", "dist"]
 }
