@@ -8,7 +8,6 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'database.json');
-const SALT_ROUNDS = 10;
 
 const DB_SCHEMA = {
     users: [],

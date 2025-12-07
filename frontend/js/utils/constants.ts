@@ -1,17 +1,11 @@
-export const APP_NAME = 'Ping Pong';
-
 export const STORAGE_KEYS = {
-    USER_DATA: 'userData',
-    GAME_SETTINGS: 'gameSettings',
-    HIGH_SCORES: 'highScores'
+    USER_DATA: 'userData'
 };
 
 export const ROUTES = {
     LOGIN: 'login.html',
     REGISTER: 'register.html',
-    HOME: 'index.html',
-    GAME: 'index.html#game',
-    PROFILE: 'profile.html'
+    HOME: 'index.html'
 };
 
 export const GAME_SETTINGS = {
@@ -41,8 +35,7 @@ export const ERROR_MESSAGES = {
     USERNAME_TOO_SHORT: `Username must be at least ${VALIDATION_RULES.MIN_USERNAME_LENGTH} characters`,
     USERNAME_TOO_LONG: `Username must not exceed ${VALIDATION_RULES.MAX_USERNAME_LENGTH} characters`,
     PASSWORD_TOO_SHORT: `Password must be at least ${VALIDATION_RULES.MIN_PASSWORD_LENGTH} characters`,
-    PASSWORDS_NOT_MATCH: 'Passwords do not match',
-    TERMS_NOT_ACCEPTED: 'You must accept the Terms & Conditions'
+    PASSWORDS_NOT_MATCH: 'Passwords do not match'
 };
 
 export const PUBLIC_PAGES = ['login.html', 'register.html', 'index.html', ''];
