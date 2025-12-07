@@ -5,8 +5,10 @@
   "main": "pages/login.html",
   "type": "module",
   "scripts": {
-    "dev": "npx http-server -p 8000 -o pages/login.html",
-    "start": "npx http-server -p 8000",
+    "dev": "npx vite",
+    "build": "npx vite build",
+    "preview": "npx vite preview",
+    "start": "npx vite",
     "lint": "eslint scripts/**/*.js",
     "lint:fix": "eslint scripts/**/*.js --fix",
     "format": "prettier --write \"**/*.{js,html,css,md}\"",
@@ -24,9 +26,12 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^24.10.1",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
+    "http-server": "^14.1.1",
     "prettier": "^3.2.4",
-    "http-server": "^14.1.1"
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6"
   }
 }
