@@ -18,10 +18,10 @@ export class ChatView {
         this.app.appContainer.innerHTML = `
             ${renderNavbar('chat')}
 
-            <main class="container-fluid px-3 py-3" style="max-width: 1400px;">
-                <div class="row g-3" style="height: calc(100vh - 110px);">
+            <main class="container-fluid px-3 py-3" style="max-width: 1400px; height: calc(100vh - 70px); overflow: hidden;">
+                <div class="row g-3 h-100">
                     <!-- Conversations List -->
-                    <div class="col-lg-4">
+                    <div class="col-lg-4 h-100">
                         <div class="card chat-card h-100">
                             <div class="card-header py-3 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
@@ -44,8 +44,8 @@ export class ChatView {
                     </div>
 
                     <!-- Chat Area -->
-                    <div class="col-lg-8">
-                        <div class="card chat-card h-100">
+                    <div class="col-lg-8 h-100">
+                        <div class="card chat-card h-100 d-flex flex-column">
                             <div class="card-header py-3 px-4">
                                 <div class="d-flex align-items-center">
                                     <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
@@ -59,7 +59,7 @@ export class ChatView {
                                 </div>
                             </div>
 
-                            <div class="card-body p-4 chat-messages-area" id="chatMessages" style="overflow-y: auto; flex: 1; max-height: calc(100vh - 260px);">
+                            <div class="card-body p-4 chat-messages-area flex-grow-1" id="chatMessages" style="overflow-y: auto;">
                                 <div class="text-center py-5 text-muted">
                                     <i class="fas fa-comment-dots fa-4x mb-3 opacity-25"></i>
                                     <h5 class="fw-normal">No messages yet</h5>
