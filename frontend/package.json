@@ -5,9 +5,10 @@
   "main": "pages/login.html",
   "type": "module",
   "scripts": {
-    "build": "babel ts --out-dir dist --extensions '.ts' --copy-files && find dist -name '*.js' -type f -exec sed -i 's/\\.ts\"/\\.js\"/g' {} +",
-    "dev": "npm run build && npx http-server -p 8000 -o pages/login.html",
-    "start": "npm run build && npx http-server -p 8000",
+    "dev": "npx vite",
+    "build": "tsc && npx vite build",
+    "preview": "npx vite preview",
+    "start": "npx vite",
     "lint": "eslint scripts/**/*.js",
     "lint:fix": "eslint scripts/**/*.js --fix",
     "format": "prettier --write \"**/*.{js,html,css,md}\"",
@@ -25,15 +26,12 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@babel/cli": "^7.28.3",
-    "@babel/core": "^7.28.5",
-    "@babel/preset-env": "^7.28.5",
-    "@babel/preset-typescript": "^7.28.5",
     "@types/node": "^24.10.1",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "http-server": "^14.1.1",
     "prettier": "^3.2.4",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6"
   }
 }
