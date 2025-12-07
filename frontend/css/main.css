@@ -1,7 +1,37 @@
 /* ========================================
    FT Transcendence - Modern Pong Game
-   Clean & Professional Design
+   Clean & Professional Design with Bootstrap 5
    ======================================== */
+
+/* === BOOTSTRAP OVERRIDES & ENHANCEMENTS === */
+.hover-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.card {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.btn {
+    border-radius: 0.5rem;
+    font-weight: 500;
+    padding: 0.5rem 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
 
 /* === RESET & BASE === */
 * {

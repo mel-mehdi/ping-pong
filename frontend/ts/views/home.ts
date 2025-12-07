@@ -51,148 +51,221 @@ export class HomeView {
 
                 ${isLoggedIn ? `
                 <!-- Dashboard Stats Section -->
-                <section class="dashboard-grid" aria-label="Quick stats">
-                    <article class="dashboard-card">
-                        <div class="card-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg></div>
-                        <h3>Quick Match</h3>
-                        <p>Start a game instantly</p>
-                        <button id="quickMatchBtn" class="btn btn-primary" aria-label="Start playing now">Play Now</button>
-                    </article>
+                <section class="container my-4" aria-label="Quick stats">
+                    <div class="row g-4">
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card h-100 text-center shadow-sm">
+                                <div class="card-body">
+                                    <div class="card-icon text-primary mb-3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg></div>
+                                    <h5 class="card-title">Quick Match</h5>
+                                    <p class="card-text">Start a game instantly</p>
+                                    <button id="quickMatchBtn" class="btn btn-primary" aria-label="Start playing now">Play Now</button>
+                                </div>
+                            </div>
+                        </div>
 
-                    <article class="dashboard-card">
-                        <div class="card-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></div>
-                        <h3>Total Wins</h3>
-                        <p class="big-number" aria-label="wins">0</p>
-                        <p class="sub-text">Keep playing!</p>
-                    </article>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card h-100 text-center shadow-sm">
+                                <div class="card-body">
+                                    <div class="card-icon text-warning mb-3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></div>
+                                    <h5 class="card-title">Total Wins</h5>
+                                    <p class="display-4 mb-0" aria-label="wins">0</p>
+                                    <small class="text-muted">Keep playing!</small>
+                                </div>
+                            </div>
+                        </div>
 
-                    <article class="dashboard-card">
-                        <div class="card-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg></div>
-                        <h3>Win Rate</h3>
-                        <p class="big-number" aria-label="win rate">0%</p>
-                        <p class="sub-text">Play more games</p>
-                    </article>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card h-100 text-center shadow-sm">
+                                <div class="card-body">
+                                    <div class="card-icon text-success mb-3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg></div>
+                                    <h5 class="card-title">Win Rate</h5>
+                                    <p class="display-4 mb-0" aria-label="win rate">0%</p>
+                                    <small class="text-muted">Play more games</small>
+                                </div>
+                            </div>
+                        </div>
 
-                    <article class="dashboard-card">
-                        <div class="card-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
-                        <h3>Ranking</h3>
-                        <p class="big-number" aria-label="Rank">-</p>
-                        <p class="sub-text">Start competing!</p>
-                    </article>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card h-100 text-center shadow-sm">
+                                <div class="card-body">
+                                    <div class="card-icon text-info mb-3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
+                                    <h5 class="card-title">Ranking</h5>
+                                    <p class="display-4 mb-0" aria-label="Rank">-</p>
+                                    <small class="text-muted">Start competing!</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
                 ` : ''}
 
                 <!-- Play Options -->
-                <section class="play-section">
-                    <h2 class="section-title">Play Options</h2>
-                    <div class="play-options-grid">
-                        <button id="quickPlayBtn" class="play-option-card">
-                            <div class="play-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div>
-                            <h3>Play Pong</h3>
-                            <p>Local Game (2 Players)</p>
-                        </button>
+                <section class="container my-5">
+                    <h2 class="section-title text-center mb-4">Play Options</h2>
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <button id="quickPlayBtn" class="card h-100 text-center border-0 shadow-sm hover-card w-100">
+                                <div class="card-body">
+                                    <div class="play-icon text-primary mb-3"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div>
+                                    <h5 class="card-title">Play Pong</h5>
+                                    <p class="card-text text-muted">Local Game (2 Players)</p>
+                                </div>
+                            </button>
+                        </div>
                         
-                        <button id="onlinePlayBtn" class="play-option-card">
-                            <div class="play-icon"><i class="fas fa-globe"></i></div>
-                            <h3>Online Game</h3>
-                            <p>Play against others online</p>
-                        </button>
+                        <div class="col-md-4">
+                            <button id="onlinePlayBtn" class="card h-100 text-center border-0 shadow-sm hover-card w-100">
+                                <div class="card-body">
+                                    <div class="play-icon text-success mb-3"><i class="fas fa-globe fs-1"></i></div>
+                                    <h5 class="card-title">Online Game</h5>
+                                    <p class="card-text text-muted">Play against others online</p>
+                                </div>
+                            </button>
+                        </div>
                         
-                        <button id="tournamentBtn" class="play-option-card">
-                            <div class="play-icon"><i class="fas fa-trophy"></i></div>
-                            <h3>Tournament Mode</h3>
-                            <p>Compete in brackets</p>
-                        </button>
+                        <div class="col-md-4">
+                            <button id="tournamentBtn" class="card h-100 text-center border-0 shadow-sm hover-card w-100">
+                                <div class="card-body">
+                                    <div class="play-icon text-warning mb-3"><i class="fas fa-trophy fs-1"></i></div>
+                                    <h5 class="card-title">Tournament Mode</h5>
+                                    <p class="card-text text-muted">Compete in brackets</p>
+                                </div>
+                            </button>
+                        </div>
                     </div>
                 </section>
 
                 <!-- Tournament Preview -->
-                <section class="tournament-preview-section">
-                    <div class="section-header">
-                        <h2 class="section-title">Tournament</h2>
+                <section class="container my-5">
+                    <div class="section-header mb-4">
+                        <h2 class="section-title text-center">Tournament</h2>
                     </div>
-                    <div class="tournament-preview-card">
-                        <div class="tournament-info">
-                            <h3>Upcoming Tournaments</h3>
-                            <p>Join and compete with other players to become the champion!</p>
-                            <ul class="tournament-features">
-                                <li>• Single elimination brackets</li>
-                                <li>• 4, 8, or 16 players</li>
-                                <li>• Track match history</li>
-                            </ul>
+                    <div class="card shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h3 class="h4 mb-3">Upcoming Tournaments</h3>
+                                    <p class="text-muted mb-3">Join and compete with other players to become the champion!</p>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Single elimination brackets</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> 4, 8, or 16 players</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Track match history</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <button id="startTournamentBtn" class="btn btn-primary btn-lg w-100">Start a Tournament</button>
+                                </div>
+                            </div>
                         </div>
-                        <button id="startTournamentBtn" class="btn btn-primary btn-large">Start a Tournament</button>
                     </div>
                 </section>
 
                 <!-- Leaderboard with Recent Activity -->
-                <section class="dashboard-section">
-                    <article class="card">
-                        <header class="card-header">
-                            <h2>Leaderboard</h2>
-                        </header>
-                        <div class="card-body">
-                            <ol class="leaderboard" aria-label="Top players" id="leaderboardList">
-                                <li class="text-muted">No players yet. Be the first to play!</li>
-                            </ol>
+                <section class="container my-5">
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Leaderboard</h5>
+                                </div>
+                                <div class="card-body">
+                                    <ol class="list-group list-group-numbered" aria-label="Top players" id="leaderboardList">
+                                        <li class="list-group-item text-muted">No players yet. Be the first to play!</li>
+                                    </ol>
+                                </div>
+                            </div>
                         </div>
-                    </article>
 
-                    ${isLoggedIn ? `
-                    <article class="card">
-                        <header class="card-header">
-                            <h2><i class="fas fa-clipboard-list"></i> Recent Activity</h2>
-                        </header>
-                        <div class="card-body">
-                            <ul class="activity-list" aria-label="Your recent activities" id="activityList">
-                                <li class="text-muted">No recent activity</li>
-                            </ul>
+                        ${isLoggedIn ? `
+                        <div class="col-lg-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Recent Activity</h5>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush" aria-label="Your recent activities" id="activityList">
+                                        <li class="list-group-item text-muted">No recent activity</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                    </article>
-                    ` : ''}
+                        ` : ''}
+                    </div>
                 </section>
 
                 <!-- Extra Info Section -->
-                <section class="extra-info-section">
-                    <div class="info-cards-grid">
-                        <div class="info-card-small">
-                            <div class="info-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></div>
-                            <h3>Chat</h3>
-                            <p>Connect with players</p>
+                <section class="container my-5">
+                    <div class="row g-4">
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card text-center shadow-sm h-100">
+                                <div class="card-body">
+                                    <div class="info-icon text-primary mb-3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></div>
+                                    <h5 class="card-title">Chat</h5>
+                                    <p class="card-text text-muted">Connect with players</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="info-card-small">
-                            <div class="info-icon"><i class="fas fa-user-friends"></i></div>
-                            <h3>Friends</h3>
-                            <p>Build your network</p>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card text-center shadow-sm h-100">
+                                <div class="card-body">
+                                    <div class="info-icon text-success mb-3"><i class="fas fa-user-friends fs-2"></i></div>
+                                    <h5 class="card-title">Friends</h5>
+                                    <p class="card-text text-muted">Build your network</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="info-card-small">
-                            <div class="info-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
-                            <h3>Achievements</h3>
-                            <p>Unlock rewards</p>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card text-center shadow-sm h-100">
+                                <div class="card-body">
+                                    <div class="info-icon text-warning mb-3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
+                                    <h5 class="card-title">Achievements</h5>
+                                    <p class="card-text text-muted">Unlock rewards</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="info-card-small">
-                            <div class="info-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg></div>
-                            <h3>Statistics</h3>
-                            <p>Track your progress</p>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card text-center shadow-sm h-100">
+                                <div class="card-body">
+                                    <div class="info-icon text-info mb-3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg></div>
+                                    <h5 class="card-title">Statistics</h5>
+                                    <p class="card-text text-muted">Track your progress</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
                 <!-- Game Info -->
-                <section class="game-info-section">
-                    <h2 class="section-title">How to Play</h2>
-                    <div class="game-info-grid">
-                        <div class="info-card">
-                            <h3><i class="fas fa-bolt"></i> Fair Play</h3>
-                            <p>Equal paddle sizes, speeds, and physics for all players</p>
+                <section class="container my-5 mb-5 pb-5">
+                    <h2 class="section-title text-center mb-4">How to Play</h2>
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="card text-center shadow-sm h-100 border-0">
+                                <div class="card-body">
+                                    <div class="mb-3 text-success"><i class="fas fa-bolt fs-1"></i></div>
+                                    <h5 class="card-title">Fair Play</h5>
+                                    <p class="card-text">Equal paddle sizes, speeds, and physics for all players</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="info-card">
-                            <h3>Simple Controls</h3>
-                            <p>Player 1: W/S keys | Player 2: I/K keys</p>
+                        <div class="col-md-4">
+                            <div class="card text-center shadow-sm h-100 border-0">
+                                <div class="card-body">
+                                    <div class="mb-3 text-primary"><i class="fas fa-keyboard fs-1"></i></div>
+                                    <h5 class="card-title">Simple Controls</h5>
+                                    <p class="card-text">Player 1: W/S keys | Player 2: I/K keys</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="info-card">
-                            <h3><i class="fas fa-medal"></i> Tournament Brackets</h3>
-                            <p>Enter names, play matches, crown a champion</p>
+                        <div class="col-md-4">
+                            <div class="card text-center shadow-sm h-100 border-0">
+                                <div class="card-body">
+                                    <div class="mb-3 text-warning"><i class="fas fa-medal fs-1"></i></div>
+                                    <h5 class="card-title">Tournament Brackets</h5>
+                                    <p class="card-text">Enter names, play matches, crown a champion</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
