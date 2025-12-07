@@ -1,80 +1,40 @@
-
-
 import { STORAGE_KEYS, ROUTES } from './utils/constants.ts';
 import { setItem } from './utils/storage.ts';
-import {
-    validateRequired,
-    showError,
-    clearError,
-    clearAllErrors
-} from './utils/validation.ts';
+import { validateRequired, showError, clearError, clearAllErrors } from './utils/validation.ts';
 import { getById, addEvent } from './utils/dom.ts';
 import api from './utils/api.ts';
 
-document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = getById('loginForm');
+const validate = (input, field) => {
+    const result = validateRequired(input.value);
+    result.isValid ? clearError(field) : showError(field, field.charAt(0).toUpperCase() + field.slice(1) + ' ' + result.message);
+};
 
-    if (loginForm) {
-        initLoginForm(loginForm);
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    const form = getById('loginForm');
+    form && initLoginForm(form);
 });
 
 function initLoginForm(form) {
-    const usernameInput = getById('username');
-    const passwordInput = getById('password');
+    const username = getById('username');
+    const password = getById('password');
 
-    addEvent(usernameInput, 'blur', () => {
-        const result = validateRequired(usernameInput.value);
-        if (!result.isValid) {
-            showError('username', 'Username ' + result.message);
-        } else {
-            clearError('username');
-        }
-    });
+    addEvent(username, 'blur', () => validate(username, 'username'));
+    addEvent(password, 'blur', () => validate(password, 'password'));
 
-    addEvent(passwordInput, 'blur', () => {
-        const result = validateRequired(passwordInput.value);
-        if (!result.isValid) {
-            showError('password', 'Password ' + result.message);
-        } else {
-            clearError('password');
-        }
-    });
-
-    addEvent(form, 'submit', async function(e) {
+    addEvent(form, 'submit', async (e) => {
         e.preventDefault();
         clearAllErrors(form);
         
-        const username = usernameInput.value;
-        const password = passwordInput.value;
-        const remember = document.querySelector('input[name="remember"]').checked;
+        const usr = username.value;
+        const pwd = password.value;
 
-        let isValid = true;
-
-        const usernameValidation = validateRequired(username);
-        if (!usernameValidation.isValid) {
-            showError('username', 'Username ' + usernameValidation.message);
-            isValid = false;
-        }
-
-        const passwordValidation = validateRequired(password);
-        if (!passwordValidation.isValid) {
-            showError('password', 'Password ' + passwordValidation.message);
-            isValid = false;
-        }
-
-        if (!isValid) {
-            return;
-        }
+        if (!validateRequired(usr).isValid || !validateRequired(pwd).isValid) return;
 
         form.classList.add('loading');
 
         try {
-            
-            const response = await api.login(username, password);
-            const user = response.user;
-
-            const sessionData = {
+            const { user } = await api.login(usr, pwd);
+            setItem(STORAGE_KEYS.USER_DATA, {
                 userId: user.id,
                 username: user.username,
                 email: user.email,
@@ -82,25 +42,11 @@ function initLoginForm(form) {
                 avatar: user.avatar,
                 loggedIn: true,
                 loginTime: new Date().toISOString()
-            };
-            
-            setItem(STORAGE_KEYS.USER_DATA, sessionData);
-            
-            console.log('✅ Login successful! User:', user.username);
-
-            setTimeout(() => {
-                window.location.href = ROUTES.HOME;
-            }, 500);
-            
+            });
+            setTimeout(() => window.location.href = ROUTES.HOME, 500);
         } catch (error) {
             form.classList.remove('loading');
-            console.error('Login error:', error);
-            
-            if (error.message.includes('Invalid credentials')) {
-                showError('password', 'Invalid username or password');
-            } else {
-                showError('password', 'Login failed: ' + error.message);
-            }
+            showError('password', error.message.includes('credentials') ? 'Invalid credentials' : 'Login failed');
         }
     });
 }
