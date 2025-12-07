@@ -18,75 +18,83 @@ export class ChatView {
         this.app.appContainer.innerHTML = `
             ${renderNavbar('chat')}
 
-            <main class="main-container">
-                <div class="chat-view">
-                    <div class="chat-container">
-                        <!-- Chat Sidebar -->
-                        <aside class="chat-sidebar">
-                            <div class="chat-sidebar-header">
-                                <h3>Conversations</h3>
+            <main class="container-fluid py-4">
+                <div class="row h-100">
+                    <!-- Chat Sidebar -->
+                    <div class="col-md-4 col-lg-3 mb-3 mb-md-0">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Conversations</h5>
                             </div>
-                            <ul class="chat-users-list" id="chatUsersList">
-                                <li class="text-muted" style="padding: 1rem; text-align: center;">No conversations yet</li>
-                            </ul>
-                        </aside>
+                            <div class="card-body p-0" style="overflow-y: auto; max-height: calc(100vh - 200px);">
+                                <ul class="list-group list-group-flush" id="chatUsersList">
+                                    <li class="list-group-item text-muted text-center">No conversations yet</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
 
-                        <!-- Main Chat Area -->
-                        <section class="chat-main">
-                            <div class="chat-header">
-                                <div class="chat-header-info">
-                                    <div class="chat-user-avatar">?</div>
+                    <!-- Main Chat Area -->
+                    <div class="col-md-8 col-lg-9">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-light">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
                                     <div>
-                                        <div class="chat-header-title">Select a conversation</div>
-                                        <div class="chat-header-status">No active chat</div>
+                                        <div class="fw-bold chat-header-title">Select a conversation</div>
+                                        <div class="text-muted small chat-header-status">No active chat</div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="chat-messages" id="chatMessages">
-                                <div class="text-muted" style="text-align: center; padding: 2rem;">
+                            <div class="card-body" id="chatMessages" style="overflow-y: auto; max-height: calc(100vh - 300px); min-height: 400px;">
+                                <div class="text-muted text-center py-5">
+                                    <i class="fas fa-comments fa-3x mb-3 opacity-25"></i>
                                     <p>No messages yet. Start a conversation!</p>
                                 </div>
                             </div>
 
-                            <div class="chat-input-area">
-                                <div class="chat-input-wrapper">
+                            <div class="card-footer bg-light">
+                                <div class="input-group">
                                     <textarea 
-                                        class="chat-input" 
+                                        class="form-control" 
                                         id="chatInput" 
                                         placeholder="Type a message..."
-                                        rows="1"
+                                        rows="2"
+                                        style="resize: none;"
                                     ></textarea>
-                                    <button class="chat-send-btn" id="chatSendBtn">
-                                        <span>Send</span>
-                                        <i class="fas fa-paper-plane"></i>
+                                    <button class="btn btn-primary" id="chatSendBtn" type="button">
+                                        <i class="fas fa-paper-plane me-1"></i>Send
                                     </button>
                                 </div>
                             </div>
-                        </section>
+                        </div>
                     </div>
                 </div>
             </main>
 
             <!-- Search Users Modal -->
-            <div class="modal-overlay hidden" id="searchModal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-user-plus"></i> Add Friends</h3>
-                        <button class="modal-close" id="closeSearchModal"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="search-input-wrapper">
-                            
-                            <input 
-                                type="text" 
-                                class="search-input" 
-                                id="userSearchInput"
-                                placeholder="Search for users..."
-                            />
+            <div class="modal fade" id="searchModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add Friends</h5>
+                            <button type="button" class="btn-close" id="closeSearchModal" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="user-search-results" id="searchResults">
-                            <!-- Search results will be populated here -->
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="userSearchInput"
+                                    placeholder="Search for users..."
+                                />
+                            </div>
+                            <div id="searchResults">
+                                <!-- Search results will be populated here -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -179,13 +187,13 @@ export class ChatView {
                 if (userItem) {
                     
                     document.querySelectorAll('.chat-user-item').forEach(item => {
-                        item.classList.remove('active');
+                        item.classList.remove('active', 'bg-light');
                     });
-                    userItem.classList.add('active');
+                    userItem.classList.add('active', 'bg-light');
 
                     const friendId = userItem.dataset.userId;
                     const friendName = userItem.querySelector('.chat-user-name').textContent;
-                    const friendAvatar = userItem.querySelector('.chat-user-avatar').textContent;
+                    const friendAvatar = userItem.querySelector('.rounded-circle span')?.textContent || friendName.charAt(0).toUpperCase();
                     
                     this.currentChatFriend = {
                         id: friendId,
@@ -195,7 +203,10 @@ export class ChatView {
 
                     document.querySelector('.chat-header-title').textContent = friendName;
                     document.querySelector('.chat-header-status').textContent = 'Online';
-                    document.querySelector('.chat-header .chat-user-avatar').textContent = friendAvatar;
+                    const headerAvatar = document.querySelector('.card-header .rounded-circle i');
+                    if (headerAvatar && headerAvatar.parentElement) {
+                        headerAvatar.parentElement.innerHTML = `<span>${friendAvatar}</span>`;
+                    }
 
                     this.lastMessageTimestamp = 0;
                     await this.loadMessages(friendId, true);
@@ -244,7 +255,8 @@ export class ChatView {
             
             if (messages.length === 0) {
                 chatMessages.innerHTML = `
-                    <div class="text-muted" style="text-align: center; padding: 2rem;">
+                    <div class="text-muted text-center py-5">
+                        <i class="fas fa-comments fa-3x mb-3 opacity-25"></i>
                         <p>No messages yet. Start the conversation!</p>
                     </div>
                 `;
@@ -260,14 +272,15 @@ export class ChatView {
                 const avatar = isOwn ? currentUser.username.charAt(0).toUpperCase() : this.currentChatFriend.avatar;
 
                 return `
-                    <div class="chat-message ${isOwn ? 'own' : ''}">
-                        <div class="chat-message-avatar">${avatar}</div>
-                        <div class="chat-message-content">
-                            <div class="chat-message-bubble">
-                                <p class="chat-message-text">${this.escapeHtml(msg.message)}</p>
+                    <div class="d-flex mb-3 ${isOwn ? 'justify-content-end' : 'justify-content-start'}">
+                        ${!isOwn ? `<div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px; flex-shrink: 0;"><small>${avatar}</small></div>` : ''}
+                        <div style="max-width: 70%;">
+                            <div class="p-2 rounded ${isOwn ? 'bg-primary text-white' : 'bg-light'}" style="word-wrap: break-word;">
+                                <p class="mb-0">${this.escapeHtml(msg.message)}</p>
                             </div>
-                            <div class="chat-message-time">${time}</div>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">${time}</small>
                         </div>
+                        ${isOwn ? `<div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center ms-2" style="width: 35px; height: 35px; flex-shrink: 0;"><small>${avatar}</small></div>` : ''}
                     </div>
                 `;
             }).join('');
@@ -279,8 +292,8 @@ export class ChatView {
         } catch (error) {
             console.error('Error loading messages:', error);
             chatMessages.innerHTML = `
-                <div class="text-muted" style="text-align: center; padding: 2rem;">
-                    <p>Error loading messages</p>
+                <div class="alert alert-danger text-center" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Error loading messages
                 </div>
             `;
         }
@@ -320,25 +333,20 @@ export class ChatView {
 
         if (searchBtn) {
             searchBtn.addEventListener('click', () => {
-                searchModal.classList.remove('hidden');
-                searchInput.focus();
+                const modal = bootstrap.Modal.getOrCreateInstance(searchModal);
+                modal.show();
+                setTimeout(() => searchInput.focus(), 100);
                 displayUsers(allUsers);
             });
         }
 
         if (closeModal) {
             closeModal.addEventListener('click', () => {
-                searchModal.classList.add('hidden');
+                const modal = bootstrap.Modal.getInstance(searchModal);
+                if (modal) modal.hide();
                 searchInput.value = '';
             });
         }
-
-        searchModal?.addEventListener('click', (e) => {
-            if (e.target === searchModal) {
-                searchModal.classList.add('hidden');
-                searchInput.value = '';
-            }
-        });
 
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -357,10 +365,10 @@ export class ChatView {
         const displayUsers = (users) => {
             if (users.length === 0) {
                 searchResults.innerHTML = `
-                    <div class="chat-empty-state">
-                        <div class="chat-empty-icon"></div>
-                        <div class="chat-empty-text">No users found</div>
-                        <div class="chat-empty-subtext">Try a different search</div>
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                        <div class="fw-bold">No users found</div>
+                        <small>Try a different search</small>
                     </div>
                 `;
                 return;
@@ -372,19 +380,21 @@ export class ChatView {
                 let buttonHTML = '';
 
                 if (isFriend) {
-                    buttonHTML = '<button class="add-user-btn" disabled>Friends</button>';
+                    buttonHTML = '<button class="btn btn-sm btn-secondary" disabled><i class="fas fa-check me-1"></i>Friends</button>';
                 } else if (isPending) {
-                    buttonHTML = '<button class="add-user-btn pending" disabled>Pending</button>';
+                    buttonHTML = '<button class="btn btn-sm btn-warning" disabled><i class="fas fa-clock me-1"></i>Pending</button>';
                 } else {
-                    buttonHTML = `<button class="add-user-btn" data-user-id="${user.id}">+ Add Friend</button>`;
+                    buttonHTML = `<button class="btn btn-sm btn-primary add-user-btn" data-user-id="${user.id}"><i class="fas fa-user-plus me-1"></i>Add Friend</button>`;
                 }
 
                 return `
-                    <div class="user-search-item">
-                        <div class="user-search-avatar">${user.avatar}</div>
-                        <div class="user-search-info">
-                            <div class="user-search-name">${user.name}</div>
-                            <div class="user-search-status">${user.status}</div>
+                    <div class="d-flex align-items-center p-2 border-bottom">
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                            <span>${user.avatar}</span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">${user.name}</div>
+                            <small class="text-muted">${user.status}</small>
                         </div>
                         ${buttonHTML}
                     </div>
@@ -489,19 +499,18 @@ export class ChatView {
             });
 
             if (friends.size === 0) {
-                chatUsersList.innerHTML = '<li class="text-muted" style="padding: 1rem; text-align: center;">No conversations yet. Add friends to start chatting!</li>';
+                chatUsersList.innerHTML = '<li class="list-group-item text-muted text-center">No conversations yet. Add friends to start chatting!</li>';
             } else {
                 chatUsersList.innerHTML = Array.from(friends.values()).map(friend => `
-                    <li class="chat-user-item" data-user-id="${friend.id}">
-                        <div class="chat-user-avatar">${friend.avatar}</div>
-                        <div class="chat-user-info">
-                            <div class="chat-user-name">${friend.name}</div>
-                            <div class="chat-user-last-message">Click to start chatting</div>
+                    <li class="list-group-item list-group-item-action d-flex align-items-center chat-user-item" data-user-id="${friend.id}" style="cursor: pointer;">
+                        <div class="rounded-circle bg-info text-white d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <span>${friend.avatar}</span>
                         </div>
-                        <div class="chat-user-meta">
-                            <span class="chat-user-time">Now</span>
-                            <span class="chat-user-status online"></span>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold chat-user-name">${friend.name}</div>
+                            <small class="text-muted chat-user-last-message">Click to start chatting</small>
                         </div>
+                        <span class="badge bg-success rounded-circle" style="width: 10px; height: 10px;"></span>
                     </li>
                 `).join('');
             }
