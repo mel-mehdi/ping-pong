@@ -481,7 +481,7 @@ app.listen(PORT, async () => {
     console.log(`\n${'='.repeat(50)}`);
     console.log(`🚀 Backend Server Started`);
     console.log(`${'='.repeat(50)}`);
-    console.log(`🌐 URL: http:
+    console.log(`🌐 URL: http://localhost:${PORT}`);
     console.log(`📊 Database: ${DB_FILE}`);
     console.log(`⏱️  Started at: ${new Date().toLocaleString()}`);
     console.log(`${'='.repeat(50)}\n`);

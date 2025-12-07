@@ -1,4 +1,6 @@
 all:
+	@echo "Building TypeScript..."
+	@cd frontend && npm install && npm run build
 	@echo "Starting backend server..."
 	@cd backend && npm install && npm start & 
 	@sleep 2
@@ -9,7 +11,7 @@ backend:
 	cd backend && npm install && npm start
 
 frontend:
-	cd frontend && python3 -m http.server 8000
+	cd frontend && npm install && npm run build && python3 -m http.server 8000
 
 kill:
 	pkill -f "python3 -m http.server 8000"

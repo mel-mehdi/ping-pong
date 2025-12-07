@@ -1,5 +1,5 @@
-import { STORAGE_KEYS, ROUTES, PUBLIC_PAGES } from './utils/constants.js';
-import { getItem, setItem, removeItem } from './utils/storage.js';
+import { STORAGE_KEYS, ROUTES, PUBLIC_PAGES } from './utils/constants.ts';
+import { getItem, setItem, removeItem } from './utils/storage.ts';
 import {
     validateRequired,
     validateEmail,
@@ -9,8 +9,8 @@ import {
     showError,
     clearError,
     clearAllErrors
-} from './utils/validation.js';
-import { getById, addEvent } from './utils/dom.js';
+} from './utils/validation.ts';
+import { getById, addEvent } from './utils/dom.ts';
 
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = getById('loginForm');

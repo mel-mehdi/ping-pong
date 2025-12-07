@@ -1,4 +1,4 @@
-import { VALIDATION_RULES, ERROR_MESSAGES } from './constants.js';
+import { VALIDATION_RULES, ERROR_MESSAGES } from './constants.ts';
 
 export function validateRequired(value) {
     const isValid = value && value.trim().length > 0;

@@ -1,6 +1,6 @@
-import { renderNavbar } from '../components/navbar.js';
-import { STORAGE_KEYS } from '../utils/constants.js';
-import { getItem } from '../utils/storage.js';
+import { renderNavbar } from '../components/navbar.ts';
+import { STORAGE_KEYS } from '../utils/constants.ts';
+import { getItem } from '../utils/storage.ts';
 
 export class ProfileView {
     constructor(app) {

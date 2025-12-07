@@ -1,7 +1,7 @@
 
 
-import { renderNavbar } from '../components/navbar.js';
-import api from '../utils/api.js';
+import { renderNavbar } from '../components/navbar.ts';
+import api from '../utils/api.ts';
 
 export class ChatView {
     constructor(app) {

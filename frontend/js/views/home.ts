@@ -1,6 +1,6 @@
-import { STORAGE_KEYS } from '../utils/constants.js';
-import { getItem } from '../utils/storage.js';
-import { renderNavbar } from '../components/navbar.js';
+import { STORAGE_KEYS } from '../utils/constants.ts';
+import { getItem } from '../utils/storage.ts';
+import { renderNavbar } from '../components/navbar.ts';
 
 export class HomeView {
     constructor(app) {

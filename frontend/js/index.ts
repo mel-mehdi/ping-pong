@@ -1,15 +1,15 @@
-import { PongGame } from './pong-engine.js';
-import { TournamentManager } from './tournament.js';
-import { initTheme } from './theme.js';
-import { HomeView } from './views/home.js';
-import { GameView } from './views/game.js';
-import { TournamentView } from './views/tournament.js';
-import { ChatView } from './views/chat.js';
-import { ProfileView } from './views/profile.js';
-import { STORAGE_KEYS } from './utils/constants.js';
-import { getItem } from './utils/storage.js';
-import { initNavbarSearch as initNavbarSearchUtil, initNotifications as initNotificationsUtil } from './utils/navbar.js';
-import { initMainSearch } from './utils/search.js';
+import { PongGame } from './pong-engine.ts';
+import { TournamentManager } from './tournament.ts';
+import { initTheme } from './theme.ts';
+import { HomeView } from './views/home.ts';
+import { GameView } from './views/game.ts';
+import { TournamentView } from './views/tournament.ts';
+import { ChatView } from './views/chat.ts';
+import { ProfileView } from './views/profile.ts';
+import { STORAGE_KEYS } from './utils/constants.ts';
+import { getItem } from './utils/storage.ts';
+import { initNavbarSearch as initNavbarSearchUtil, initNotifications as initNotificationsUtil } from './utils/navbar.ts';
+import { initMainSearch } from './utils/search.ts';
 
 class App {
     constructor() {

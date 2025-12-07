@@ -1,4 +1,4 @@
-import { getItem, setItem } from './utils/storage.js';
+import { getItem, setItem } from './utils/storage.ts';
 
 const THEME_KEY = 'theme-preference';
 const THEME_DARK = 'dark';

@@ -1,6 +1,6 @@
-import { PongGame } from '../pong-engine.js';
-import { TournamentManager } from '../tournament.js';
-import { renderNavbar } from '../components/navbar.js';
+import { PongGame } from '../pong-engine.ts';
+import { TournamentManager } from '../tournament.ts';
+import { renderNavbar } from '../components/navbar.ts';
 
 export class TournamentView {
     constructor(app) {

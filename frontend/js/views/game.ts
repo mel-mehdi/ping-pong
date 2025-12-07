@@ -1,5 +1,5 @@
-import { PongGame } from '../pong-engine.js';
-import { renderNavbar } from '../components/navbar.js';
+import { PongGame } from '../pong-engine.ts';
+import { renderNavbar } from '../components/navbar.ts';
 
 export class GameView {
     constructor(app) {

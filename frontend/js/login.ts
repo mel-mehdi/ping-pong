@@ -1,15 +1,15 @@
 
 
-import { STORAGE_KEYS, ROUTES } from './utils/constants.js';
-import { setItem } from './utils/storage.js';
+import { STORAGE_KEYS, ROUTES } from './utils/constants.ts';
+import { setItem } from './utils/storage.ts';
 import {
     validateRequired,
     showError,
     clearError,
     clearAllErrors
-} from './utils/validation.js';
-import { getById, addEvent } from './utils/dom.js';
-import api from './utils/api.js';
+} from './utils/validation.ts';
+import { getById, addEvent } from './utils/dom.ts';
+import api from './utils/api.ts';
 
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = getById('loginForm');

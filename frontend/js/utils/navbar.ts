@@ -1,6 +1,6 @@
 
 
-import api from './api.js';
+import api from './api.ts';
 
 export function initNavbarSearch(app) {
 
