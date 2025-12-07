@@ -4876,6 +4876,10 @@ a:hover i {
 }
 
 /* Simple Professional Chat Design */
+.chat-messages-area {
+    background-color: #fafafa;
+}
+
 .chat-user-item {
     transition: all 0.2s ease;
 }
@@ -4919,6 +4923,10 @@ a:hover i {
 }
 
 /* Dark mode for simple chat */
+[data-theme="dark"] .chat-messages-area {
+    background-color: var(--bg-primary) !important;
+}
+
 [data-theme="dark"] .card {
     background-color: var(--bg-secondary) !important;
     border-color: var(--border) !important;
@@ -4936,7 +4944,7 @@ a:hover i {
 }
 
 [data-theme="dark"] .card-body {
-    background-color: var(--bg-primary) !important;
+    background-color: var(--bg-secondary) !important;
 }
 
 [data-theme="dark"] .card-body[style*="background-color"] {
@@ -4982,7 +4990,7 @@ a:hover i {
 }
 
 [data-theme="dark"] .bg-white {
-    background-color: var(--bg-secondary) !important;
+    background-color: var(--bg-tertiary) !important;
 }
 
 [data-theme="dark"] .border {

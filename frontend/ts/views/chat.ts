@@ -23,7 +23,7 @@ export class ChatView {
                     <!-- Conversations List -->
                     <div class="col-lg-4">
                         <div class="card h-100 border">
-                            <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+                            <div class="card-header border-bottom d-flex align-items-center justify-content-between py-3">
                                 <h5 class="mb-0 fw-semibold">Conversations</h5>
                                 <button class="btn btn-sm btn-primary" id="newChatBtn">
                                     <i class="fas fa-plus"></i>
@@ -43,7 +43,7 @@ export class ChatView {
                     <!-- Chat Area -->
                     <div class="col-lg-8">
                         <div class="card h-100 border">
-                            <div class="card-header bg-white border-bottom py-3">
+                            <div class="card-header border-bottom py-3">
                                 <div class="d-flex align-items-center">
                                     <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" 
                                          style="width: 42px; height: 42px; font-weight: 600;">
@@ -56,7 +56,7 @@ export class ChatView {
                                 </div>
                             </div>
 
-                            <div class="card-body p-4" id="chatMessages" style="overflow-y: auto; background-color: #fafafa;">
+                            <div class="card-body p-4 chat-messages-area" id="chatMessages" style="overflow-y: auto;">
                                 <div class="text-center py-5 text-muted">
                                     <i class="fas fa-comment-dots fa-4x mb-3 opacity-25"></i>
                                     <h5>No messages yet</h5>
@@ -64,7 +64,7 @@ export class ChatView {
                                 </div>
                             </div>
 
-                            <div class="card-footer bg-white border-top p-3">
+                            <div class="card-footer border-top p-3">
                                 <div class="d-flex gap-2 align-items-end">
                                     <textarea 
                                         class="form-control" 
