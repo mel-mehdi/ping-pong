@@ -3,14 +3,21 @@ import { getItem, setItem } from './utils/storage.ts';
 const THEME_KEY = 'theme-preference';
 const THEME_DARK = 'dark';
 const THEME_LIGHT = 'light';
+let themeInitialized = false;
 
 export function initTheme() {
+    if (themeInitialized) {
+        attachThemeToggle();
+        return;
+    }
+    
     const savedTheme = getItem(THEME_KEY);
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const theme = savedTheme || (prefersDark ? THEME_DARK : THEME_LIGHT);
     
     applyTheme(theme);
-    createThemeToggle();
+    setupThemeToggleListener();
+    themeInitialized = true;
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
         if (!getItem(THEME_KEY)) {
@@ -19,9 +26,36 @@ export function initTheme() {
     });
 }
 
+export function attachThemeToggle() {
+    // Attach direct listener to button if it exists
+    const button = document.getElementById('themeToggleBtn');
+    if (button && !button.hasAttribute('data-theme-listener')) {
+        button.setAttribute('data-theme-listener', 'true');
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleTheme();
+        });
+    }
+}
+
+function setupThemeToggleListener() {
+    // Use event delegation to handle dynamically added buttons
+    document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        // Check if clicked element or any parent is the theme toggle button
+        const button = target.closest('#themeToggleBtn');
+        
+        if (button) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleTheme();
+        }
+    }, true); // Use capture phase to catch event early
+}
+
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    updateToggleButton(theme);
 }
 
 function toggleTheme() {
@@ -30,60 +64,6 @@ function toggleTheme() {
     
     applyTheme(newTheme);
     setItem(THEME_KEY, newTheme);
-}
-
-function createThemeToggle() {
-
-    const existingButton = document.querySelector('.theme-toggle');
-    if (existingButton) {
-        return;
-    }
-
-    if (!document.body) {
-        setTimeout(createThemeToggle, 50);
-        return;
-    }
-
-    const button = document.createElement('button');
-    button.id = 'themeToggle';
-    button.className = 'theme-toggle';
-    button.setAttribute('aria-label', 'Toggle dark/light mode');
-    button.setAttribute('title', 'Switch between light and dark mode');
-    button.innerHTML = '<i class="fas fa-moon"></i>'; 
-    
-    button.addEventListener('click', toggleTheme);
-
-    const navActions = document.querySelector('.nav-actions');
-    const navMenu = document.querySelector('.nav-menu');
-    
-    if (navActions) {
-        navActions.appendChild(button);
-    } else if (navMenu) {
-        const li = document.createElement('li');
-        li.appendChild(button);
-        navMenu.appendChild(li);
-    } else {
-        document.body.appendChild(button);
-    }
-
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    updateToggleButton(currentTheme);
-}
-
-function updateToggleButton(theme) {
-    const button = document.getElementById('themeToggle');
-    if (button) {
-
-        if (theme === THEME_DARK) {
-            button.innerHTML = '<i class="fas fa-sun"></i>';
-            button.setAttribute('aria-label', 'Switch to light mode');
-            button.setAttribute('title', 'Switch to light mode');
-        } else {
-            button.innerHTML = '<i class="fas fa-moon"></i>';
-            button.setAttribute('aria-label', 'Switch to dark mode');
-            button.setAttribute('title', 'Switch to dark mode');
-        }
-    }
 }
 
 if (document.readyState === 'loading') {

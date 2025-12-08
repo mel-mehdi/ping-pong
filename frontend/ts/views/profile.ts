@@ -1,3 +1,4 @@
+import '../../css/profile.css';
 import { renderNavbar } from '../components/navbar.ts';
 import { STORAGE_KEYS } from '../utils/constants.ts';
 import { getItem } from '../utils/storage.ts';

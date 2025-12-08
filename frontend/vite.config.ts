@@ -8,6 +8,11 @@ export default defineConfig({
     port: 8000,
     open: false,
     strictPort: true,
+    hmr: {
+      protocol: 'wss',
+      host: 'localhost',
+      clientPort: 443,
+    },
 	watch: {
 		usePolling: true,
 	},

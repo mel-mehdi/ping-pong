@@ -1,3 +1,4 @@
+import '../../css/home.css';
 import { STORAGE_KEYS } from '../utils/constants.ts';
 import { getItem } from '../utils/storage.ts';
 import { renderNavbar } from '../components/navbar.ts';
@@ -41,13 +42,15 @@ export class HomeView {
                 </div>
             </div>
 
-            <main class="main-container" role="main">
+            <main role="main" class="home-main">
                 <!-- Welcome Section -->
                 <section class="welcome-section">
-                    <h1 class="welcome-title">Welcome to FT Transcendence</h1>
-                    <p class="welcome-text">
-                        Play Pong online, join tournaments, chat with friends, and compete for the top rank.
-                    </p>
+                    <div class="container">
+                        <h1 class="welcome-title">Welcome to FT Transcendence</h1>
+                        <p class="welcome-text">
+                            Play Pong online, join tournaments, chat with friends, and compete for the top rank.
+                        </p>
+                    </div>
                 </section>
 
                 ${isLoggedIn ? `

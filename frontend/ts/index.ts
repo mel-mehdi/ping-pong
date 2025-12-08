@@ -85,11 +85,6 @@ class App {
             this.pongGame = null;
         }
 
-        const existingToggle = document.querySelector('.theme-toggle');
-        if (existingToggle) {
-            existingToggle.remove();
-        }
-
         switch(viewName) {
             case 'home':
                 this.homeView.render();

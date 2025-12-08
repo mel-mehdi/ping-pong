@@ -1,5 +1,4 @@
-
-
+import '../../css/chat.css';
 import { renderNavbar } from '../components/navbar.ts';
 import api from '../utils/api.ts';
 
@@ -18,68 +17,62 @@ export class ChatView {
         this.app.appContainer.innerHTML = `
             ${renderNavbar('chat')}
 
-            <main class="container-fluid px-3 py-3" style="max-width: 1400px; height: calc(100vh - 70px); overflow: hidden;">
-                <div class="row g-3 h-100">
-                    <!-- Conversations List -->
-                    <div class="col-lg-4 h-100">
-                        <div class="card chat-card h-100">
-                            <div class="card-header py-3 px-3">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <h5 class="mb-0 fw-semibold">Messages</h5>
-                                    <button class="btn btn-sm btn-primary rounded-circle" style="width: 32px; height: 32px; padding: 0;">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
+            <main class="chat-main-container">
+                <div class="container-fluid">
+                    <div class="row g-4">
+                        <!-- Conversations List -->
+                        <div class="col-lg-4">
+                            <div class="card chat-conversations-card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Messages</h5>
                                 </div>
-                            </div>
-                            <div class="card-body p-0" style="overflow-y: auto;">
-                                <ul class="list-group list-group-flush" id="chatUsersList">
-                                    <li class="list-group-item text-center text-muted py-5">
-                                        <i class="fas fa-comments fa-3x mb-3 opacity-25"></i>
-                                        <p class="mb-0">No conversations yet</p>
-                                        <small>Start chatting with friends</small>
-                                    </li>
-                                </ul>
+                                <div class="card-body p-0 chat-users-list-body">
+                                    <ul class="list-group list-group-flush" id="chatUsersList">
+                                        <li class="list-group-item text-center text-muted py-5 chat-empty-state">
+                                            <i class="fas fa-comments fa-3x mb-3 opacity-25"></i>
+                                            <p class="mb-0">No conversations yet</p>
+                                            <small>Start chatting with friends</small>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Chat Area -->
-                    <div class="col-lg-8 h-100">
-                        <div class="card chat-card h-100 d-flex flex-column">
-                            <div class="card-header py-3 px-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
-                                         style="width: 44px; height: 44px; font-size: 1.1rem; font-weight: 600;">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 fw-semibold chat-header-title">Select a conversation</h6>
-                                        <small class="text-muted chat-header-status">No active chat</small>
+                        <!-- Chat Area -->
+                        <div class="col-lg-8">
+                            <div class="card chat-messages-card">
+                                <div class="card-header">
+                                    <div class="d-flex align-items-center">
+                                        <div class="chat-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 chat-header-title">Select a conversation</h6>
+                                            <small class="text-muted chat-header-status">No active chat</small>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="card-body p-4 chat-messages-area flex-grow-1" id="chatMessages" style="overflow-y: auto;">
-                                <div class="text-center py-5 text-muted">
-                                    <i class="fas fa-comment-dots fa-4x mb-3 opacity-25"></i>
-                                    <h5 class="fw-normal">No messages yet</h5>
-                                    <p class="small">Select a conversation to start chatting</p>
+                                <div class="card-body chat-messages-body" id="chatMessages">
+                                    <div class="text-center py-5 text-muted chat-empty-messages">
+                                        <i class="fas fa-comment-dots fa-4x mb-3 opacity-25"></i>
+                                        <h5>No messages yet</h5>
+                                        <p class="small">Select a conversation to start chatting</p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="card-footer p-3">
-                                <div class="d-flex gap-2 align-items-end">
-                                    <textarea 
-                                        class="form-control" 
-                                        id="chatInput" 
-                                        placeholder="Type a message..."
-                                        rows="1"
-                                        style="resize: none; max-height: 100px; border-radius: 20px; padding: 0.6rem 1rem;"
-                                    ></textarea>
-                                    <button class="btn btn-primary rounded-circle" id="chatSendBtn" type="button" 
-                                            style="width: 44px; height: 44px; padding: 0; flex-shrink: 0;">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </button>
+                                <div class="card-footer">
+                                    <div class="d-flex gap-2">
+                                        <textarea 
+                                            class="form-control chat-input" 
+                                            id="chatInput" 
+                                            placeholder="Type a message..."
+                                            rows="2"
+                                        ></textarea>
+                                        <button class="btn btn-primary" id="chatSendBtn" type="button">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -87,30 +80,7 @@ export class ChatView {
                 </div>
             </main>
 
-            <!-- Search Users Modal -->
-            <div class="modal fade" id="searchModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add Friends</h5>
-                            <button type="button" class="btn-close" id="closeSearchModal" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <input 
-                                    type="text" 
-                                    class="form-control" 
-                                    id="userSearchInput"
-                                    placeholder="Search for users..."
-                                />
-                            </div>
-                            <div id="searchResults">
-                                <!-- Search results will be populated here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
         `;
 
         this.initChat();

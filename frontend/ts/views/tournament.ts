@@ -1,3 +1,4 @@
+import '../../css/tournament.css';
 import { PongGame } from '../pong-engine.ts';
 import { TournamentManager } from '../tournament.ts';
 import { renderNavbar } from '../components/navbar.ts';

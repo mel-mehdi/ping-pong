@@ -23,9 +23,39 @@
       "losses": 0,
       "gamesPlayed": 0,
       "createdAt": "2025-12-05T08:33:21.048Z"
+    },
+    {
+      "id": "mixcqy2f93dzl6phb",
+      "username": "testuser",
+      "email": "test@test.com",
+      "fullname": "testuser",
+      "passwordHash": "n7qt9z",
+      "avatar": null,
+      "wins": 0,
+      "losses": 0,
+      "gamesPlayed": 0,
+      "createdAt": "2025-12-08T16:14:48.567Z"
+    },
+    {
+      "id": "mixcvnr5z04lz9f1x",
+      "username": "mehdi1",
+      "email": "mehdimahfoud@gmail.com",
+      "fullname": "mehdi1",
+      "passwordHash": "ktcjby",
+      "avatar": null,
+      "wins": 0,
+      "losses": 0,
+      "gamesPlayed": 0,
+      "createdAt": "2025-12-08T16:18:28.481Z"
     }
   ],
-  "sessions": [],
+  "sessions": [
+    {
+      "id": "mixcr36no0qzzxyqs",
+      "userId": "mixcqy2f93dzl6phb",
+      "loginTime": "2025-12-08T16:14:55.199Z"
+    }
+  ],
   "gameInvitations": [
     {
       "id": "mislyzuwuj6bmx5dd",

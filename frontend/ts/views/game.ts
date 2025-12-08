@@ -1,3 +1,4 @@
+import '../../css/game.css';
 import { PongGame } from '../pong-engine.ts';
 import { renderNavbar } from '../components/navbar.ts';
 
