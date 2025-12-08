@@ -1,6 +1,7 @@
 import { STORAGE_KEYS } from '../utils/constants.ts';
 import { getItem } from '../utils/storage.ts';
 import { renderNavbar } from '../components/navbar.ts';
+import { renderFooter } from '../components/footer.ts';
 
 export class HomeView {
     constructor(app) {
@@ -270,6 +271,8 @@ export class HomeView {
                     </div>
                 </section>
             </main>
+
+            ${renderFooter()}
         `;
 
         this.attachEventListeners();
