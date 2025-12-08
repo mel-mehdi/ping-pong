@@ -1,38 +1,62 @@
-all: build up
+all: ssl build up
+
+ssl:
+	@echo "🔐 Checking SSL certificates..."
+	@if [ ! -f nginx/ssl/nginx.crt ]; then \
+		echo "📜 Generating self-signed SSL certificates..."; \
+		chmod +x generate-ssl.sh; \
+		./generate-ssl.sh; \
+	else \
+		echo "✅ SSL certificates already exist"; \
+	fi
 
 build:
 	@echo "🐳 Building Docker containers..."
 	docker compose build
 
 up:
-	@echo "🚀 Starting service..."
+	@echo "🚀 Starting services..."
 	docker compose up -d
-	@sleep 2
+	@sleep 3
 	@echo ""
-	@echo "✅ Service started!"
-	@echo "🌐 Application: http://localhost:8000"
+	@echo "✅ Services started!"
+	@echo "🌐 Application: https://localhost (HTTPS)"
+	@echo "⚠️  Note: Accept the self-signed certificate warning in your browser"
+	@echo ""
+	@echo "📊 Backend API: https://localhost/api"
+	@echo "💬 Frontend: https://localhost"
 
 down:
-	@echo "🛑 Stopping service..."
+	@echo "🛑 Stopping services..."
 	docker compose down
 
 clean:
-	@echo "🧹 Cleaning everything..."
+	@echo "🧹 Cleaning containers and volumes..."
 	docker compose down -v
 
-fclean:
+fclean: clean
 	@echo "🧼 Performing full cleanup..."
-	docker compose down -v
 	docker system prune -f
 	docker volume prune -f
 	docker network prune -f
 	docker image prune -f
 	docker builder prune -f
 	docker container prune -f
+	@echo "🗑️  Removing SSL certificates..."
+	rm -rf nginx/ssl
 
 re: clean all
 
 logs:
+	@echo "📋 Showing logs (Ctrl+C to exit)..."
 	docker compose logs -f
 
-.PHONY: all build up down clean fclean re logs
+restart:
+	@echo "♻️  Restarting services..."
+	docker compose restart
+
+status:
+	@echo "📊 Service status:"
+	docker compose ps
+
+.PHONY: all ssl build up down clean fclean re logs restart status
