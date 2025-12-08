@@ -6,8 +6,11 @@ export default defineConfig({
   base: '/',
   server: {
     port: 8000,
-    open: '/html/index.html',
+    open: false,
     strictPort: true,
+	watch: {
+		usePolling: true,
+	},
   },
   build: {
     outDir: 'dist',

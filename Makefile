@@ -1,42 +1,38 @@
-all:
-	@echo "Starting backend server..."
-	@cd backend && npm install && npm start & 
-	@sleep 2
-	@echo "Starting Vite dev server (TypeScript)..."
-	@cd frontend && npm install && npm run dev
+all: build up
 
-backend:
-	cd backend && npm install && npm start
-
-frontend:
-	cd frontend && npm install && npm run dev
-
-kill:
-	pkill -f "vite"
-	pkill -f "node.*server.js"
-
-docker-build:
+build:
+	@echo "🐳 Building Docker containers..."
 	docker compose build
 
-docker-up:
+up:
+	@echo "🚀 Starting service..."
 	docker compose up -d
+	@sleep 2
+	@echo ""
+	@echo "✅ Service started!"
+	@echo "🌐 Application: http://localhost:8000"
 
-docker-down:
+down:
+	@echo "🛑 Stopping service..."
 	docker compose down
 
-docker-logs:
-	docker compose logs -f
+clean:
+	@echo "🧹 Cleaning everything..."
+	docker compose down -v
 
-docker-restart:
-	docker compose restart
-
-docker-clean:
+fclean:
+	@echo "🧼 Performing full cleanup..."
 	docker compose down -v
 	docker system prune -f
+	docker volume prune -f
+	docker network prune -f
+	docker image prune -f
+	docker builder prune -f
+	docker container prune -f
 
-docker-rebuild:
-	docker compose down
-	docker compose build --no-cache
-	docker compose up -d
+re: clean all
 
-.PHONY: all backend frontend kill docker-build docker-up docker-down docker-logs docker-restart docker-clean docker-rebuild
+logs:
+	docker compose logs -f
+
+.PHONY: all build up down clean fclean re logs

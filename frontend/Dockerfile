@@ -12,4 +12,4 @@ RUN npx vite build
 
 EXPOSE 8000
 
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "8000", "--strictPort"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8000", "--strictPort"]
