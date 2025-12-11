@@ -29,6 +29,18 @@ const ProfilePage = () => {
         { id: 2, title: '10 Win Streak', icon: '🔥', earned: true },
         { id: 3, title: 'Tournament Winner', icon: '👑', earned: false },
         { id: 4, title: '100 Games', icon: '🎯', earned: false },
+        { id: 5, title: 'Perfect Game', icon: '💯', earned: true },
+        { id: 6, title: 'Speed Demon', icon: '⚡', earned: true },
+        { id: 7, title: 'Master Player', icon: '🎖️', earned: false },
+        { id: 8, title: 'Comeback King', icon: '🔄', earned: true },
+        { id: 9, title: 'Veteran', icon: '⭐', earned: false },
+        { id: 10, title: 'Unbeatable', icon: '🛡️', earned: false },
+        { id: 11, title: 'First Blood', icon: '🩸', earned: true },
+        { id: 12, title: 'Hat Trick', icon: '🎩', earned: true },
+        { id: 13, title: 'Marathon', icon: '🏃', earned: false },
+        { id: 14, title: 'Sharp Shooter', icon: '🎲', earned: true },
+        { id: 15, title: 'Social Butterfly', icon: '🦋', earned: false },
+        { id: 16, title: 'Night Owl', icon: '🦉', earned: true },
     ];
 
     return (
@@ -78,51 +90,66 @@ const ProfilePage = () => {
 
                     {activeTab === 'overview' && (
                         <div className="profile-content">
-                            <div className="stats-row">
-                                <div className="stat-card">
-                                    <div className="stat-icon">🎮</div>
-                                    <div className="stat-info">
-                                        <div className="stat-value">{stats.gamesPlayed}</div>
-                                        <div className="stat-label">Games Played</div>
+                            <div className="achievements-grid">
+                                <div className="achievement-card">
+                                    <div className="achievement-icon" style={{color: '#667eea'}}>
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                                            <line x1="7" y1="2" x2="7" y2="22"></line>
+                                            <line x1="17" y1="2" x2="17" y2="22"></line>
+                                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                                            <line x1="2" y1="7" x2="7" y2="7"></line>
+                                            <line x1="2" y1="17" x2="7" y2="17"></line>
+                                            <line x1="17" y1="17" x2="22" y2="17"></line>
+                                            <line x1="17" y1="7" x2="22" y2="7"></line>
+                                        </svg>
                                     </div>
+                                    <div className="stat-value">{stats.gamesPlayed}</div>
+                                    <div className="achievement-title">Games Played</div>
                                 </div>
-                                <div className="stat-card">
-                                    <div className="stat-icon">✅</div>
-                                    <div className="stat-info">
-                                        <div className="stat-value">{stats.wins}</div>
-                                        <div className="stat-label">Wins</div>
+                                <div className="achievement-card">
+                                    <div className="achievement-icon" style={{color: '#10b981'}}>
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
                                     </div>
+                                    <div className="stat-value">{stats.wins}</div>
+                                    <div className="achievement-title">Wins</div>
                                 </div>
-                                <div className="stat-card">
-                                    <div className="stat-icon">❌</div>
-                                    <div className="stat-info">
-                                        <div className="stat-value">{stats.losses}</div>
-                                        <div className="stat-label">Losses</div>
+                                <div className="achievement-card">
+                                    <div className="achievement-icon" style={{color: '#ef4444'}}>
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
                                     </div>
+                                    <div className="stat-value">{stats.losses}</div>
+                                    <div className="achievement-title">Losses</div>
                                 </div>
-                                <div className="stat-card">
-                                    <div className="stat-icon">📊</div>
-                                    <div className="stat-info">
-                                        <div className="stat-value">{stats.winRate}%</div>
-                                        <div className="stat-label">Win Rate</div>
+                                <div className="achievement-card">
+                                    <div className="achievement-icon" style={{color: '#f59e0b'}}>
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="12" y1="20" x2="12" y2="10"></line>
+                                            <line x1="18" y1="20" x2="18" y2="4"></line>
+                                            <line x1="6" y1="20" x2="6" y2="16"></line>
+                                        </svg>
                                     </div>
+                                    <div className="stat-value">{stats.winRate}%</div>
+                                    <div className="achievement-title">Win Rate</div>
                                 </div>
-                                <div className="stat-card">
-                                    <div className="stat-icon">🏆</div>
-                                    <div className="stat-info">
-                                        <div className="stat-value">{stats.rank}</div>
-                                        <div className="stat-label">Rank</div>
+                                <div className="achievement-card">
+                                    <div className="achievement-icon" style={{color: '#fbbf24'}}>
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                                            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                                            <path d="M4 22h16"></path>
+                                            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                                            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                                            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                                        </svg>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="profile-section mt-4">
-                                <h3>Global Ranking</h3>
-                                <div className="ranking-card">
-                                    <div className="ranking-info">
-                                        <div className="ranking-position">{stats.rank}</div>
-                                        <div className="ranking-label">Current Rank</div>
-                                    </div>
+                                    <div className="stat-value">{stats.rank}</div>
+                                    <div className="achievement-title">Rank</div>
                                 </div>
                             </div>
                         </div>

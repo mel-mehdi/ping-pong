@@ -7,6 +7,7 @@ const AuthContext = createContext(undefined);
 export const AuthProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUserData = getItem(STORAGE_KEYS.USER_DATA);
@@ -14,6 +15,7 @@ export const AuthProvider = ({ children }) => {
       setUserData(storedUserData);
       setIsAuthenticated(true);
     }
+    setLoading(false);
   }, []);
 
   const login = (data) => {
@@ -27,6 +29,10 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     removeItem(STORAGE_KEYS.USER_DATA);
   };
+
+  if (loading) {
+    return null; // or a loading spinner
+  }
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, userData, login, logout }}>
