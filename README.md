@@ -1,10 +1,10 @@
-# FT Transcendence
+# PingPong
 
 *This project has been created as part of the 42 curriculum by mel-mehdi.*
 
 ## Description
 
-**FT Transcendence** is a comprehensive web-based multiplayer gaming platform built around a modern implementation of the classic Pong game. The project features real-time gameplay, tournament systems, social interactions, and competitive leaderboards. Built as the capstone project of the 42 School curriculum, it demonstrates full-stack web development skills, real-time communication, user management, and modern web technologies.
+**PingPong** is a comprehensive web-based multiplayer gaming platform built around a modern implementation of the classic Pong game. The project features real-time gameplay, tournament systems, social interactions, and competitive leaderboards. Built as the capstone project of the 42 School curriculum, it demonstrates full-stack web development skills, real-time communication, user management, and modern web technologies.
 
 ### Key Features
 

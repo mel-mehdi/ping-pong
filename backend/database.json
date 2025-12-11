@@ -47,6 +47,18 @@
       "losses": 0,
       "gamesPlayed": 0,
       "createdAt": "2025-12-08T16:18:28.481Z"
+    },
+    {
+      "id": "mizzq4knt6pb8d4at",
+      "username": "test1",
+      "email": "user@gmail.com",
+      "fullname": "test1",
+      "passwordHash": "ktcjby",
+      "avatar": null,
+      "wins": 0,
+      "losses": 0,
+      "gamesPlayed": 0,
+      "createdAt": "2025-12-10T12:33:33.863Z"
     }
   ],
   "sessions": [
