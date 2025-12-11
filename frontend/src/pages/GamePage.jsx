@@ -114,7 +114,7 @@ class PongGame {
     }
 
     handleKeyDown(e) {
-        if (['KeyW', 'KeyS', 'KeyI', 'KeyK', 'Space'].includes(e.code)) {
+        if (['KeyW', 'KeyS', 'KeyI', 'KeyK', 'Space', 'KeyF'].includes(e.code)) {
             e.preventDefault();
         }
         this.keys[e.code] = true;
@@ -126,10 +126,25 @@ class PongGame {
                 this.pause();
             }
         }
+
+        if (e.code === 'KeyF') {
+            this.toggleFullscreen();
+        }
     }
 
     handleKeyUp(e) {
         this.keys[e.code] = false;
+    }
+
+    toggleFullscreen() {
+        const arenaElement = this.canvas.parentElement;
+        if (!document.fullscreenElement) {
+            arenaElement.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
     }
 
     start() {
@@ -380,46 +395,92 @@ const GamePage = () => {
         <>
             <Navbar />
             <main className="main-container">
-                <div className="game-view">
-                    <div className="game-content">
-                        <div className="score-display">
-                            <div className="player-score-box">
-                                <div className="player-label">Player 1</div>
-                                <div className="score-number">{player1Score}</div>
+                <div className="game-view-pro">
+                    <div className="game-header-pro">
+                        <div className="player-card-pro">
+                            <div className="player-avatar-pro">P1</div>
+                            <div className="player-info-pro">
+                                <div className="player-name-pro">Player 1</div>
+                                <div className="player-status-pro">Ready</div>
                             </div>
-                            <div className="score-divider">-</div>
-                            <div className="player-score-box">
-                                <div className="player-label">Player 2</div>
-                                <div className="score-number">{player2Score}</div>
-                            </div>
+                            <div className="player-score-pro">{player1Score}</div>
+                        </div>
+                        
+                        <div className="match-info-pro">
+                            <div className="match-title-pro">Quick Match</div>
+                            <div className="match-status-pro">First to 5</div>
                         </div>
 
-                        <div className="canvas-container">
-                            <canvas ref={canvasRef}></canvas>
-                            {showMessage && (
-                                <div className="game-message" style={{ display: 'flex' }}>
-                                    {gameOver ? (
-                                        <div className="game-over-content">
-                                            <h2>{winner} Wins!</h2>
-                                            <button onClick={handlePlayAgain} className="btn btn-primary">Play Again</button>
-                                            <button onClick={handleHome} className="btn">Main Menu</button>
+                        <div className="player-card-pro">
+                            <div className="player-score-pro">{player2Score}</div>
+                            <div className="player-info-pro">
+                                <div className="player-name-pro">Player 2</div>
+                                <div className="player-status-pro">Ready</div>
+                            </div>
+                            <div className="player-avatar-pro">P2</div>
+                        </div>
+                    </div>
+
+                    <div className="game-arena-pro">
+                        <canvas ref={canvasRef}></canvas>
+                        {showMessage && (
+                            <div className="game-overlay-pro">
+                                {gameOver ? (
+                                    <div className="game-result-pro">
+                                        <div className="winner-trophy-pro">🏆</div>
+                                        <h2 className="winner-title-pro">{winner} Wins!</h2>
+                                        <div className="winner-score-pro">{player1Score} - {player2Score}</div>
+                                        <div className="result-actions-pro">
+                                            <button onClick={handlePlayAgain} className="btn-result-pro btn-primary-pro">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                                                </svg>
+                                                Play Again
+                                            </button>
+                                            <button onClick={handleHome} className="btn-result-pro">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                                    <polyline points="9 22 9 12 15 12 15 22"/>
+                                                </svg>
+                                                Main Menu
+                                            </button>
                                         </div>
-                                    ) : (
-                                        gameMessage
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="game-start-pro">
+                                        <div className="start-icon-pro">⚡</div>
+                                        <p className="start-message-pro">{gameMessage}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
-                        <div className="game-controls-info">
-                            <div className="control-item">
-                                <strong>Player 1:</strong> W (Up) / S (Down)
-                            </div>
-                            <div className="control-item">
-                                <strong>Player 2:</strong> I (Up) / K (Down)
-                            </div>
-                            <div className="control-item">
-                                <strong>Start/Pause:</strong> SPACE
+                    <div className="game-controls-pro">
+                        <div className="controls-section-pro">
+                            <h4 className="controls-title-pro">Controls</h4>
+                            <div className="controls-grid-pro">
+                                <div className="control-group-pro">
+                                    <div className="control-label-pro">Player 1</div>
+                                    <div className="control-keys-pro">
+                                        <span className="key-badge-pro">W</span>
+                                        <span className="key-badge-pro">S</span>
+                                    </div>
+                                </div>
+                                <div className="control-group-pro">
+                                    <div className="control-label-pro">Player 2</div>
+                                    <div className="control-keys-pro">
+                                        <span className="key-badge-pro">I</span>
+                                        <span className="key-badge-pro">K</span>
+                                    </div>
+                                </div>
+                                <div className="control-group-pro">
+                                    <div className="control-label-pro">Game</div>
+                                    <div className="control-keys-pro">
+                                        <span className="key-badge-pro wide-pro">SPACE</span>
+                                        <span className="key-badge-pro">F</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
