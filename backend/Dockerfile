@@ -1,13 +1,26 @@
-FROM node:20-alpine
+FROM python:3.14-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED 1 #
+# Disable writing .pyc files
+ENV PYTHONDONTWRITEBYTECODE 1
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN apt-get update && apt-get install -y \
+	build-essential \
+	gcc \
+	netcat-openbsd \ 
+	&& rm -rf /var/lib/apt/lists/*
 
-RUN npm install
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY ./entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-EXPOSE 3000
+COPY . /app
 
-CMD ["npm", "start"]
+EXPOSE 8001
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
