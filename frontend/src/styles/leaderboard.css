@@ -92,6 +92,32 @@
     text-align: center;
 }
 
+.rank-icon {
+    display: inline-block;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+.rank-icon.rank-1 {
+    filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.5));
+}
+
+.rank-icon.rank-2 {
+    filter: drop-shadow(0 4px 8px rgba(148, 163, 184, 0.5));
+}
+
+.rank-icon.rank-3 {
+    filter: drop-shadow(0 4px 8px rgba(205, 127, 50, 0.5));
+}
+
+@keyframes sparkle {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+    }
+    50% {
+        transform: scale(1.1) rotate(5deg);
+    }
+}
+
 .player-info {
     display: flex;
     align-items: center;

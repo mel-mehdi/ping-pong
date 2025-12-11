@@ -7,16 +7,16 @@ const LeaderboardPage = () => {
     const [timeFilter, setTimeFilter] = useState('all-time');
     
     const leaderboardData = [
-        { rank: 1, username: 'ProPlayer123', wins: 156, losses: 23, winRate: 87, points: 2450, level: 28, badge: '👑' },
-        { rank: 2, username: 'PongMaster', wins: 142, losses: 31, winRate: 82, points: 2280, level: 26, badge: '🥈' },
-        { rank: 3, username: 'GameChampion', wins: 138, losses: 35, winRate: 80, points: 2150, level: 25, badge: '🥉' },
-        { rank: 4, username: 'SpeedDemon', wins: 125, losses: 40, winRate: 76, points: 1980, level: 23, badge: '⚡' },
-        { rank: 5, username: 'TableKing', wins: 118, losses: 44, winRate: 73, points: 1850, level: 22, badge: '🎯' },
-        { rank: 6, username: 'AcePaddle', wins: 105, losses: 48, winRate: 69, points: 1720, level: 20, badge: '🎮' },
-        { rank: 7, username: 'BallWizard', wins: 98, losses: 52, winRate: 65, points: 1590, level: 19, badge: '✨' },
-        { rank: 8, username: 'PongNinja', wins: 89, losses: 55, winRate: 62, points: 1460, level: 18, badge: '🥷' },
-        { rank: 9, username: 'QuickReflexes', wins: 82, losses: 58, winRate: 59, points: 1340, level: 17, badge: '⚡' },
-        { rank: 10, username: 'PlayerTen', wins: 76, losses: 62, winRate: 55, points: 1220, level: 16, badge: '🎪' },
+        { rank: 1, username: 'ProPlayer123', wins: 156, losses: 23, winRate: 87, points: 2450, level: 28 },
+        { rank: 2, username: 'PongMaster', wins: 142, losses: 31, winRate: 82, points: 2280, level: 26 },
+        { rank: 3, username: 'GameChampion', wins: 138, losses: 35, winRate: 80, points: 2150, level: 25 },
+        { rank: 4, username: 'SpeedDemon', wins: 125, losses: 40, winRate: 76, points: 1980, level: 23 },
+        { rank: 5, username: 'TableKing', wins: 118, losses: 44, winRate: 73, points: 1850, level: 22 },
+        { rank: 6, username: 'AcePaddle', wins: 105, losses: 48, winRate: 69, points: 1720, level: 20 },
+        { rank: 7, username: 'BallWizard', wins: 98, losses: 52, winRate: 65, points: 1590, level: 19 },
+        { rank: 8, username: 'PongNinja', wins: 89, losses: 55, winRate: 62, points: 1460, level: 18 },
+        { rank: 9, username: 'QuickReflexes', wins: 82, losses: 58, winRate: 59, points: 1340, level: 17 },
+        { rank: 10, username: 'PlayerTen', wins: 76, losses: 62, winRate: 55, points: 1220, level: 16 },
     ];
 
     return (
@@ -67,11 +67,25 @@ const LeaderboardPage = () => {
                                 {leaderboardData.map(player => (
                                     <tr key={player.rank} className={player.rank <= 3 ? 'top-three' : ''}>
                                         <td className="rank-cell">
-                                            <span className="rank-number">{player.rank}</span>
+                                            {player.rank === 1 ? (
+                                                <svg className="rank-icon rank-1" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1"/>
+                                                </svg>
+                                            ) : player.rank === 2 ? (
+                                                <svg className="rank-icon rank-2" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#94a3b8" stroke="#64748b" strokeWidth="1"/>
+                                                </svg>
+                                            ) : player.rank === 3 ? (
+                                                <svg className="rank-icon rank-3" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#cd7f32" stroke="#a0522d" strokeWidth="1"/>
+                                                </svg>
+                                            ) : (
+                                                <span className="rank-number">{player.rank}</span>
+                                            )}
                                         </td>
                                         <td className="player-cell">
                                             <div className="player-info">
-                                                <span className="player-badge">{player.badge}</span>
+                                                {player.badge && <span className="player-badge">{player.badge}</span>}
                                                 <span className="player-name">{player.username}</span>
                                             </div>
                                         </td>
