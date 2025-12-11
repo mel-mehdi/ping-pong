@@ -310,13 +310,30 @@ const HomePage = () => {
                                     <span style={{marginRight: '0.5rem'}}>🏆</span>
                                     Top Players
                                 </h3>
-                                <button onClick={() => navigate('/leaderboard')} className="btn btn-sm" style={{color: 'var(--primary)', cursor: 'pointer'}}>
+                                <button 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        navigate('/leaderboard');
+                                    }} 
+                                    className="btn btn-sm" 
+                                    style={{
+                                        color: 'var(--primary)', 
+                                        cursor: 'pointer', 
+                                        background: 'transparent', 
+                                        border: 'none', 
+                                        padding: '0.5rem 1rem',
+                                        pointerEvents: 'auto',
+                                        position: 'relative',
+                                        zIndex: 10
+                                    }}
+                                >
                                     View All →
                                 </button>
                             </div>
                             <div style={{padding: '1.5rem 0'}}>
                                 <ol className="list-group list-group-numbered">
-                                    <li className="list-group-item" style={{border: 'none', color: 'var(--text-muted)', padding: '1rem'}}>
+                                    <li className="list-group-item" style={{border: 'none', color: 'var(--text-muted)', padding: '1rem', textAlign: 'center'}}>
                                         Play matches to appear on the leaderboard!
                                     </li>
                                 </ol>
