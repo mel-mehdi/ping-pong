@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 	'corsheaders',
 	# Local apps
 	'user_management',
+	'public_api',
 ]
 
 MIDDLEWARE = [
