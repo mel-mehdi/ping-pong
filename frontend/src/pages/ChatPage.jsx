@@ -1,40 +1,67 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import apiClient from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/chat.css';
 
 const ChatPage = () => {
-    const [conversations] = useState([
-        { id: 1, name: 'Player One', lastMessage: 'Good game!', time: '2m ago', unread: 2, online: true, blocked: false },
-        { id: 2, name: 'Player Two', lastMessage: 'Want to play again?', time: '15m ago', unread: 0, online: true, blocked: false },
-        { id: 3, name: 'Player Three', lastMessage: 'See you tomorrow', time: '1h ago', unread: 0, online: false, blocked: false },
-    ]);
+    const { userData } = useAuth();
+    const [conversations, setConversations] = useState([]);
     
-    const [selectedChat, setSelectedChat] = useState(conversations[0]);
+    const [selectedChat, setSelectedChat] = useState(null);
     const [showMenu, setShowMenu] = useState(false);
     const [blockedUsers, setBlockedUsers] = useState([]);
-    const [messages, setMessages] = useState([
-        { id: 1, sender: 'Player One', text: 'Hey! Ready for a match?', time: '10:30 AM', isOwn: false },
-        { id: 2, sender: 'You', text: 'Sure! Let\'s play', time: '10:31 AM', isOwn: true },
-        { id: 3, sender: 'Player One', text: 'Good game!', time: '10:45 AM', isOwn: false },
-    ]);
+    const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
 
     const sendMessage = (e) => {
         e.preventDefault();
         if (newMessage.trim()) {
-            setMessages([...messages, {
-                id: messages.length + 1,
-                sender: 'You',
-                text: newMessage,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                isOwn: true
-            }]);
+            (async () => {
+                try {
+                    if (!userData || !selectedChat) return;
+                    await apiClient.sendMessage(userData.userId, selectedChat.id, newMessage.trim());
+                    const updated = await apiClient.getMessages(userData.userId, selectedChat.id);
+                    setMessages(updated || []);
+                } catch (err) {
+                    console.error('Error sending message:', err);
+                }
+            })();
             setNewMessage('');
         }
     };
 
+    useEffect(() => {
+        const loadConversations = async () => {
+            if (!userData?.userId) return;
+            try {
+                const users = await apiClient.getAllUsers();
+                const others = (users || []).filter(u => u.id !== userData.userId).map(u => ({ id: u.id, name: u.username, lastMessage: '', time: '', unread: 0, online: false }));
+                setConversations(others);
+                if (!selectedChat && others.length > 0) setSelectedChat(others[0]);
+            } catch (err) {
+                console.error('Error loading users for conversations:', err);
+            }
+        };
+        loadConversations();
+    }, [userData]);
+
+    useEffect(() => {
+        const loadMessagesForSelected = async () => {
+            if (!userData?.userId || !selectedChat) return;
+            try {
+                const msgs = await apiClient.getMessages(userData.userId, selectedChat.id);
+                setMessages(msgs || []);
+            } catch (err) {
+                console.error('Error loading messages for conversation:', err);
+            }
+        };
+        loadMessagesForSelected();
+    }, [selectedChat, userData]);
+
     const sendGameInvite = () => {
+        if (!selectedChat) return;
         setMessages([...messages, {
             id: messages.length + 1,
             sender: 'You',
@@ -47,6 +74,7 @@ const ChatPage = () => {
     };
 
     const blockUser = () => {
+        if (!selectedChat) return;
         if (!blockedUsers.includes(selectedChat.id)) {
             setBlockedUsers([...blockedUsers, selectedChat.id]);
             console.log(`${selectedChat.name} has been blocked`);
@@ -55,12 +83,14 @@ const ChatPage = () => {
     };
 
     const unblockUser = () => {
+        if (!selectedChat) return;
         setBlockedUsers(blockedUsers.filter(id => id !== selectedChat.id));
         console.log(`${selectedChat.name} has been unblocked`);
         setShowMenu(false);
     };
 
-    const isBlocked = blockedUsers.includes(selectedChat.id);
+    const selectedChatId = selectedChat?.id;
+    const isBlocked = selectedChatId ? blockedUsers.includes(selectedChatId) : false;
 
     return (
         <>
@@ -78,7 +108,7 @@ const ChatPage = () => {
                                         {conversations.map(conv => (
                                             <div 
                                                 key={conv.id}
-                                                className={`chat-user-item ${selectedChat.id === conv.id ? 'active' : ''}`}
+                                                className={`chat-user-item ${selectedChatId === conv.id ? 'active' : ''}`}
                                                 onClick={() => setSelectedChat(conv)}
                                             >
                                                 <div className="chat-user-avatar">
@@ -108,16 +138,16 @@ const ChatPage = () => {
                                     <div className="d-flex align-items-center justify-content-between">
                                         <div className="d-flex align-items-center">
                                             <div className="chat-user-avatar me-3">
-                                                <div className="avatar-circle">{selectedChat.name[0]}</div>
-                                                {selectedChat.online && <span className="online-status"></span>}
+                                                <div className="avatar-circle">{selectedChat?.name ? selectedChat.name[0] : ''}</div>
+                                                {selectedChat?.online && <span className="online-status"></span>}
                                             </div>
                                             <div>
                                                 <h5 className="chat-header-title mb-0">
-                                                    {selectedChat.name}
+                                                    {selectedChat?.name}
                                                     {isBlocked && <span className="blocked-badge">🚫 Blocked</span>}
                                                 </h5>
                                                 <span className="chat-header-status">
-                                                    {selectedChat.online ? 'Online' : 'Offline'}
+                                                    {selectedChat?.online ? 'Online' : 'Offline'}
                                                 </span>
                                             </div>
                                         </div>

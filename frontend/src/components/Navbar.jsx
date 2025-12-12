@@ -49,18 +49,7 @@ const Navbar = () => {
             setIsSearching(true);
             try {
                 const results = await apiClient.searchUsers(query);
-                // Mock data for demonstration
-                const mockUsers = [
-                    { id: 1, username: 'ProPlayer123', status: 'online', avatar: '👤' },
-                    { id: 2, username: 'PongMaster', status: 'offline', avatar: '🎮' },
-                    { id: 3, username: 'GameChampion', status: 'online', avatar: '🏆' },
-                    { id: 4, username: 'SpeedDemon', status: 'online', avatar: '⚡' },
-                    { id: 5, username: 'TableKing', status: 'offline', avatar: '👑' },
-                ];
-                const filtered = mockUsers.filter(user => 
-                    user.username.toLowerCase().includes(query.toLowerCase())
-                );
-                setSearchResults(filtered);
+                setSearchResults(results || []);
                 setShowSearchResults(true);
             } catch (error) {
                 console.error('Search error:', error);
@@ -75,8 +64,8 @@ const Navbar = () => {
 
     const handleSendInvite = async (userId, username) => {
         try {
-            // TODO: Replace with actual API call
-            console.log(`Invite sent to user ${userId} (${username})`);
+            if (!userData) return;
+            await apiClient.sendInvitation(userData.userId, userData.username, userId, username);
             setPendingInvites([...pendingInvites, userId]);
         } catch (error) {
             console.error('Error sending invite:', error);

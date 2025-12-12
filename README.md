@@ -442,11 +442,9 @@ Before running the project, ensure you have the following installed:
    
    Edit `backend/.env` and configure:
    ```env
-   PORT=3000
-   NODE_ENV=development
-   DB_FILE=./database.json
-   SESSION_SECRET=your-secret-key-here
-   SALT_ROUNDS=10
+   PORT=8001
+   DEBUG=True
+   DATABASE_URL=postgres://postgres:password@database:5432/postgres
    ```
 
    Create a `.env` file in the `frontend/` directory (if needed):
@@ -477,16 +475,16 @@ Before running the project, ensure you have the following installed:
 1. **Install backend dependencies**:
    ```bash
    cd backend
-   npm install
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
    ```
 
 2. **Start backend server**:
    ```bash
-   npm start
-   # Or for development with auto-reload:
-   npm run dev
+   python manage.py runserver 0.0.0.0:8001
    ```
-   Backend will run on `http://localhost:3000`
+   Backend will run on `http://localhost:8001`
 
 3. **Install frontend dependencies** (in a new terminal):
    ```bash
@@ -553,8 +551,8 @@ The application has been tested and verified on:
 
 **Port conflicts**:
 ```bash
-# Check what's using port 3000
-lsof -i :3000
+# Check what's using port 8001
+lsof -i :8001
 # Kill the process if needed
 kill -9 <PID>
 ```

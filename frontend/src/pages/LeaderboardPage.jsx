@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import apiClient from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/leaderboard.css';
@@ -6,18 +7,19 @@ import '../styles/leaderboard.css';
 const LeaderboardPage = () => {
     const [timeFilter, setTimeFilter] = useState('all-time');
     
-    const leaderboardData = [
-        { rank: 1, username: 'ProPlayer123', wins: 156, losses: 23, winRate: 87, points: 2450, level: 28 },
-        { rank: 2, username: 'PongMaster', wins: 142, losses: 31, winRate: 82, points: 2280, level: 26 },
-        { rank: 3, username: 'GameChampion', wins: 138, losses: 35, winRate: 80, points: 2150, level: 25 },
-        { rank: 4, username: 'SpeedDemon', wins: 125, losses: 40, winRate: 76, points: 1980, level: 23 },
-        { rank: 5, username: 'TableKing', wins: 118, losses: 44, winRate: 73, points: 1850, level: 22 },
-        { rank: 6, username: 'AcePaddle', wins: 105, losses: 48, winRate: 69, points: 1720, level: 20 },
-        { rank: 7, username: 'BallWizard', wins: 98, losses: 52, winRate: 65, points: 1590, level: 19 },
-        { rank: 8, username: 'PongNinja', wins: 89, losses: 55, winRate: 62, points: 1460, level: 18 },
-        { rank: 9, username: 'QuickReflexes', wins: 82, losses: 58, winRate: 59, points: 1340, level: 17 },
-        { rank: 10, username: 'PlayerTen', wins: 76, losses: 62, winRate: 55, points: 1220, level: 16 },
-    ];
+    const [leaderboardData, setLeaderboardData] = useState([]);
+
+    useEffect(() => {
+        const loadLeaderboard = async () => {
+            try {
+                const data = await apiClient.getLeaderboard();
+                setLeaderboardData((data || []).map((p, idx) => ({ ...p, rank: idx + 1 })));
+            } catch (err) {
+                console.error('Error fetching leaderboard:', err);
+            }
+        };
+        loadLeaderboard();
+    }, []);
 
     return (
         <>

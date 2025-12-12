@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import apiClient from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
@@ -115,6 +115,21 @@ const ProfilePage = () => {
         setPreviewUrl(null);
     };
     
+    const [recentMatches, setRecentMatches] = useState([]);
+
+    useEffect(() => {
+        const loadMatches = async () => {
+            if (!userData?.userId) return;
+            try {
+                const matches = await apiClient.getMatchesForUser(userData.userId);
+                setRecentMatches(matches || []);
+            } catch (err) {
+                console.error('Error loading matches for profile:', err);
+            }
+        };
+        loadMatches();
+    }, [userData]);
+
     const stats = {
         gamesPlayed: 42,
         wins: 28,
@@ -124,12 +139,7 @@ const ProfilePage = () => {
         level: 15
     };
 
-    const recentMatches = [
-        { id: 1, opponent: 'Player One', score: '11-7', result: 'win', date: '2 hours ago' },
-        { id: 2, opponent: 'Player Two', score: '9-11', result: 'loss', date: '5 hours ago' },
-        { id: 3, opponent: 'Player Three', score: '11-5', result: 'win', date: '1 day ago' },
-        { id: 4, opponent: 'Player Four', score: '11-8', result: 'win', date: '2 days ago' },
-    ];
+    
 
     const achievements = [
         { id: 1, title: 'First Win', icon: '🏆', earned: true },

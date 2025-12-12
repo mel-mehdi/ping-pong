@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/tournament.css';
+import apiClient from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const TournamentPage = () => {
     const [activeTab, setActiveTab] = useState('active');
@@ -16,32 +18,54 @@ const TournamentPage = () => {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [pendingInvites, setPendingInvites] = useState([]);
+    const [activeTournaments, setActiveTournaments] = useState([]);
+    const [brackets, setBrackets] = useState({ round: '', matches: [] });
+    const [myTournaments, setMyTournaments] = useState([]);
+    const { userData } = useAuth();
+
+    useEffect(() => {
+        const loadTournaments = async () => {
+            try {
+                const all = await apiClient.getTournaments();
+                setActiveTournaments(all || []);
+                setMyTournaments((all || []).filter(t => t.ownerId === userData?.userId));
+                if (all && all.length > 0) {
+                    const first = all[0];
+                    setBrackets({ name: first.name, round: 'Quarterfinals', matches: first.matches || [] });
+                }
+            } catch (err) {
+                console.error('Error loading tournaments:', err);
+            }
+        };
+
+        loadTournaments();
+    }, [userData]);
     
-    const activeTournaments = [
-        { id: 1, name: 'Winter Championship 2025', players: 14, maxPlayers: 16, prize: '1000 Points', status: 'Open' },
-        { id: 2, name: 'Speed Pong Challenge', players: 8, maxPlayers: 8, prize: '500 Points', status: 'Full' },
-        { id: 3, name: 'Beginner Tournament', players: 5, maxPlayers: 8, prize: '250 Points', status: 'Open' },
-    ];
-
-    const brackets = {
-        round: 'Quarterfinals',
-        matches: [
-            { id: 1, player1: 'ProPlayer123', player2: 'PongMaster', score1: 11, score2: 7, winner: 'player1' },
-            { id: 2, player1: 'GameChampion', player2: 'SpeedDemon', score1: 9, score2: 11, winner: 'player2' },
-            { id: 3, player1: 'TableKing', player2: 'AcePaddle', score1: null, score2: null, winner: null },
-            { id: 4, player1: 'BallWizard', player2: 'PongNinja', score1: null, score2: null, winner: null },
-        ]
-    };
-
-    const myTournaments = [
-        { id: 1, name: 'Summer Cup 2024', placement: '2nd Place', date: '2024-07-15', prize: '500 Points' },
-        { id: 2, name: 'Autumn League', placement: '1st Place', date: '2024-09-20', prize: '1000 Points' },
-    ];
+    
 
     const handleCreateTournament = (e) => {
         e.preventDefault();
-        // TODO: API call to create tournament
-        console.log('Creating tournament:', { ...tournamentForm, invitedPlayers });
+        (async () => {
+            try {
+                const payload = {
+                    name: tournamentForm.name,
+                    maxPlayers: tournamentForm.maxPlayers,
+                    prize: tournamentForm.prize,
+                    ownerId: userData?.userId || null,
+                    ownerName: userData?.username || 'Anonymous',
+                    invitedPlayers,
+                };
+                const created = await apiClient.createTournament(payload);
+                if (created) {
+                    // Refresh tournaments list
+                    const all = await apiClient.getTournaments();
+                    setActiveTournaments(all || []);
+                    setMyTournaments((all || []).filter(t => t.ownerId === userData?.userId));
+                }
+            } catch (err) {
+                console.error('Error creating tournament:', err);
+            }
+        })();
         // Reset form
         setTournamentForm({ name: '', maxPlayers: 8, prize: '' });
         setInvitedPlayers([]);
@@ -51,7 +75,7 @@ const TournamentPage = () => {
         setShowCreateModal(false);
     };
 
-    const handleSearchFriends = (searchTerm) => {
+    const handleSearchFriends = async (searchTerm) => {
         setInviteUsername(searchTerm);
         
         if (searchTerm.trim().length < 2) {
@@ -61,35 +85,35 @@ const TournamentPage = () => {
         }
 
         setIsSearching(true);
-        
-        // TODO: Replace with actual API call to search users
-        // Simulating search results
-        setTimeout(() => {
-            const mockUsers = [
-                { username: 'ProPlayer123', status: 'online', avatar: '👤' },
-                { username: 'PongMaster', status: 'offline', avatar: '🎮' },
-                { username: 'GameChampion', status: 'online', avatar: '🏆' },
-                { username: 'SpeedDemon', status: 'online', avatar: '⚡' },
-                { username: 'TableKing', status: 'offline', avatar: '👑' },
-                { username: 'AcePaddle', status: 'online', avatar: '🎯' },
-            ];
-            
-            const filtered = mockUsers.filter(user => 
-                user.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                !invitedPlayers.includes(user.username)
-            );
-            
-            setSearchResults(filtered);
+        try {
+            const results = await apiClient.searchUsers(searchTerm);
+            const filtered = (results || []).filter(user => !invitedPlayers.includes(user.username));
+            setSearchResults(filtered.map(u => ({ ...u, id: u.id || u.userId })));
+        } catch (err) {
+            console.error('Search users error:', err);
+            setSearchResults([]);
+        } finally {
             setIsSearching(false);
-        }, 300);
+        }
     };
 
     const handleInviteFromSearch = (username) => {
         if (!invitedPlayers.includes(username) && invitedPlayers.length < tournamentForm.maxPlayers) {
+            const user = searchResults.find(u => u.username === username);
             setInvitedPlayers([...invitedPlayers, username]);
             setPendingInvites([...pendingInvites, username]);
             setInviteUsername('');
             setSearchResults([]);
+            // Try to send an API invitation if user and current user exist
+            (async () => {
+                try {
+                    if (user && user.id && userData) {
+                        await apiClient.sendInvitation(userData.userId, userData.username, user.id, user.username);
+                    }
+                } catch (error) {
+                    console.error('Error sending invitation:', error);
+                }
+            })();
         }
     };
 
@@ -150,14 +174,14 @@ const TournamentPage = () => {
                                     <div key={tournament.id} className="tournament-card">
                                         <div className="tournament-card-header">
                                             <h3>{tournament.name}</h3>
-                                            <span className={`tournament-status ${tournament.status.toLowerCase()}`}>
-                                                {tournament.status}
+                                            <span className={`tournament-status ${((tournament.status || 'open').toLowerCase())}`}>
+                                                {tournament.status || 'Open'}
                                             </span>
                                         </div>
                                         <div className="tournament-card-body">
                                             <div className="tournament-info-row">
                                                 <span className="info-label">Players:</span>
-                                                <span className="info-value">{tournament.players}/{tournament.maxPlayers}</span>
+                                                <span className="info-value">{(tournament.participants || []).length}/{tournament.maxPlayers}</span>
                                             </div>
                                             <div className="tournament-info-row">
                                                 <span className="info-label">Prize Pool:</span>
@@ -187,11 +211,11 @@ const TournamentPage = () => {
                     {activeTab === 'brackets' && (
                         <div className="tournament-content">
                             <div className="bracket-header">
-                                <h2>Winter Championship 2025</h2>
+                                <h2>{brackets.name || 'Live Brackets'}</h2>
                                 <p className="bracket-round">{brackets.round}</p>
                             </div>
                             <div className="bracket-container">
-                                {brackets.matches.map(match => (
+                                {(brackets.matches || []).map(match => (
                                     <div key={match.id} className="bracket-match">
                                         <div className={`bracket-player ${match.winner === 'player1' ? 'winner' : match.winner === 'player2' ? 'loser' : ''}`}>
                                             <span className="player-name">{match.player1}</span>
@@ -224,7 +248,7 @@ const TournamentPage = () => {
                                         <div className="history-card-info">
                                             <h3>{tournament.name}</h3>
                                             <div className="history-details">
-                                                <span>{tournament.placement}</span>
+                                                <span>{tournament.placement || (tournament.participants && tournament.participants.length > 0 ? 'Participant' : 'No placement')}</span>
                                                 <span>•</span>
                                                 <span>{tournament.date}</span>
                                             </div>
