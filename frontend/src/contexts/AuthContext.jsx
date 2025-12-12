@@ -19,9 +19,20 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (data) => {
-    setUserData(data);
+    const normalized = { ...data };
+    if (!normalized.userId && normalized.id) {
+      normalized.userId = normalized.id;
+    }
+    setUserData(normalized);
     setIsAuthenticated(true);
-    setItem(STORAGE_KEYS.USER_DATA, data);
+    setItem(STORAGE_KEYS.USER_DATA, normalized);
+  };
+
+  const updateUser = (data) => {
+    const normalized = { ...data };
+    if (!normalized.userId && normalized.id) normalized.userId = normalized.id;
+    setUserData(normalized);
+    setItem(STORAGE_KEYS.USER_DATA, normalized);
   };
 
   const logout = () => {
@@ -35,7 +46,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, userData, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, userData, login, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

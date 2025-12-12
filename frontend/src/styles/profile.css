@@ -72,6 +72,13 @@
     justify-content: center;
     font-size: 3rem;
     font-weight: 700;
+    overflow: hidden;
+}
+
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .avatar-edit-btn {
@@ -944,4 +951,27 @@ textarea.form-input {
 .avatar-upload-area .text-muted {
     font-size: 0.875rem;
     color: var(--text-muted);
+}
+
+.avatar-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.avatar-preview img {
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-preview .text-muted {
+    font-size: 0.875rem;
+    word-break: break-all;
+    max-width: 100%;
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }

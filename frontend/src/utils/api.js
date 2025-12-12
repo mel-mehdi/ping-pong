@@ -105,6 +105,33 @@ class ApiClient {
             body: JSON.stringify({ userId, friendId })
         });
     }
+
+    async uploadAvatar(userId, file) {
+        try {
+            const url = `${API_BASE_URL}/users/${userId}/avatar`;
+            const form = new FormData();
+            form.append('avatar', file);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                body: form,
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data?.error || 'Upload failed');
+            return data;
+        } catch (error) {
+            console.error('Upload avatar error:', error);
+            throw error;
+        }
+    }
+
+    async updateUser(userId, data) {
+        return this.request(`/users/${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
 }
 
 const apiClient = new ApiClient();

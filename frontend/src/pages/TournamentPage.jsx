@@ -323,7 +323,11 @@ const TournamentPage = () => {
                                                         {searchResults.map((user, index) => (
                                                             <div key={index} className="search-result-item">
                                                                 <div className="search-result-info">
-                                                                    <span className="user-avatar">{user.avatar}</span>
+                                                                    <span className="user-avatar">{user.avatar && user.avatar.startsWith && user.avatar.startsWith('data:') ? (
+                                                                        <img src={user.avatar} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                                                                    ) : (
+                                                                        <span className="avatar-fallback">{user.avatar || '🙂'}</span>
+                                                                    )}</span>
                                                                     <div className="user-details">
                                                                         <span className="user-name">{user.username}</span>
                                                                         <span className={`user-status ${user.status}`}>

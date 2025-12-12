@@ -151,7 +151,11 @@ const Navbar = () => {
                                             searchResults.map((user) => (
                                                 <div key={user.id} className="nav-search-result-item">
                                                     <div className="nav-search-result-info">
-                                                        <span className="nav-user-avatar">{user.avatar}</span>
+                                                        <span className="nav-user-avatar">{user.avatar && user.avatar.startsWith && user.avatar.startsWith('data:') ? (
+                                                            <img src={user.avatar} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                                                        ) : (
+                                                            <span className="nav-avatar-fallback">{user.avatar || '🙂'}</span>
+                                                        )}</span>
                                                         <div className="nav-user-details">
                                                             <span className="nav-user-name">{user.username}</span>
                                                             <span className={`nav-user-status ${user.status}`}>

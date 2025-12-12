@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const multer = require('multer');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -25,6 +26,9 @@ app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
 });
+
+// Use multer memory storage to handle uploads and convert to base64
+const upload = multer({ storage: multer.memoryStorage() });
 
 async function readDB() {
     try {
@@ -96,6 +100,82 @@ app.get('/api/users/:id', async (req, res) => {
     } catch (error) {
         console.error('Error fetching user:', error);
         res.status(500).json({ error: 'Failed to fetch user' });
+    }
+});
+
+// Update user profile
+app.patch('/api/users/:id', async (req, res) => {
+    try {
+        const db = await readDB();
+        const user = db.users.find(u => u.id === req.params.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const allowedFields = ['username', 'email', 'fullname', 'bio'];
+        const updates = {};
+        for (const key of allowedFields) {
+            if (req.body[key] !== undefined) {
+                updates[key] = req.body[key];
+            }
+        }
+
+        // Prevent accidental blanking
+        if (updates.username && updates.username.trim().length < 3) {
+            return res.status(400).json({ error: 'Username must be at least 3 characters' });
+        }
+
+        // Email validation
+        if (updates.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        // Check for username/email collision with other users
+        if (updates.username || updates.email) {
+            const conflict = db.users.find(u => (updates.username && u.username.toLowerCase() === updates.username.toLowerCase() && u.id !== user.id) || (updates.email && u.email.toLowerCase() === updates.email.toLowerCase() && u.id !== user.id));
+            if (conflict) {
+                return res.status(400).json({ error: 'Username or email already in use' });
+            }
+        }
+
+        Object.assign(user, updates);
+        user.updatedAt = new Date().toISOString();
+        await writeDB(db);
+
+        console.log(`✅ User updated: ${user.username}`);
+        res.json(sanitizeUser(user));
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ error: 'Failed to update user' });
+    }
+});
+
+// Upload avatar - store as base64 string in DB (development only)
+app.post('/api/users/:id/avatar', upload.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const mimeType = req.file.mimetype;
+        if (!mimeType.startsWith('image/')) {
+            return res.status(400).json({ error: 'Uploaded file is not an image' });
+        }
+
+        const db = await readDB();
+        const user = db.users.find(u => u.id === req.params.id);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // convert file to base64 data URI
+        const base64 = `data:${mimeType};base64,${req.file.buffer.toString('base64')}`;
+        user.avatar = base64;
+        await writeDB(db);
+
+        console.log(`✅ Avatar updated for user ${user.username}`);
+        res.json(sanitizeUser(user));
+    } catch (error) {
+        console.error('Error uploading avatar:', error);
+        res.status(500).json({ error: 'Failed to upload avatar' });
     }
 });
 

@@ -1,21 +1,118 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import apiClient from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/profile.css';
 
 const ProfilePage = () => {
-    const { userData } = useAuth();
+    const { userData, login, updateUser } = useAuth();
     const [activeTab, setActiveTab] = useState('overview');
     const [showEditModal, setShowEditModal] = useState(false);
     const [showAvatarModal, setShowAvatarModal] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef(null);
+    const [editForm, setEditForm] = useState({ username: userData?.username || '', fullname: userData?.fullname || '', email: userData?.email || '', bio: userData?.bio || '' });
+    const [saving, setSaving] = useState(false);
     
     const handleChangeAvatar = () => {
         setShowAvatarModal(true);
     };
     
     const handleEditProfile = () => {
+        setEditForm({ username: userData?.username || '', fullname: userData?.fullname || '', email: userData?.email || '', bio: userData?.bio || '' });
         setShowEditModal(true);
+    };
+
+    const handleSaveProfile = async () => {
+        setSaving(true);
+        try {
+            const updated = await apiClient.updateUser(userData.userId, {
+                username: editForm.username,
+                fullname: editForm.fullname,
+                email: editForm.email,
+                bio: editForm.bio
+            });
+            if (updated) {
+                // Re-fetch user to ensure we have full sanitized record
+                const fresh = await apiClient.getUserById(updated.id || updated.userId);
+                if (fresh) {
+                    if (updateUser) updateUser(fresh);
+                    else login(fresh);
+                }
+            }
+            setShowEditModal(false);
+        } catch (error) {
+            console.error('Error saving profile:', error);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleFileSelect = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                console.error('File size exceeds 2MB');
+                return;
+            }
+            
+            // Check file type
+            if (!file.type.match(/image\/(png|jpg|jpeg|gif)/)) {
+                console.error('Invalid file type. Please upload PNG, JPG, or GIF');
+                return;
+            }
+            
+            setSelectedFile(file);
+            
+            // Create preview URL
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewUrl(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleUploadAvatar = async () => {
+        if (!selectedFile) {
+            console.error('No file selected');
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const response = await apiClient.uploadAvatar(userData.userId, selectedFile);
+            if (response) {
+                // Re-fetch full user record to get latest fields
+                const fresh = await apiClient.getUserById(response.id || response.userId || userData.userId);
+                if (fresh) {
+                    if (updateUser) updateUser(fresh);
+                    else login(fresh);
+                }
+            }
+            // Close modal and reset
+            setShowAvatarModal(false);
+            setSelectedFile(null);
+            setPreviewUrl(null);
+        } catch (error) {
+            console.error('Error uploading avatar:', error);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleCloseAvatarModal = () => {
+        setShowAvatarModal(false);
+        setSelectedFile(null);
+        setPreviewUrl(null);
     };
     
     const stats = {
@@ -61,7 +158,11 @@ const ProfilePage = () => {
                     <div className="profile-header">
                         <div className="profile-avatar">
                             <div className="avatar-circle">
-                                {userData?.username ? userData.username[0].toUpperCase() : 'U'}
+                                {userData?.avatar ? (
+                                    <img src={userData.avatar} alt={userData.username} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+                                ) : (
+                                    (userData?.username ? userData.username[0].toUpperCase() : 'U')
+                                )}
                             </div>
                             <button className="btn-change-avatar" title="Change Avatar" onClick={handleChangeAvatar}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -223,22 +324,26 @@ const ProfilePage = () => {
                                 </button>
                             </div>
                             <div className="modal-body">
-                                <div className="form-group">
-                                    <label>Username</label>
-                                    <input type="text" className="form-input" defaultValue={userData?.username || ''} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Email</label>
-                                    <input type="email" className="form-input" defaultValue={userData?.email || ''} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Bio</label>
-                                    <textarea className="form-input" rows="3" placeholder="Tell us about yourself..."></textarea>
-                                </div>
+                                                <div className="form-group">
+                                                    <label>Username</label>
+                                                    <input type="text" className="form-input" value={editForm.username} onChange={(e) => setEditForm({...editForm, username: e.target.value})} />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Full Name</label>
+                                                    <input type="text" className="form-input" value={editForm.fullname} onChange={(e) => setEditForm({...editForm, fullname: e.target.value})} />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Email</label>
+                                                    <input type="email" className="form-input" value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Bio</label>
+                                                    <textarea className="form-input" rows="3" placeholder="Tell us about yourself..." value={editForm.bio} onChange={(e) => setEditForm({...editForm, bio: e.target.value})}></textarea>
+                                                </div>
                             </div>
                             <div className="modal-footer">
                                 <button className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
-                                <button className="btn btn-primary">Save Changes</button>
+                                <button className="btn btn-primary" onClick={handleSaveProfile} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
                             </div>
                         </div>
                     </div>
@@ -246,11 +351,11 @@ const ProfilePage = () => {
 
                 {/* Change Avatar Modal */}
                 {showAvatarModal && (
-                    <div className="modal-overlay" onClick={() => setShowAvatarModal(false)}>
+                    <div className="modal-overlay" onClick={handleCloseAvatarModal}>
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h2>Change Avatar</h2>
-                                <button className="modal-close" onClick={() => setShowAvatarModal(false)}>
+                                <button className="modal-close" onClick={handleCloseAvatarModal}>
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
                                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -258,19 +363,44 @@ const ProfilePage = () => {
                                 </button>
                             </div>
                             <div className="modal-body">
-                                <div className="avatar-upload-area">
-                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                                        <circle cx="12" cy="13" r="4"></circle>
-                                    </svg>
-                                    <p>Click to upload or drag and drop</p>
-                                    <p className="text-muted">PNG, JPG or GIF (max. 2MB)</p>
-                                    <input type="file" accept="image/*" style={{display: 'none'}} />
+                                <div 
+                                    className="avatar-upload-area"
+                                    onClick={handleUploadClick}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    {previewUrl ? (
+                                        <div className="avatar-preview">
+                                            <img src={previewUrl} alt="Preview" style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '50%' }} />
+                                            <p className="text-muted">{selectedFile?.name}</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                                <circle cx="12" cy="13" r="4"></circle>
+                                            </svg>
+                                            <p>Click to upload or drag and drop</p>
+                                            <p className="text-muted">PNG, JPG or GIF (max. 2MB)</p>
+                                        </>
+                                    )}
+                                    <input 
+                                        ref={fileInputRef}
+                                        type="file" 
+                                        accept="image/*" 
+                                        style={{display: 'none'}}
+                                        onChange={handleFileSelect}
+                                    />
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => setShowAvatarModal(false)}>Cancel</button>
-                                <button className="btn btn-primary">Upload</button>
+                                <button className="btn btn-secondary" onClick={handleCloseAvatarModal}>Cancel</button>
+                                <button 
+                                    className="btn btn-primary"
+                                    onClick={handleUploadAvatar}
+                                    disabled={!selectedFile || uploading}
+                                >
+                                    {uploading ? 'Uploading...' : 'Upload'}
+                                </button>
                             </div>
                         </div>
                     </div>
