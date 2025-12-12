@@ -36,6 +36,7 @@ clean:
 
 fclean: clean
 	@echo "🧼 Performing full cleanup..."
+	docker compose down -v
 	docker system prune -f
 	docker volume prune -f
 	docker network prune -f
