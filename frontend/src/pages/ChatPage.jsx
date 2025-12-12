@@ -49,14 +49,14 @@ const ChatPage = () => {
     const blockUser = () => {
         if (!blockedUsers.includes(selectedChat.id)) {
             setBlockedUsers([...blockedUsers, selectedChat.id]);
-            alert(`${selectedChat.name} has been blocked`);
+            console.log(`${selectedChat.name} has been blocked`);
         }
         setShowMenu(false);
     };
 
     const unblockUser = () => {
         setBlockedUsers(blockedUsers.filter(id => id !== selectedChat.id));
-        alert(`${selectedChat.name} has been unblocked`);
+        console.log(`${selectedChat.name} has been unblocked`);
         setShowMenu(false);
     };
 

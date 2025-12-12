@@ -12,6 +12,8 @@ const Navbar = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [showSearchResults, setShowSearchResults] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const [pendingInvites, setPendingInvites] = useState([]);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -43,16 +45,41 @@ const Navbar = () => {
 
     const handleSearch = async (query) => {
         setSearchQuery(query);
-        if (query.trim().length > 0) {
+        if (query.trim().length >= 2) {
+            setIsSearching(true);
             try {
                 const results = await apiClient.searchUsers(query);
-                setSearchResults(results);
+                // Mock data for demonstration
+                const mockUsers = [
+                    { id: 1, username: 'ProPlayer123', status: 'online', avatar: '👤' },
+                    { id: 2, username: 'PongMaster', status: 'offline', avatar: '🎮' },
+                    { id: 3, username: 'GameChampion', status: 'online', avatar: '🏆' },
+                    { id: 4, username: 'SpeedDemon', status: 'online', avatar: '⚡' },
+                    { id: 5, username: 'TableKing', status: 'offline', avatar: '👑' },
+                ];
+                const filtered = mockUsers.filter(user => 
+                    user.username.toLowerCase().includes(query.toLowerCase())
+                );
+                setSearchResults(filtered);
                 setShowSearchResults(true);
             } catch (error) {
                 console.error('Search error:', error);
+            } finally {
+                setIsSearching(false);
             }
         } else {
             setShowSearchResults(false);
+            setSearchResults([]);
+        }
+    };
+
+    const handleSendInvite = async (userId, username) => {
+        try {
+            // TODO: Replace with actual API call
+            console.log(`Invite sent to user ${userId} (${username})`);
+            setPendingInvites([...pendingInvites, userId]);
+        } catch (error) {
+            console.error('Error sending invite:', error);
         }
     };
 
@@ -99,25 +126,53 @@ const Navbar = () => {
                     </ul>
                     <div className="nav-actions">
                         {isAuthenticated && (
-                            <div className="nav-search-input-wrapper">
-                                <i className="fas fa-search nav-search-icon"></i>
-                                <input
-                                    type="text"
-                                    className="nav-search-input"
-                                    placeholder="Search players to invite..."
-                                    value={searchQuery}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                    onFocus={() => searchQuery && setShowSearchResults(true)}
-                                    onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
-                                    autoComplete="off"
-                                />
-                                {showSearchResults && searchResults.length > 0 && (
+                            <div className="nav-search-wrapper">
+                                <div className="nav-search-input-wrapper">
+                                    <svg className="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <path d="m21 21-4.35-4.35"></path>
+                                    </svg>
+                                    <input
+                                        type="text"
+                                        className="nav-search-input"
+                                        placeholder="Search players..."
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                        onFocus={() => searchQuery.length >= 2 && setShowSearchResults(true)}
+                                        onBlur={() => setTimeout(() => setShowSearchResults(false), 300)}
+                                        autoComplete="off"
+                                    />
+                                </div>
+                                {showSearchResults && (
                                     <div className="nav-search-results">
-                                        {searchResults.map((user) => (
-                                            <div key={user.id} className="search-result-item">
-                                                {user.username}
-                                            </div>
-                                        ))}
+                                        {isSearching ? (
+                                            <div className="nav-search-loading">Searching...</div>
+                                        ) : searchResults.length > 0 ? (
+                                            searchResults.map((user) => (
+                                                <div key={user.id} className="nav-search-result-item">
+                                                    <div className="nav-search-result-info">
+                                                        <span className="nav-user-avatar">{user.avatar}</span>
+                                                        <div className="nav-user-details">
+                                                            <span className="nav-user-name">{user.username}</span>
+                                                            <span className={`nav-user-status ${user.status}`}>
+                                                                <span className="nav-status-dot"></span>
+                                                                {user.status}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        className={`nav-btn-invite ${pendingInvites.includes(user.id) ? 'pending' : ''}`}
+                                                        onClick={() => handleSendInvite(user.id, user.username)}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        disabled={pendingInvites.includes(user.id)}
+                                                    >
+                                                        {pendingInvites.includes(user.id) ? 'Pending' : 'Invite'}
+                                                    </button>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="nav-search-no-results">No users found</div>
+                                        )}
                                     </div>
                                 )}
                             </div>
