@@ -7,6 +7,7 @@ import '../styles/home.css';
 const HomePage = () => {
     const navigate = useNavigate();
     const { isAuthenticated, userData } = useAuth();
+    const achievementsCount = Array.isArray(userData?.achievements) ? userData.achievements.length : (typeof userData?.achievements === 'number' ? userData.achievements : 0);
 
     const handleQuickPlay = () => {
         navigate('/game');
@@ -132,7 +133,7 @@ const HomePage = () => {
                                     </div>
                                     <h5 style={{fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text)'}}>Achievements</h5>
                                     <p className="display-4" style={{fontSize: '2.5rem', fontWeight: '700', color: '#8b5cf6', marginBottom: '0.25rem'}}>
-                                        {userData?.achievements || 0}
+                                        {achievementsCount}
                                     </p>
                                     <small style={{color: 'var(--text-muted)'}}>Unlock more!</small>
                                 </div>

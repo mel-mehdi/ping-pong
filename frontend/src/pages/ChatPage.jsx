@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import '../styles/chat.css';
 
 const ChatPage = () => {
-    const { userData } = useAuth();
+    const { userData, isBackendAuthenticated } = useAuth();
     const [conversations, setConversations] = useState([]);
     
     const [selectedChat, setSelectedChat] = useState(null);
@@ -21,6 +21,18 @@ const ChatPage = () => {
             (async () => {
                 try {
                     if (!userData || !selectedChat) return;
+                    if (!isBackendAuthenticated) {
+                        // local-only send
+                        setMessages([...messages, {
+                            id: messages.length + 1,
+                            sender: 'You',
+                            text: newMessage.trim(),
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            isOwn: true
+                        }]);
+                        setNewMessage('');
+                        return;
+                    }
                     await apiClient.sendMessage(userData.userId, selectedChat.id, newMessage.trim());
                     const updated = await apiClient.getMessages(userData.userId, selectedChat.id);
                     setMessages(updated || []);
@@ -35,6 +47,21 @@ const ChatPage = () => {
     useEffect(() => {
         const loadConversations = async () => {
             if (!userData?.userId) return;
+            // If not backend auth, use local DB immediately
+            if (!isBackendAuthenticated) {
+                try {
+                    const dbModule = await import('../utils/database');
+                    const db = dbModule.default;
+                    const users = db.getCollection('users') || [];
+                    const others = (users || []).filter(u => u.id !== userData.userId).map(u => ({ id: u.id, name: u.username, lastMessage: '', time: '', unread: 0, online: false }));
+                    setConversations(others);
+                    if (!selectedChat && others.length > 0) setSelectedChat(others[0]);
+                } catch (err2) {
+                    console.error('Error using local DB fallback for conversations:', err2);
+                }
+                return;
+            }
+
             try {
                 const users = await apiClient.getAllUsers();
                 const others = (users || []).filter(u => u.id !== userData.userId).map(u => ({ id: u.id, name: u.username, lastMessage: '', time: '', unread: 0, online: false }));
@@ -42,23 +69,46 @@ const ChatPage = () => {
                 if (!selectedChat && others.length > 0) setSelectedChat(others[0]);
             } catch (err) {
                 console.error('Error loading users for conversations:', err);
+                // Fallback to local DB mock users
+                try {
+                    const dbModule = await import('../utils/database');
+                    const db = dbModule.default;
+                    const users = db.getCollection('users') || [];
+                    const others = (users || []).filter(u => u.id !== userData.userId).map(u => ({ id: u.id, name: u.username, lastMessage: '', time: '', unread: 0, online: false }));
+                    setConversations(others);
+                    if (!selectedChat && others.length > 0) setSelectedChat(others[0]);
+                } catch (err2) {
+                    console.error('Error using local DB fallback for conversations:', err2);
+                }
             }
         };
         loadConversations();
-    }, [userData]);
+    }, [userData, isBackendAuthenticated]);
 
     useEffect(() => {
         const loadMessagesForSelected = async () => {
             if (!userData?.userId || !selectedChat) return;
             try {
-                const msgs = await apiClient.getMessages(userData.userId, selectedChat.id);
-                setMessages(msgs || []);
+                if (!isBackendAuthenticated) {
+                    try {
+                        const dbModule = await import('../utils/database');
+                        const db = dbModule.default;
+                        const msgs = db.getCollection('messages') || [];
+                        const local = (msgs || []).filter(m => (m.fromId === userData.userId && m.toId === selectedChat.id) || (m.fromId === selectedChat.id && m.toId === userData.userId));
+                        setMessages(local || []);
+                    } catch (err2) {
+                        console.error('Error loading local messages:', err2);
+                    }
+                } else {
+                    const msgs = await apiClient.getMessages(userData.userId, selectedChat.id);
+                    setMessages(msgs || []);
+                }
             } catch (err) {
                 console.error('Error loading messages for conversation:', err);
             }
         };
         loadMessagesForSelected();
-    }, [selectedChat, userData]);
+    }, [selectedChat, userData, isBackendAuthenticated]);
 
     const sendGameInvite = () => {
         if (!selectedChat) return;

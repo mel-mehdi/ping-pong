@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import apiClient from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/leaderboard.css';
 
 const LeaderboardPage = () => {
+    const { isBackendAuthenticated } = useAuth();
     const [timeFilter, setTimeFilter] = useState('all-time');
     
     const [leaderboardData, setLeaderboardData] = useState([]);
@@ -12,14 +14,14 @@ const LeaderboardPage = () => {
     useEffect(() => {
         const loadLeaderboard = async () => {
             try {
-                const data = await apiClient.getLeaderboard();
+                const data = isBackendAuthenticated ? await apiClient.getLeaderboard() : (await import('../utils/database')).default.getCollection('leaderboard') || [];
                 setLeaderboardData((data || []).map((p, idx) => ({ ...p, rank: idx + 1 })));
             } catch (err) {
                 console.error('Error fetching leaderboard:', err);
             }
         };
         loadLeaderboard();
-    }, []);
+    }, [isBackendAuthenticated]);
 
     return (
         <>

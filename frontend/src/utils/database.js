@@ -80,6 +80,39 @@ class Database {
         return false;
     }
 
+    cleanUsers(patterns = []) {
+        const users = this.getCollection('users') || [];
+        const isBad = (u) => {
+            if (!u || typeof u !== 'object') return true;
+            const username = (u.username || '').toString();
+            const email = (u.email || '').toString();
+            // Empty username/email are suspicious
+            if (!username && !email) return true;
+
+            // Match provided string or regex patterns
+            for (const p of patterns) {
+                if (!p) continue;
+                if (typeof p === 'string') {
+                    if (username.includes(p) || email.includes(p)) return true;
+                } else if (p instanceof RegExp) {
+                    if (p.test(username) || p.test(email)) return true;
+                }
+            }
+
+            // Generic heuristics: URL-like or query fragments in username
+            if (username.includes('/') || username.includes('http') || username.includes('?')) return true;
+            // Very long usernames likely garbage
+            if (username.length > 50) return true;
+
+            return false;
+        };
+
+        const kept = users.filter(u => !isBad(u));
+        const removed = users.filter(u => isBad(u));
+        if (removed.length > 0) this.saveCollection('users', kept);
+        return { removed, kept };
+    }
+
     clearCollection(collectionName) {
         this.saveCollection(collectionName, []);
     }

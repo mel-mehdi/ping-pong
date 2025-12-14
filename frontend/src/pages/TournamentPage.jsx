@@ -21,11 +21,29 @@ const TournamentPage = () => {
     const [activeTournaments, setActiveTournaments] = useState([]);
     const [brackets, setBrackets] = useState({ round: '', matches: [] });
     const [myTournaments, setMyTournaments] = useState([]);
-    const { userData } = useAuth();
+    const { userData, isBackendAuthenticated } = useAuth();
 
     useEffect(() => {
         const loadTournaments = async () => {
             try {
+                if (!isBackendAuthenticated) {
+                    // try local mock DB
+                    try {
+                        const dbModule = await import('../utils/database');
+                        const db = dbModule.default;
+                        const all = db.getCollection('tournaments') || [];
+                        setActiveTournaments(all || []);
+                        setMyTournaments((all || []).filter(t => t.ownerId === userData?.userId));
+                        if (all && all.length > 0) {
+                            const first = all[0];
+                            setBrackets({ name: first.name, round: 'Quarterfinals', matches: first.matches || [] });
+                        }
+                    } catch (err) {
+                        console.error('Local tournaments fallback error:', err);
+                    }
+                    return;
+                }
+
                 const all = await apiClient.getTournaments();
                 setActiveTournaments(all || []);
                 setMyTournaments((all || []).filter(t => t.ownerId === userData?.userId));
@@ -39,7 +57,7 @@ const TournamentPage = () => {
         };
 
         loadTournaments();
-    }, [userData]);
+    }, [userData, isBackendAuthenticated]);
     
     
 
@@ -78,7 +96,7 @@ const TournamentPage = () => {
     const handleSearchFriends = async (searchTerm) => {
         setInviteUsername(searchTerm);
         
-        if (searchTerm.trim().length < 2) {
+        if (searchTerm.trim().length < 1) {
             setSearchResults([]);
             setIsSearching(false);
             return;
@@ -86,9 +104,22 @@ const TournamentPage = () => {
 
         setIsSearching(true);
         try {
-            const results = await apiClient.searchUsers(searchTerm);
-            const filtered = (results || []).filter(user => !invitedPlayers.includes(user.username));
-            setSearchResults(filtered.map(u => ({ ...u, id: u.id || u.userId })));
+            if (!isBackendAuthenticated) {
+                const dbModule = await import('../utils/database');
+                const db = dbModule.default;
+                const all = db.getCollection('users') || [];
+                const q = searchTerm.toLowerCase();
+                const badPattern = /https?:\/\/|www\.|\/.+|=|\?|&|om\/api|\bapi\b/i;
+                const fallback = (all || []).filter(u => u && typeof u === 'object' && ((u.username || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))).filter(u => !invitedPlayers.includes(u.username)).filter(u => {
+                    const username = (u.username || '').toString();
+                    const email = (u.email || '').toString();
+                    if (!username && !email) return false;
+                    if (username.length > 50) return false;
+                    if (badPattern.test(username) || badPattern.test(email)) return false;
+                    return true;
+                });
+                setSearchResults(filtered.map(u => ({ ...u, id: u.id || u.userId }))); 
+            }
         } catch (err) {
             console.error('Search users error:', err);
             setSearchResults([]);
@@ -107,6 +138,20 @@ const TournamentPage = () => {
             // Try to send an API invitation if user and current user exist
             (async () => {
                 try {
+                    if (!userData) return;
+                    if (!isBackendAuthenticated) {
+                        // Save invitation locally (mock)
+                        try {
+                            const dbModule = await import('../utils/database');
+                            const db = dbModule.default;
+                            const friendships = db.getCollection('friendships') || [];
+                            friendships.push({ id: db.generateId(), from_user: userData.userId || userData.id, to_user: user.id, fromName: userData.username, toName: user.username, status: 'pending' });
+                            db.saveCollection('friendships', friendships);
+                        } catch (err) {
+                            console.error('Local friendship save error:', err);
+                        }
+                        return;
+                    }
                     if (user && user.id && userData) {
                         await apiClient.sendInvitation(userData.userId, userData.username, user.id, user.username);
                     }
@@ -354,9 +399,9 @@ const TournamentPage = () => {
                                                                     )}</span>
                                                                     <div className="user-details">
                                                                         <span className="user-name">{user.username}</span>
-                                                                        <span className={`user-status ${user.status}`}>
+                                                                        <span className={`user-status ${user.online_status ? 'online' : 'offline'}`}>
                                                                             <span className="status-dot"></span>
-                                                                            {user.status}
+                                                                            {user.online_status ? 'online' : 'offline'}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -377,7 +422,7 @@ const TournamentPage = () => {
                                                     <div className="search-loading">Searching...</div>
                                                 )}
                                                 
-                                                {inviteUsername.trim().length >= 2 && searchResults.length === 0 && !isSearching && (
+                                                {inviteUsername.trim().length >= 1 && searchResults.length === 0 && !isSearching && (
                                                     <div className="search-no-results">No users found</div>
                                                 )}
                                             </div>

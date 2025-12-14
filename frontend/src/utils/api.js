@@ -32,23 +32,26 @@ class ApiClient {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+                const err = new Error(data?.error || `HTTP ${response.status}: ${response.statusText}`);
+                err.status = response.status;
+                if (response.status === 401 || response.status === 403) err.isAuthError = true;
+                throw err;
             }
 
             return data;
         } catch (error) {
-            console.error(`API Error [${endpoint}]:`, error.message);
+            // Treat auth failures as expected (warn) to avoid noisy error logs
+            if (error && error.isAuthError) {
+                console.warn(`API Error [${endpoint}]:`, error.message);
+            } else {
+                console.error(`API Error [${endpoint}]:`, error.message);
+            }
             throw error;
         }
     }
 
     async getAllUsers() {
-        try {
-            return await this.request(`${DJANGO_USER_BASE}/users/`);
-        } catch (err) {
-            console.warn('getAllUsers: no users endpoint available', err);
-            return [];
-        }
+        return await this.request(`${DJANGO_USER_BASE}/users/`);
     }
 
     // Tournaments endpoints may be absent; try /api/tournaments/ and return empty list on failure
@@ -86,6 +89,53 @@ class ApiClient {
         return this.request(`${DJANGO_USER_BASE}/users/${id}/`);
     }
 
+    async getMe() {
+        // If there's no stored token, skip the network check to avoid noisy 403s
+        try {
+            let token = null;
+            try {
+                const data = localStorage.getItem('userData');
+                if (data) {
+                    const p = JSON.parse(data);
+                    token = p?.token || p?.access || null;
+                }
+            } catch (e) {
+                token = null;
+            }
+
+            if (!token) {
+                // No token found — don't call backend automatically (cookie-based sessions are uncommon in this setup)
+                return null;
+            }
+
+            const url = `${DJANGO_USER_BASE}/users/me/`;
+            const response = await fetch(url, { credentials: 'include', headers: { 'Authorization': `Bearer ${token}` } });
+            if (response.status === 200) {
+                const data = await response.json();
+                return data;
+            }
+            // Auth failures are expected if token expired or invalid; return null silently
+            if (response.status === 401 || response.status === 403) return null;
+
+            let payload = null;
+            try { payload = await response.json(); } catch (e) { /* ignore */ }
+            console.warn('getMe: unexpected response', response.status, payload);
+            return null;
+        } catch (err) {
+            console.warn('getMe: network or other error', err);
+            return null;
+        }
+    }
+
+    async getUserProfile(id) {
+        try {
+            return await this.request(`${DJANGO_USER_BASE}/users/${id}/profile/`);
+        } catch (err) {
+            console.warn('getUserProfile: not available', err);
+            return null;
+        }
+    }
+
     async register(username, email, password) {
         return this.request(`${DJANGO_USER_BASE}/users/`, {
             method: 'POST',
@@ -102,10 +152,45 @@ class ApiClient {
     }
 
     async searchUsers(query) {
+        if (!query || !query.toString().trim()) return [];
         try {
-            return await this.request(`${DJANGO_USER_BASE}/users/?search=${encodeURIComponent(query)}`);
+            const results = await this.request(`${DJANGO_USER_BASE}/users/?search=${encodeURIComponent(query)}`);
+            // If backend supports search, return sanitized results
+            if (Array.isArray(results) && results.length > 0) {
+                const badPattern = /https?:\/\/|www\.|\/.+|=|\?|&|om\/api|\bapi\b/i;
+                return results.filter(u => u && typeof u === 'object' && ((u.username && u.username.toString().trim()) || (u.email && u.email.toString().trim()))).filter(u => {
+                    const username = (u.username || '').toString();
+                    const email = (u.email || '').toString();
+                    if (!username && !email) return false;
+                    if (username.length > 50 || email.length > 120) return false;
+                    if (badPattern.test(username) || badPattern.test(email)) return false;
+                    return true;
+                });
+            }
+
         } catch (err) {
-            console.warn('searchUsers: no backend search available', err);
+            // continue to fallback
+            console.warn('searchUsers: backend search failed, falling back to client-side filter', err);
+        }
+
+        // Fallback: fetch all users then filter locally
+        try {
+            const all = await this.getAllUsers();
+            const q = query.toLowerCase();
+            return (all || []).filter(u => u && typeof u === 'object' && ((u.username && (u.username || '').toLowerCase().includes(q)) || (u.email && (u.email || '').toLowerCase().includes(q)) || (u.fullname && (u.fullname || '').toLowerCase().includes(q))));
+        } catch (err) {
+            console.warn('searchUsers fallback: no users to filter, attempting local DB', err);
+        }
+
+        // Final fallback: try local mock DB (client-only)
+        try {
+            const dbModule = await import('./database');
+            const db = dbModule.default;
+            const all = db.getCollection('users') || [];
+            const q = query.toLowerCase();
+            return (all || []).filter(u => u && typeof u === 'object' && ((u.username && (u.username || '').toLowerCase().includes(q)) || (u.email && (u.email || '').toLowerCase().includes(q)) || (u.fullname && (u.fullname || '').toLowerCase().includes(q))));
+        } catch (err) {
+            console.warn('searchUsers: local DB fallback failed', err);
             return [];
         }
     }

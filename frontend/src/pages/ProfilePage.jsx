@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import apiClient from '../utils/api';
+import { ACHIEVEMENTS } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/profile.css';
 
 const ProfilePage = () => {
-    const { userData, login, updateUser } = useAuth();
+    const { userData, login, updateUser, isBackendAuthenticated } = useAuth();
     const [activeTab, setActiveTab] = useState('overview');
     const [showEditModal, setShowEditModal] = useState(false);
     const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -29,7 +30,29 @@ const ProfilePage = () => {
     const handleSaveProfile = async () => {
         setSaving(true);
         try {
-            const updated = await apiClient.updateUser(userData.userId, {
+            if (!isBackendAuthenticated) {
+                // update local DB and AuthContext
+                try {
+                    const dbModule = await import('../utils/database');
+                    const db = dbModule.default;
+                    const users = db.getCollection('users') || [];
+                    const idx = users.findIndex(u => (u.id === userIdForCalls || u.userId == userIdForCalls));
+                    if (idx !== -1) {
+                        users[idx] = { ...users[idx], username: editForm.username, fullname: editForm.fullname, email: editForm.email, bio: editForm.bio };
+                        db.saveCollection('users', users);
+                        const fresh = users[idx];
+                        if (updateUser) updateUser(fresh);
+                        else login(fresh);
+                    }
+                } catch (err) {
+                    console.error('Local save profile error:', err);
+                }
+                setShowEditModal(false);
+                setSaving(false);
+                return;
+            }
+
+            const updated = await apiClient.updateUser(userIdForCalls, {
                 username: editForm.username,
                 fullname: editForm.fullname,
                 email: editForm.email,
@@ -89,10 +112,45 @@ const ProfilePage = () => {
 
         setUploading(true);
         try {
-            const response = await apiClient.uploadAvatar(userData.userId, selectedFile);
+            if (!isBackendAuthenticated) {
+                // Save as data URL in local DB
+                try {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const dataUrl = reader.result;
+                        (async () => {
+                            try {
+                                const dbModule = await import('../utils/database');
+                                const db = dbModule.default;
+                                const users = db.getCollection('users') || [];
+                                const idx = users.findIndex(u => (u.id === userIdForCalls || u.userId == userIdForCalls));
+                                if (idx !== -1) {
+                                    users[idx] = { ...users[idx], avatar: dataUrl };
+                                    db.saveCollection('users', users);
+                                    const fresh = users[idx];
+                                    if (updateUser) updateUser(fresh);
+                                    else login(fresh);
+                                }
+                                setShowAvatarModal(false);
+                                setSelectedFile(null);
+                                setPreviewUrl(null);
+                            } catch (err) {
+                                console.error('Local avatar save error:', err);
+                            }
+                        })();
+                    };
+                    reader.readAsDataURL(selectedFile);
+                } catch (err) {
+                    console.error('Local avatar file error:', err);
+                }
+                setUploading(false);
+                return;
+            }
+
+            const response = await apiClient.uploadAvatar(userIdForCalls, selectedFile);
             if (response) {
                 // Re-fetch full user record to get latest fields
-                const fresh = await apiClient.getUserById(response.id || response.userId || userData.userId);
+                const fresh = await apiClient.getUserById(response.id || response.userId || userIdForCalls);
                 if (fresh) {
                     if (updateUser) updateUser(fresh);
                     else login(fresh);
@@ -116,49 +174,52 @@ const ProfilePage = () => {
     };
     
     const [recentMatches, setRecentMatches] = useState([]);
+    const [profile, setProfile] = useState(null);
+
+    const userIdForCalls = profile?.user?.id || userData?.userId || userData?.id;
 
     useEffect(() => {
-        const loadMatches = async () => {
-            if (!userData?.userId) return;
+        const loadProfileAndMatches = async () => {
+            const id = userData?.userId || userData?.id;
+            if (!id) return;
+
+            // If backend auth is not present, skip backend calls and rely on local profile fields
+            if (!isBackendAuthenticated) {
+                setRecentMatches([]);
+                setProfile({ user: userData, wins: userData?.wins || 0, losses: userData?.losses || 0, win_rate: userData?.win_rate || 0, rank: userData?.rank, level: userData?.level });
+                return;
+            }
+
             try {
-                const matches = await apiClient.getMatchesForUser(userData.userId);
+                const matches = await apiClient.getMatchesForUser(id);
                 setRecentMatches(matches || []);
             } catch (err) {
                 console.error('Error loading matches for profile:', err);
             }
+
+            try {
+                const profileData = await apiClient.getUserProfile(id);
+                setProfile(profileData);
+            } catch (err) {
+                console.error('Error loading profile data:', err);
+            }
         };
-        loadMatches();
-    }, [userData]);
+        loadProfileAndMatches();
+    }, [userData, isBackendAuthenticated]);
 
     const stats = {
-        gamesPlayed: 42,
-        wins: 28,
-        losses: 14,
-        winRate: 67,
-        rank: '#127',
-        level: 15
+        gamesPlayed: profile?.total_games || (profile?.wins + profile?.losses) || 0,
+        wins: profile?.wins || 0,
+        losses: profile?.losses || 0,
+        winRate: profile?.win_rate || 0,
+        rank: profile?.rank ? `#${profile.rank}` : '—',
+        level: profile?.level || 1
     };
 
-    
+    const rawAchievements = profile?.achievements || userData?.achievements || [];
+    const earnedAchievementIds = new Set((Array.isArray(rawAchievements) ? rawAchievements : []).map(a => (typeof a === 'object' ? a.id : (typeof a === 'string' ? parseInt(a, 10) : a))).filter(Boolean));
+    const achievementsList = ACHIEVEMENTS.map(a => ({ ...a, earned: earnedAchievementIds.has(a.id) }));
 
-    const achievements = [
-        { id: 1, title: 'First Win', icon: '🏆', earned: true },
-        { id: 2, title: '10 Win Streak', icon: '🔥', earned: true },
-        { id: 3, title: 'Tournament Winner', icon: '👑', earned: false },
-        { id: 4, title: '100 Games', icon: '🎯', earned: false },
-        { id: 5, title: 'Perfect Game', icon: '💯', earned: true },
-        { id: 6, title: 'Speed Demon', icon: '⚡', earned: true },
-        { id: 7, title: 'Master Player', icon: '🎖️', earned: false },
-        { id: 8, title: 'Comeback King', icon: '🔄', earned: true },
-        { id: 9, title: 'Veteran', icon: '⭐', earned: false },
-        { id: 10, title: 'Unbeatable', icon: '🛡️', earned: false },
-        { id: 11, title: 'First Blood', icon: '🩸', earned: true },
-        { id: 12, title: 'Hat Trick', icon: '🎩', earned: true },
-        { id: 13, title: 'Marathon', icon: '🏃', earned: false },
-        { id: 14, title: 'Sharp Shooter', icon: '🎲', earned: true },
-        { id: 15, title: 'Social Butterfly', icon: '🦋', earned: false },
-        { id: 16, title: 'Night Owl', icon: '🦉', earned: true },
-    ];
 
     return (
         <>
@@ -168,10 +229,10 @@ const ProfilePage = () => {
                     <div className="profile-header">
                         <div className="profile-avatar">
                             <div className="avatar-circle">
-                                {userData?.avatar ? (
-                                    <img src={userData.avatar} alt={userData.username} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+                                { (profile?.user?.avatar || userData?.avatar) ? (
+                                    <img src={profile?.user?.avatar || userData?.avatar} alt={profile?.user?.username || userData?.username} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
                                 ) : (
-                                    (userData?.username ? userData.username[0].toUpperCase() : 'U')
+                                    ((profile?.user?.username || userData?.username) ? (profile?.user?.username || userData?.username)[0].toUpperCase() : 'U')
                                 )}
                             </div>
                             <button className="btn-change-avatar" title="Change Avatar" onClick={handleChangeAvatar}>
@@ -181,8 +242,8 @@ const ProfilePage = () => {
                                 </svg>
                             </button>
                         </div>
-                        <h1 className="profile-username">{userData?.username || 'Player'}</h1>
-                        <p className="profile-email">{userData?.email || 'player@example.com'}</p>
+                        <h1 className="profile-username">{profile?.user?.username || userData?.username || 'Player'}</h1>
+                        <p className="profile-email">{profile?.user?.email || userData?.email || 'player@example.com'}</p>
                         <div className="profile-level">
                             <span className="level-badge">Level {stats.level}</span>
                         </div>
@@ -305,8 +366,12 @@ const ProfilePage = () => {
 
                     {activeTab === 'achievements' && (
                         <div className="profile-content">
+                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem'}}>
+                                <h3 style={{margin: 0}}>Achievements</h3>
+                                <small style={{color: 'var(--text-muted)'}}>{achievementsList.filter(a => a.earned).length} / {achievementsList.length} Unlocked</small>
+                            </div>
                             <div className="achievements-grid">
-                                {achievements.map(achievement => (
+                                {achievementsList.map(achievement => (
                                     <div key={achievement.id} className={`achievement-card ${achievement.earned ? 'earned' : 'locked'}`}>
                                         <div className="achievement-icon">{achievement.icon}</div>
                                         <div className="achievement-title">{achievement.title}</div>
