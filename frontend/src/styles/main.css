@@ -182,9 +182,7 @@ body {
     justify-content: space-between;
     padding: 0.75rem 1rem;
 }
-.nav-brand { font-size: 1.5rem; font-weight: 700; color: var(--primary); text-decoration: none; margin-left: 0; margin-right: 15px; order: 3; }
-.nav-menu { display: flex; list-style: none; gap: 2rem; order: 1; }
-.nav-actions { order: 2; display: flex; align-items: center; gap: 0.5rem; }
+.nav-brand { font-size: 1.5rem; font-weight: 700; color: var(--primary); text-decoration: none; margin-right: 15px; }
 .nav-menu { display: flex; list-style: none; gap: 2rem; }
 .nav-menu a {
     color: var(--text);
