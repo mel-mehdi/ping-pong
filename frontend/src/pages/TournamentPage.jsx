@@ -4,6 +4,7 @@ import Footer from '../components/Footer';
 import '../styles/tournament.css';
 import apiClient from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const TournamentPage = () => {
     const [activeTab, setActiveTab] = useState('active');
@@ -175,19 +176,21 @@ const TournamentPage = () => {
         setInvitedPlayers(invitedPlayers.filter(player => player !== username));
     };
 
+    const { t } = useLanguage();
+
     return (
         <>
             <Navbar />
             <main className="tournament-main">
                 <div className="container">
                     <div className="tournament-header">
-                        <h1>🏆 Tournaments</h1>
-                        <p className="text-muted">Compete in organized competitions and win prizes</p>
+                        <h1>{t('tournaments.title')}</h1>
+                        <p className="text-muted">{t('tournaments.subtitle')}</p>
                         <button 
                             className="btn btn-primary"
                             onClick={() => setShowCreateModal(true)}
                         >
-                            + Create Tournament
+                            {t('tournaments.create')}
                         </button>
                     </div>
 
@@ -196,19 +199,19 @@ const TournamentPage = () => {
                             className={`tournament-tab ${activeTab === 'active' ? 'active' : ''}`}
                             onClick={() => setActiveTab('active')}
                         >
-                            Active Tournaments
+                            {t('tournaments.tabs.active')}
                         </button>
                         <button 
                             className={`tournament-tab ${activeTab === 'brackets' ? 'active' : ''}`}
                             onClick={() => setActiveTab('brackets')}
                         >
-                            Live Brackets
+                            {t('tournaments.tabs.brackets')}
                         </button>
                         <button 
                             className={`tournament-tab ${activeTab === 'history' ? 'active' : ''}`}
                             onClick={() => setActiveTab('history')}
                         >
-                            My History
+                            {t('tournaments.tabs.history')}
                         </button>
                     </div>
 
@@ -225,11 +228,11 @@ const TournamentPage = () => {
                                         </div>
                                         <div className="tournament-card-body">
                                             <div className="tournament-info-row">
-                                                <span className="info-label">Players:</span>
+                                                <span className="info-label">{t('tournaments.players_label')}</span>
                                                 <span className="info-value">{(tournament.participants || []).length}/{tournament.maxPlayers}</span>
                                             </div>
                                             <div className="tournament-info-row">
-                                                <span className="info-label">Prize Pool:</span>
+                                                <span className="info-label">{t('tournaments.prize_pool')}</span>
                                                 <span className="info-value">{tournament.prize}</span>
                                             </div>
                                             <div className="tournament-progress">
@@ -244,7 +247,7 @@ const TournamentPage = () => {
                                                 className="btn btn-primary w-100"
                                                 disabled={tournament.status === 'Full'}
                                             >
-                                                {tournament.status === 'Full' ? 'Tournament Full' : 'Join Tournament'}
+                                                {tournament.status === 'Full' ? t('tournaments.full') : t('tournaments.join')}
                                             </button>
                                         </div>
                                     </div>
@@ -256,7 +259,7 @@ const TournamentPage = () => {
                     {activeTab === 'brackets' && (
                         <div className="tournament-content">
                             <div className="bracket-header">
-                                <h2>{brackets.name || 'Live Brackets'}</h2>
+                                <h2>{brackets.name || t('tournaments.tabs.brackets')}</h2>
                                 <p className="bracket-round">{brackets.round}</p>
                             </div>
                             <div className="bracket-container">
@@ -266,13 +269,13 @@ const TournamentPage = () => {
                                             <span className="player-name">{match.player1}</span>
                                             <span className="player-score">{match.score1 !== null ? match.score1 : '-'}</span>
                                         </div>
-                                        <div className="bracket-vs">VS</div>
+                                        <div className="bracket-vs">{t('tournaments.vs')}</div>
                                         <div className={`bracket-player ${match.winner === 'player2' ? 'winner' : match.winner === 'player1' ? 'loser' : ''}`}>
                                             <span className="player-name">{match.player2}</span>
                                             <span className="player-score">{match.score2 !== null ? match.score2 : '-'}</span>
                                         </div>
                                         {match.winner === null && (
-                                            <div className="match-status">Upcoming</div>
+                                            <div className="match-status">{t('tournaments.upcoming')}</div>
                                         )}
                                     </div>
                                 ))}
@@ -293,7 +296,7 @@ const TournamentPage = () => {
                                         <div className="history-card-info">
                                             <h3>{tournament.name}</h3>
                                             <div className="history-details">
-                                                <span>{tournament.placement || (tournament.participants && tournament.participants.length > 0 ? 'Participant' : 'No placement')}</span>
+                                                <span>{tournament.placement || (tournament.participants && tournament.participants.length > 0 ? t('tournaments.participant') : t('tournaments.no_placement'))}</span>
                                                 <span>•</span>
                                                 <span>{tournament.date}</span>
                                             </div>
@@ -313,7 +316,7 @@ const TournamentPage = () => {
                         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
                             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-header">
-                                    <h2>Create New Tournament</h2>
+                                    <h2>{t('tournaments.create_title')}</h2>
                                     <button 
                                         className="modal-close"
                                         onClick={() => setShowCreateModal(false)}
@@ -324,12 +327,12 @@ const TournamentPage = () => {
                                 <form onSubmit={handleCreateTournament}>
                                     <div className="modal-body">
                                         <div className="form-group">
-                                            <label htmlFor="tournament-name">Tournament Name</label>
+                                            <label htmlFor="tournament-name">{t('tournaments.name_label')}</label>
                                             <input
                                                 type="text"
                                                 id="tournament-name"
                                                 className="form-control"
-                                                placeholder="e.g., Winter Championship 2025"
+                                                placeholder={t('tournaments.name_placeholder')}
                                                 value={tournamentForm.name}
                                                 onChange={(e) => setTournamentForm({...tournamentForm, name: e.target.value})}
                                                 required
@@ -337,27 +340,27 @@ const TournamentPage = () => {
                                         </div>
 
                                         <div className="form-group">
-                                            <label htmlFor="max-players">Maximum Players</label>
+                                            <label htmlFor="max-players">{t('tournaments.max_players_label')}</label>
                                             <select
                                                 id="max-players"
                                                 className="form-control"
                                                 value={tournamentForm.maxPlayers}
                                                 onChange={(e) => setTournamentForm({...tournamentForm, maxPlayers: parseInt(e.target.value)})}
                                             >
-                                                <option value="4">4 Players</option>
-                                                <option value="8">8 Players</option>
-                                                <option value="16">16 Players</option>
-                                                <option value="32">32 Players</option>
+                                                <option value="4">{t('tournaments.players_option').replace('{n}', '4')}</option>
+                                                <option value="8">{t('tournaments.players_option').replace('{n}', '8')}</option>
+                                                <option value="16">{t('tournaments.players_option').replace('{n}', '16')}</option>
+                                                <option value="32">{t('tournaments.players_option').replace('{n}', '32')}</option>
                                             </select>
                                         </div>
 
                                         <div className="form-group">
-                                            <label htmlFor="prize">Prize Pool</label>
+                                            <label htmlFor="prize">{t('tournaments.prize_label')}</label>
                                             <input
                                                 type="text"
                                                 id="prize"
                                                 className="form-control"
-                                                placeholder="e.g., 1000 Points"
+                                                placeholder={t('tournaments.prize_placeholder')}
                                                 value={tournamentForm.prize}
                                                 onChange={(e) => setTournamentForm({...tournamentForm, prize: e.target.value})}
                                                 required
@@ -365,13 +368,13 @@ const TournamentPage = () => {
                                         </div>
 
                                         <div className="form-group">
-                                            <label>Invite Friends (up to {tournamentForm.maxPlayers} players)</label>
+                                            <label>{t('tournaments.invite_friends').replace('{n}', tournamentForm.maxPlayers)}</label>
                                             <div className="invite-search-container">
                                                 <div className="invite-input-group">
                                                     <input
                                                         type="text"
                                                         className="form-control"
-                                                        placeholder="Search friends by username..."
+                                                        placeholder={t('tournaments.search_placeholder')}
                                                         value={inviteUsername}
                                                         onChange={(e) => handleSearchFriends(e.target.value)}
                                                         onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleInvitePlayer(e))}
@@ -382,7 +385,7 @@ const TournamentPage = () => {
                                                         onClick={handleInvitePlayer}
                                                         disabled={invitedPlayers.length >= tournamentForm.maxPlayers || !inviteUsername.trim()}
                                                     >
-                                                        Add
+                                                        {t('tournaments.add')}
                                                     </button>
                                                 </div>
                                                 
@@ -401,7 +404,7 @@ const TournamentPage = () => {
                                                                         <span className="user-name">{user.username}</span>
                                                                         <span className={`user-status ${user.online_status ? 'online' : 'offline'}`}>
                                                                             <span className="status-dot"></span>
-                                                                            {user.online_status ? 'online' : 'offline'}
+                                                                            {user.online_status ? t('status.online') : t('status.offline')}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -411,7 +414,7 @@ const TournamentPage = () => {
                                                                     onClick={() => handleInviteFromSearch(user.username)}
                                                                     disabled={invitedPlayers.length >= tournamentForm.maxPlayers || pendingInvites.includes(user.username)}
                                                                 >
-                                                                    {pendingInvites.includes(user.username) ? 'Pending' : 'Invite'}
+                                                                    {pendingInvites.includes(user.username) ? t('invite.pending') : t('invite.invite')}
                                                                 </button>
                                                             </div>
                                                         ))}
@@ -419,11 +422,11 @@ const TournamentPage = () => {
                                                 )}
                                                 
                                                 {isSearching && (
-                                                    <div className="search-loading">Searching...</div>
+                                                    <div className="search-loading">{t('search.searching')}</div>
                                                 )}
                                                 
                                                 {inviteUsername.trim().length >= 1 && searchResults.length === 0 && !isSearching && (
-                                                    <div className="search-no-results">No users found</div>
+                                                    <div className="search-no-results">{t('search.no_users')}</div>
                                                 )}
                                             </div>
                                             
@@ -439,7 +442,7 @@ const TournamentPage = () => {
                                                                         type="button"
                                                                         className="slot-remove"
                                                                         onClick={() => removeInvitedPlayer(invitedPlayers[index])}
-                                                                        title="Remove player"
+                                                                        title={t('tournaments.remove_player_title')}
                                                                     >
                                                                         ×
                                                                     </button>
@@ -447,14 +450,14 @@ const TournamentPage = () => {
                                                             ) : (
                                                                 <>
                                                                     <span className="slot-number">{index + 1}</span>
-                                                                    <span className="slot-empty">Empty slot</span>
+                                                                    <span className="slot-empty">{t('tournaments.empty_slot')}</span>
                                                                 </>
                                                             )}
                                                         </div>
                                                     ))}
                                                 </div>
                                                 <p className="slots-info">
-                                                    {invitedPlayers.length} / {tournamentForm.maxPlayers} players invited
+                                                    {t('tournaments.invited_info').replace('{invited}', invitedPlayers.length).replace('{max}', tournamentForm.maxPlayers)}
                                                 </p>
                                             </div>
                                         </div>
@@ -465,10 +468,10 @@ const TournamentPage = () => {
                                             className="btn btn-secondary"
                                             onClick={() => setShowCreateModal(false)}
                                         >
-                                            Cancel
+                                            {t('tournaments.cancel')}
                                         </button>
                                         <button type="submit" className="btn btn-primary">
-                                            Create Tournament
+                                            {t('tournaments.create_submit')}
                                         </button>
                                     </div>
                                 </form>

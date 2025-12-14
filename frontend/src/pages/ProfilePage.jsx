@@ -5,9 +5,11 @@ import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/profile.css';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const ProfilePage = () => {
     const { userData, login, updateUser, isBackendAuthenticated } = useAuth();
+    const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState('overview');
     const [showEditModal, setShowEditModal] = useState(false);
     const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -242,12 +244,12 @@ const ProfilePage = () => {
                                 </svg>
                             </button>
                         </div>
-                        <h1 className="profile-username">{profile?.user?.username || userData?.username || 'Player'}</h1>
-                        <p className="profile-email">{profile?.user?.email || userData?.email || 'player@example.com'}</p>
+                        <h1 className="profile-username">{profile?.user?.username || userData?.username || t('profile.player')}</h1>
+                        <p className="profile-email">{profile?.user?.email || userData?.email || t('profile.default_email')}</p>
                         <div className="profile-level">
                             <span className="level-badge">Level {stats.level}</span>
                         </div>
-                        <button className="btn-edit-profile" onClick={handleEditProfile}>
+                        <button className="btn-edit-profile" onClick={handleEditProfile} title={t('profile.edit_profile')}>
                             <svg className="edit-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -260,19 +262,19 @@ const ProfilePage = () => {
                             className={`profile-tab ${activeTab === 'overview' ? 'active' : ''}`}
                             onClick={() => setActiveTab('overview')}
                         >
-                            Overview
+                            {t('profile.tabs.overview')}
                         </button>
                         <button 
                             className={`profile-tab ${activeTab === 'matches' ? 'active' : ''}`}
                             onClick={() => setActiveTab('matches')}
                         >
-                            Match History
+                            {t('profile.tabs.matches')}
                         </button>
                         <button 
                             className={`profile-tab ${activeTab === 'achievements' ? 'active' : ''}`}
                             onClick={() => setActiveTab('achievements')}
                         >
-                            Achievements
+                            {t('profile.tabs.achievements')}
                         </button>
                     </div>
 
@@ -293,7 +295,7 @@ const ProfilePage = () => {
                                         </svg>
                                     </div>
                                     <div className="stat-value">{stats.gamesPlayed}</div>
-                                    <div className="achievement-title">Games Played</div>
+                                    <div className="achievement-title">{t('profile.games_played')}</div>
                                 </div>
                                 <div className="achievement-card">
                                     <div className="achievement-icon" style={{color: '#10b981'}}>
@@ -302,7 +304,7 @@ const ProfilePage = () => {
                                         </svg>
                                     </div>
                                     <div className="stat-value">{stats.wins}</div>
-                                    <div className="achievement-title">Wins</div>
+                                    <div className="achievement-title">{t('profile.wins')}</div>
                                 </div>
                                 <div className="achievement-card">
                                     <div className="achievement-icon" style={{color: '#ef4444'}}>
@@ -312,7 +314,7 @@ const ProfilePage = () => {
                                         </svg>
                                     </div>
                                     <div className="stat-value">{stats.losses}</div>
-                                    <div className="achievement-title">Losses</div>
+                                    <div className="achievement-title">{t('profile.losses')}</div>
                                 </div>
                                 <div className="achievement-card">
                                     <div className="achievement-icon" style={{color: '#f59e0b'}}>
@@ -323,7 +325,7 @@ const ProfilePage = () => {
                                         </svg>
                                     </div>
                                     <div className="stat-value">{stats.winRate}%</div>
-                                    <div className="achievement-title">Win Rate</div>
+                                    <div className="achievement-title">{t('profile.win_rate')}</div>
                                 </div>
                                 <div className="achievement-card">
                                     <div className="achievement-icon" style={{color: '#fbbf24'}}>
@@ -337,7 +339,7 @@ const ProfilePage = () => {
                                         </svg>
                                     </div>
                                     <div className="stat-value">{stats.rank}</div>
-                                    <div className="achievement-title">Rank</div>
+                                    <div className="achievement-title">{t('profile.rank')}</div>
                                 </div>
                             </div>
                         </div>
@@ -390,7 +392,7 @@ const ProfilePage = () => {
                     <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>Edit Profile</h2>
+                                <h2>{t('profile.edit_profile')}</h2>
                                 <button className="modal-close" onClick={() => setShowEditModal(false)}>
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -400,25 +402,25 @@ const ProfilePage = () => {
                             </div>
                             <div className="modal-body">
                                                 <div className="form-group">
-                                                    <label>Username</label>
+                                                    <label>{t('profile.username')}</label>
                                                     <input type="text" className="form-input" value={editForm.username} onChange={(e) => setEditForm({...editForm, username: e.target.value})} />
                                                 </div>
                                                 <div className="form-group">
-                                                    <label>Full Name</label>
+                                                    <label>{t('profile.fullname')}</label>
                                                     <input type="text" className="form-input" value={editForm.fullname} onChange={(e) => setEditForm({...editForm, fullname: e.target.value})} />
                                                 </div>
                                                 <div className="form-group">
-                                                    <label>Email</label>
+                                                    <label>{t('profile.email')}</label>
                                                     <input type="email" className="form-input" value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} />
                                                 </div>
                                                 <div className="form-group">
-                                                    <label>Bio</label>
-                                                    <textarea className="form-input" rows="3" placeholder="Tell us about yourself..." value={editForm.bio} onChange={(e) => setEditForm({...editForm, bio: e.target.value})}></textarea>
+                                                    <label>{t('profile.bio')}</label>
+                                                    <textarea className="form-input" rows="3" placeholder={t('profile.bio_placeholder')} value={editForm.bio} onChange={(e) => setEditForm({...editForm, bio: e.target.value})}></textarea>
                                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
-                                <button className="btn btn-primary" onClick={handleSaveProfile} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+                                <button className="btn btn-secondary" onClick={() => setShowEditModal(false)}>{t('profile.cancel')}</button>
+                                <button className="btn btn-primary" onClick={handleSaveProfile} disabled={saving}>{saving ? t('profile.saving') : t('profile.save_changes')}</button>
                             </div>
                         </div>
                     </div>
@@ -454,8 +456,8 @@ const ProfilePage = () => {
                                                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                                                 <circle cx="12" cy="13" r="4"></circle>
                                             </svg>
-                                            <p>Click to upload or drag and drop</p>
-                                            <p className="text-muted">PNG, JPG or GIF (max. 2MB)</p>
+                                            <p>{t('profile.click_upload')}</p>
+                                            <p className="text-muted">{t('profile.file_types')}</p>
                                         </>
                                     )}
                                     <input 
@@ -468,13 +470,13 @@ const ProfilePage = () => {
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={handleCloseAvatarModal}>Cancel</button>
+                                <button className="btn btn-secondary" onClick={handleCloseAvatarModal}>{t('profile.cancel')}</button>
                                 <button 
                                     className="btn btn-primary"
                                     onClick={handleUploadAvatar}
                                     disabled={!selectedFile || uploading}
                                 >
-                                    {uploading ? 'Uploading...' : 'Upload'}
+                                    {uploading ? t('profile.uploading') : t('profile.upload')}
                                 </button>
                             </div>
                         </div>

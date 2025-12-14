@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import '../styles/game.css';
+import { useLanguage } from '../contexts/LanguageContext';
 
 class PongGame {
     canvas;
@@ -156,7 +157,8 @@ class PongGame {
 
     pause() {
         this.isPaused = !this.isPaused;
-        this.notifyStatusChange(this.isPaused ? 'PAUSED - Press SPACE to Resume' : null);
+        const pausedMsg = (this.options && this.options.strings && this.options.strings.paused) || 'PAUSED - Press SPACE to Resume';
+        this.notifyStatusChange(this.isPaused ? pausedMsg : null);
     }
 
     update() {
@@ -322,7 +324,8 @@ class PongGame {
         this.gameOver = false;
         this.resetPositions();
         this.notifyScoreUpdate();
-        this.notifyStatusChange('Press SPACE to Start');
+        const startMsg = (this.options && this.options.strings && this.options.strings.start) || 'Press SPACE to Start';
+        this.notifyStatusChange(startMsg);
     }
 
     destroy() {
@@ -336,11 +339,12 @@ class PongGame {
 
 const GamePage = () => {
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const canvasRef = useRef(null);
     const gameRef = useRef(null);
     const [player1Score, setPlayer1Score] = useState(0);
     const [player2Score, setPlayer2Score] = useState(0);
-    const [gameMessage, setGameMessage] = useState('Press SPACE to Start');
+    const [gameMessage, setGameMessage] = useState(t('game.press_space_start'));
     const [showMessage, setShowMessage] = useState(true);
     const [gameOver, setGameOver] = useState(false);
     const [winner, setWinner] = useState('');
@@ -348,8 +352,13 @@ const GamePage = () => {
     useEffect(() => {
         if (canvasRef.current && !gameRef.current) {
             gameRef.current = new PongGame(canvasRef.current, {
-                player1Name: 'Player 1',
-                player2Name: 'Player 2',
+                    player1Name: t('game.player1'),
+                    player2Name: t('game.player2'),
+                    strings: {
+                        start: t('game.press_space_start'),
+                        paused: t('game.paused_resume'),
+                        press_space: t('game.press_space')
+                    },
                 onScoreUpdate: (p1, p2) => {
                     setPlayer1Score(p1);
                     setPlayer2Score(p2);
@@ -383,7 +392,7 @@ const GamePage = () => {
             gameRef.current.reset();
             setGameOver(false);
             setShowMessage(true);
-            setGameMessage('Press SPACE to Start');
+            setGameMessage(t('game.press_space_start'));
         }
     };
 
@@ -400,22 +409,22 @@ const GamePage = () => {
                         <div className="player-card-pro">
                             <div className="player-avatar-pro">P1</div>
                             <div className="player-info-pro">
-                                <div className="player-name-pro">Player 1</div>
-                                <div className="player-status-pro">Ready</div>
+                                <div className="player-name-pro">{t('game.player1')}</div>
+                                <div className="player-status-pro">{t('game.ready')}</div>
                             </div>
                             <div className="player-score-pro">{player1Score}</div>
                         </div>
                         
                         <div className="match-info-pro">
-                            <div className="match-title-pro">Quick Match</div>
-                            <div className="match-status-pro">First to 5</div>
+                            <div className="match-title-pro">{t('game.quick_match')}</div>
+                            <div className="match-status-pro">{t('game.first_to').replace('{n}', '5')}</div>
                         </div>
 
                         <div className="player-card-pro">
                             <div className="player-score-pro">{player2Score}</div>
                             <div className="player-info-pro">
-                                <div className="player-name-pro">Player 2</div>
-                                <div className="player-status-pro">Ready</div>
+                                <div className="player-name-pro">{t('game.player2')}</div>
+                                <div className="player-status-pro">{t('game.ready')}</div>
                             </div>
                             <div className="player-avatar-pro">P2</div>
                         </div>
@@ -428,21 +437,21 @@ const GamePage = () => {
                                 {gameOver ? (
                                     <div className="game-result-pro">
                                         <div className="winner-trophy-pro">🏆</div>
-                                        <h2 className="winner-title-pro">{winner} Wins!</h2>
+                                        <h2 className="winner-title-pro">{t('game.winner_wins').replace('{winner}', winner)}</h2>
                                         <div className="winner-score-pro">{player1Score} - {player2Score}</div>
                                         <div className="result-actions-pro">
                                             <button onClick={handlePlayAgain} className="btn-result-pro btn-primary-pro">
                                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                                                 </svg>
-                                                Play Again
+                                                {t('game.play_again')}
                                             </button>
                                             <button onClick={handleHome} className="btn-result-pro">
                                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                                                     <polyline points="9 22 9 12 15 12 15 22"/>
                                                 </svg>
-                                                Main Menu
+                                                {t('game.main_menu')}
                                             </button>
                                         </div>
                                     </div>
@@ -458,27 +467,30 @@ const GamePage = () => {
 
                     <div className="game-controls-pro">
                         <div className="controls-section-pro">
-                            <h4 className="controls-title-pro">Controls</h4>
+                            <h4 className="controls-title-pro">{t('game.controls')}</h4>
                             <div className="controls-grid-pro">
                                 <div className="control-group-pro">
-                                    <div className="control-label-pro">Player 1</div>
+                                    <div className="control-label-pro">{t('game.player1')}</div>
                                     <div className="control-keys-pro">
-                                        <span className="key-badge-pro">W</span>
-                                        <span className="key-badge-pro">S</span>
+                                        {(t('game.keys.player1') || []).map((k, i) => (
+                                            <span key={`p1-${i}`} className="key-badge-pro">{k}</span>
+                                        ))}
                                     </div>
                                 </div>
                                 <div className="control-group-pro">
-                                    <div className="control-label-pro">Player 2</div>
+                                    <div className="control-label-pro">{t('game.player2')}</div>
                                     <div className="control-keys-pro">
-                                        <span className="key-badge-pro">I</span>
-                                        <span className="key-badge-pro">K</span>
+                                        {(t('game.keys.player2') || []).map((k, i) => (
+                                            <span key={`p2-${i}`} className="key-badge-pro">{k}</span>
+                                        ))}
                                     </div>
                                 </div>
                                 <div className="control-group-pro">
-                                    <div className="control-label-pro">Game</div>
+                                    <div className="control-label-pro">{t('game.label') || 'Game'}</div>
                                     <div className="control-keys-pro">
-                                        <span className="key-badge-pro wide-pro">SPACE</span>
-                                        <span className="key-badge-pro">F</span>
+                                        {(t('game.keys.game') || []).map((k, i) => (
+                                            <span key={`g-${i}`} className={`key-badge-pro ${k.length>6? 'wide-pro':''}`}>{k}</span>
+                                        ))}
                                     </div>
                                 </div>
                             </div>

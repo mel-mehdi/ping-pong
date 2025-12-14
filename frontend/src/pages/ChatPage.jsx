@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -7,6 +8,7 @@ import '../styles/chat.css';
 
 const ChatPage = () => {
     const { userData, isBackendAuthenticated } = useAuth();
+    const { t } = useLanguage();
     const [conversations, setConversations] = useState([]);
     
     const [selectedChat, setSelectedChat] = useState(null);
@@ -151,7 +153,7 @@ const ChatPage = () => {
                         <div className="col-lg-4 col-md-4 mb-3">
                             <div className="card chat-conversations-card">
                                 <div className="card-header">
-                                    <h5 className="mb-0">Conversations</h5>
+                                    <h5 className="mb-0">{t('chat.conversations')}</h5>
                                 </div>
                                 <div className="card-body">
                                     <div className="chat-users-list-body">
@@ -194,10 +196,10 @@ const ChatPage = () => {
                                             <div>
                                                 <h5 className="chat-header-title mb-0">
                                                     {selectedChat?.name}
-                                                    {isBlocked && <span className="blocked-badge">🚫 Blocked</span>}
+                                                        {isBlocked && <span className="blocked-badge">🚫 {t('chat.blocked')}</span>}
                                                 </h5>
                                                 <span className="chat-header-status">
-                                                    {selectedChat?.online ? 'Online' : 'Offline'}
+                                                        {selectedChat?.online ? t('status.online') : t('status.offline')}
                                                 </span>
                                             </div>
                                         </div>
@@ -211,15 +213,15 @@ const ChatPage = () => {
                                             {showMenu && (
                                                 <div className="chat-dropdown-menu">
                                                     <button onClick={sendGameInvite} className="menu-item">
-                                                        <i className="fas fa-gamepad"></i> Send Game Invite
+                                                        <i className="fas fa-gamepad"></i> {t('chat.send_game_invite')}
                                                     </button>
                                                     {!isBlocked ? (
                                                         <button onClick={blockUser} className="menu-item danger">
-                                                            <i className="fas fa-ban"></i> Block User
+                                                            <i className="fas fa-ban"></i> {t('chat.block_user')}
                                                         </button>
                                                     ) : (
                                                         <button onClick={unblockUser} className="menu-item">
-                                                            <i className="fas fa-check"></i> Unblock User
+                                                            <i className="fas fa-check"></i> {t('chat.unblock_user')}
                                                         </button>
                                                     )}
                                                 </div>
@@ -239,7 +241,7 @@ const ChatPage = () => {
                                         ))}
                                         {isBlocked && (
                                             <div className="chat-blocked-notice">
-                                                <i className="fas fa-ban"></i> You have blocked this user. Messages cannot be sent.
+                                                <i className="fas fa-ban"></i> {t('chat.blocked_notice')}
                                             </div>
                                         )}
                                     </div>
@@ -249,7 +251,7 @@ const ChatPage = () => {
                                         <input
                                             type="text"
                                             className="chat-input"
-                                            placeholder={isBlocked ? "User is blocked" : "Type a message..."}
+                                            placeholder={isBlocked ? t('chat.user_blocked') : t('chat.type_message')}
                                             value={newMessage}
                                             onChange={(e) => setNewMessage(e.target.value)}
                                             disabled={isBlocked}

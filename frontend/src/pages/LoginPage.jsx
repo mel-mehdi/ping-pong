@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { validateRequired } from '../utils/validation';
+import { useLanguage } from '../contexts/LanguageContext';
 import db from '../utils/database';
 import '../styles/auth.css';
 
@@ -14,6 +15,7 @@ const LoginPage = () => {
     });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const { t } = useLanguage();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -48,13 +50,13 @@ const LoginPage = () => {
             const user = db.findOne('users', { username: formData.username });
 
             if (!user) {
-                setErrors({ username: 'User not found' });
+                setErrors({ username: t('auth.user_not_found') });
                 setLoading(false);
                 return;
             }
 
             if (!db.verifyPassword(formData.password, user.passwordHash)) {
-                setErrors({ password: 'Invalid password' });
+                setErrors({ password: t('auth.invalid_password') });
                 setLoading(false);
                 return;
             }
@@ -77,7 +79,7 @@ const LoginPage = () => {
             }, 500);
         } catch (error) {
             console.error('Login error:', error);
-            setErrors({ general: 'An error occurred during login' });
+            setErrors({ general: t('auth.login_error') });
             setLoading(false);
         }
     };
@@ -88,10 +90,10 @@ const LoginPage = () => {
                 <div className="auth-card">
                     <div className="auth-header">
                         <div className="auth-logo">🏓</div>
-                        <h1>Welcome Back</h1>
-                        <p>Sign in to continue to PingPong</p>
+                        <h1>{t('auth.welcome_back')}</h1>
+                        <p>{t('auth.signin_subtitle')}</p>
                         <div className="auth-switch">
-                            <p>Don't have an account? <Link to="/register">Sign Up</Link></p>
+                            <p>{t('auth.no_account')} <Link to="/register">{t('auth.sign_up')}</Link></p>
                         </div>
                     </div>
 
@@ -101,7 +103,7 @@ const LoginPage = () => {
 
                     <form onSubmit={handleSubmit} className="auth-form">
                         <div className="form-group">
-                            <label htmlFor="username">Username</label>
+                            <label htmlFor="username">{t('auth.username')}</label>
                             <input
                                 type="text"
                                 id="username"
@@ -117,7 +119,7 @@ const LoginPage = () => {
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="password">Password</label>
+                            <label htmlFor="password">{t('auth.password')}</label>
                             <input
                                 type="password"
                                 id="password"
@@ -137,11 +139,11 @@ const LoginPage = () => {
                             className={`btn btn-primary btn-block ${loading ? 'loading' : ''}`}
                             disabled={loading}
                         >
-                            {loading ? 'Signing In...' : 'Sign In'}
+                            {loading ? t('auth.signing_in') : t('auth.sign_in')}
                         </button>
 
                         <div className="auth-divider">
-                            <span>or</span>
+                            <span>{t('auth.or')}</span>
                         </div>
 
                         <button className="gsi-material-button" type="button" onClick={() => console.log('Google sign-in')}>
@@ -156,7 +158,7 @@ const LoginPage = () => {
                                         <path fill="none" d="M0 0h48v48H0z"></path>
                                     </svg>
                                 </div>
-                                <span className="gsi-material-button-contents">Sign in with Google</span>
+                                <span className="gsi-material-button-contents">{t('auth.sign_in_with_google')}</span>
                             </div>
                         </button>
                     </form>

@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext';
 
 
 const TermsPage = () => {
+    const { t } = useLanguage();
     return (
         <div className="container my-5">
-            <h1>Terms of Service</h1>
-            <p>Last updated: {new Date().toLocaleDateString()}</p>
-            <p>This is an educational project created for the 42 School curriculum.</p>
-            <Link to="/" className="btn btn-primary mt-3">Back to Home</Link>
+            <h1>{t('legal.terms_title')}</h1>
+            <p>{t('legal.last_updated')}: {new Date().toLocaleDateString()}</p>
+            <p>{t('footer.disclaimer')}</p>
+            <Link to="/" className="btn btn-primary mt-3">{t('legal.back_home')}</Link>
         </div>
     );
 };

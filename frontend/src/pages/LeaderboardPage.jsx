@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import apiClient from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/leaderboard.css';
 
 const LeaderboardPage = () => {
     const { isBackendAuthenticated } = useAuth();
+    const { t } = useLanguage();
     const [timeFilter, setTimeFilter] = useState('all-time');
     
     const [leaderboardData, setLeaderboardData] = useState([]);
@@ -29,8 +31,8 @@ const LeaderboardPage = () => {
             <main className="main-container">
                 <div className="container my-5">
                     <div className="leaderboard-header">
-                        <h1>🏆 Global Leaderboard</h1>
-                        <p className="text-muted">Compete with the best players worldwide</p>
+                        <h1>{t('leaderboard.title')}</h1>
+                        <p className="text-muted">{t('leaderboard.subtitle')}</p>
                     </div>
 
                     <div className="leaderboard-filters">
@@ -38,19 +40,19 @@ const LeaderboardPage = () => {
                             className={`filter-btn ${timeFilter === 'all-time' ? 'active' : ''}`}
                             onClick={() => setTimeFilter('all-time')}
                         >
-                            All Time
+                            {t('leaderboard.filters.all_time')}
                         </button>
                         <button 
                             className={`filter-btn ${timeFilter === 'monthly' ? 'active' : ''}`}
                             onClick={() => setTimeFilter('monthly')}
                         >
-                            This Month
+                            {t('leaderboard.filters.monthly')}
                         </button>
                         <button 
                             className={`filter-btn ${timeFilter === 'weekly' ? 'active' : ''}`}
                             onClick={() => setTimeFilter('weekly')}
                         >
-                            This Week
+                            {t('leaderboard.filters.weekly')}
                         </button>
                     </div>
 
@@ -58,13 +60,13 @@ const LeaderboardPage = () => {
                         <table className="leaderboard-table">
                             <thead>
                                 <tr>
-                                    <th>Rank</th>
-                                    <th>Player</th>
-                                    <th>Level</th>
-                                    <th>Wins</th>
-                                    <th>Losses</th>
-                                    <th>Win Rate</th>
-                                    <th>Points</th>
+                                    <th>{t('leaderboard.table.rank')}</th>
+                                    <th>{t('leaderboard.table.player')}</th>
+                                    <th>{t('leaderboard.table.level')}</th>
+                                    <th>{t('leaderboard.table.wins')}</th>
+                                    <th>{t('leaderboard.table.losses')}</th>
+                                    <th>{t('leaderboard.table.win_rate')}</th>
+                                    <th>{t('leaderboard.table.points')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -118,12 +120,12 @@ const LeaderboardPage = () => {
 
                     <div className="leaderboard-info">
                         <div className="info-card">
-                            <h3>📊 How Rankings Work</h3>
+                            <h3>{t('leaderboard.info.title')}</h3>
                             <ul>
-                                <li>Win matches to earn points and climb the ranks</li>
-                                <li>Higher difficulty opponents give more points</li>
-                                <li>Win streaks provide bonus multipliers</li>
-                                <li>Rankings reset monthly for seasonal competition</li>
+                                <li>{t('leaderboard.info.win_matches')}</li>
+                                <li>{t('leaderboard.info.harder_opponents')}</li>
+                                <li>{t('leaderboard.info.streaks')}</li>
+                                <li>{t('leaderboard.info.reset_monthly')}</li>
                             </ul>
                         </div>
                     </div>

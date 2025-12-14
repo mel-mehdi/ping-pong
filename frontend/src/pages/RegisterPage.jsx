@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import {
     validateRequired,
     validateEmail,
@@ -24,6 +25,7 @@ const RegisterPage = () => {
     });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const { t } = useLanguage();
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -51,7 +53,7 @@ const RegisterPage = () => {
         if (!usernameValidation.isValid) newErrors.username = usernameValidation.message;
         if (!passwordValidation.isValid) newErrors.password = passwordValidation.message;
         if (!passwordMatchValidation.isValid) newErrors.confirmPassword = passwordMatchValidation.message;
-        if (!formData.terms) newErrors.terms = 'You must accept the terms and conditions';
+        if (!formData.terms) newErrors.terms = t('auth.must_accept_terms');
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -64,14 +66,14 @@ const RegisterPage = () => {
             // Check if user already exists
             const existingUser = db.findOne('users', { username: formData.username });
             if (existingUser) {
-                setErrors({ username: 'Username already exists' });
+                    setErrors({ username: t('auth.username_exists') });
                 setLoading(false);
                 return;
             }
 
             const existingEmail = db.findOne('users', { email: formData.email });
             if (existingEmail) {
-                setErrors({ email: 'Email already registered' });
+                setErrors({ email: t('auth.email_registered') });
                 setLoading(false);
                 return;
             }
@@ -103,7 +105,7 @@ const RegisterPage = () => {
             }, 500);
         } catch (error) {
             console.error('Registration error:', error);
-            setErrors({ general: 'An error occurred during registration' });
+            setErrors({ general: t('auth.registration_error') });
             setLoading(false);
         }
     };
@@ -114,10 +116,10 @@ const RegisterPage = () => {
                 <div className="auth-card">
                     <div className="auth-header">
                         <div className="auth-logo">🏓</div>
-                        <h1>Create Account</h1>
-                        <p>Join PingPong and start playing</p>
+                        <h1>{t('auth.create_account')}</h1>
+                        <p>{t('auth.join_subtitle')}</p>
                         <div className="auth-switch">
-                            <p>Already have an account? <Link to="/login">Sign In</Link></p>
+                            <p>{t('auth.already_have_account')} <Link to="/login">{t('auth.sign_in')}</Link></p>
                         </div>
                     </div>
 
@@ -128,8 +130,7 @@ const RegisterPage = () => {
                     <form onSubmit={handleSubmit} className="auth-form">
                         <div className="form-row">
                             <div className="form-group">
-                                <label htmlFor="fullname">Full Name</label>
-                                <input
+                                    <label htmlFor="fullname">{t('auth.fullname')}</label>
                                     type="text"
                                     id="fullname"
                                     name="fullname"
@@ -143,7 +144,7 @@ const RegisterPage = () => {
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="email">Email</label>
+                                <label htmlFor="email">{t('auth.email')}</label>
                                 <input
                                     type="email"
                                     id="email"
@@ -161,7 +162,7 @@ const RegisterPage = () => {
 
                         <div className="form-row">
                             <div className="form-group">
-                                <label htmlFor="username">Username</label>
+                                <label htmlFor="username">{t('auth.username')}</label>
                                 <input
                                     type="text"
                                     id="username"
@@ -177,7 +178,7 @@ const RegisterPage = () => {
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="password">Password</label>
+                                <label htmlFor="password">{t('auth.password')}</label>
                                 <input
                                     type="password"
                                     id="password"
@@ -194,7 +195,7 @@ const RegisterPage = () => {
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="confirmPassword">Confirm Password</label>
+                            <label htmlFor="confirmPassword">{t('auth.confirm_password')}</label>
                             <input
                                 type="password"
                                 id="confirmPassword"
@@ -219,7 +220,7 @@ const RegisterPage = () => {
                                 onChange={handleChange}
                             />
                             <label htmlFor="terms" className="form-check-label">
-                                I agree to the <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>
+                                {t('auth.terms_prefix')} <Link to="/terms">{t('auth.terms')}</Link> {t('auth.and')} <Link to="/privacy">{t('auth.privacy')}</Link>
                             </label>
                             {errors.terms && (
                                 <div className="invalid-feedback">{errors.terms}</div>
@@ -231,11 +232,11 @@ const RegisterPage = () => {
                             className={`btn btn-primary btn-block ${loading ? 'loading' : ''}`}
                             disabled={loading}
                         >
-                            {loading ? 'Creating Account...' : 'Sign Up'}
+                            {loading ? t('auth.creating_account') : t('auth.sign_up')}
                         </button>
 
                         <div className="auth-divider">
-                            <span>or</span>
+                            <span>{t('auth.or')}</span>
                         </div>
 
                         <button className="gsi-material-button" type="button" onClick={() => console.log('Google sign-up')}>
@@ -250,7 +251,7 @@ const RegisterPage = () => {
                                         <path fill="none" d="M0 0h48v48H0z"></path>
                                     </svg>
                                 </div>
-                                <span className="gsi-material-button-contents">Sign in with Google</span>
+                                <span className="gsi-material-button-contents">{t('auth.sign_in_with_google')}</span>
                             </div>
                         </button>
                     </form>

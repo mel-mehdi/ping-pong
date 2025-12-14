@@ -8,10 +8,10 @@ export default defineConfig({
   publicDir: '../public',
   base: '/',
   server: {
-    port: 8000,
+    port: Number(process.env.PORT) || 8000,
     host: '0.0.0.0',
     open: false,
-    strictPort: true,
+    strictPort: false,
     hmr: false,
 	watch: {
 		usePolling: true,

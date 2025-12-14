@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageSwitcher from './LanguageSwitcher';
 import apiClient from '../utils/api';
 import db from '../utils/database';
 
@@ -238,38 +240,40 @@ const Navbar = () => {
 
     const isActive = (path) => location.pathname === path;
 
+    const { t } = useLanguage();
+
     return (
         <>
             <nav className="navbar" role="navigation" aria-label="Main navigation">
                 <div className="nav-container">
                     <div className="nav-brand">
-                        <h2>PingPong</h2>
+                        <h2>{t('brand')}</h2>
                     </div>
                     <ul className="nav-menu">
                         <li>
-                            <Link to="/" className={isActive('/') ? 'active' : ''}>Home</Link>
+                            <Link to="/" className={isActive('/') ? 'active' : ''}>{t('nav.home')}</Link>
                         </li>
                         <li>
-                            <Link to="/game" className={isActive('/game') ? 'active' : ''}>Play</Link>
+                            <Link to="/game" className={isActive('/game') ? 'active' : ''}>{t('nav.play')}</Link>
                         </li>
                         <li>
-                            <Link to="/tournament" className={isActive('/tournament') ? 'active' : ''}>Tournaments</Link>
+                            <Link to="/tournament" className={isActive('/tournament') ? 'active' : ''}>{t('nav.tournaments')}</Link>
                         </li>
                         <li>
-                            <Link to="/leaderboard" className={isActive('/leaderboard') ? 'active' : ''}>Leaderboard</Link>
+                            <Link to="/leaderboard" className={isActive('/leaderboard') ? 'active' : ''}>{t('nav.leaderboard')}</Link>
                         </li>
                         <li>
-                            <Link to="/chat" className={isActive('/chat') ? 'active' : ''}>Chat</Link>
+                            <Link to="/chat" className={isActive('/chat') ? 'active' : ''}>{t('nav.chat')}</Link>
                         </li>
                         <li>
-                            <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>Profile</Link>
+                            <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>{t('nav.profile')}</Link>
                         </li>
                         {isAuthenticated ? (
-                            <li><a href="#" onClick={handleLogout}>Logout</a></li>
+                            <li><a href="#" onClick={handleLogout}>{t('nav.logout')}</a></li>
                         ) : (
                             <>
-                                <li><Link to="/login">Login</Link></li>
-                                <li><Link to="/register">Sign Up</Link></li>
+                                <li><Link to="/login">{t('nav.login')}</Link></li>
+                                <li><Link to="/register">{t('nav.signup')}</Link></li>
                             </>
                         )}
                     </ul>
@@ -284,7 +288,7 @@ const Navbar = () => {
                                     <input
                                         type="text"
                                         className="nav-search-input"
-                                        placeholder="Search players..."
+                                        placeholder={t('search.placeholder')}
                                         value={searchQuery}
                                         onChange={(e) => handleSearch(e.target.value)}
                                         onFocus={() => searchQuery.length >= 1 && setShowSearchResults(true)}
@@ -295,12 +299,12 @@ const Navbar = () => {
                                 {showSearchResults && (
                                     <div className="nav-search-results">
                                         {isSearching && (
-                                            <div className="nav-search-loading">Searching...</div>
+                                            <div className="nav-search-loading">{t('search.searching')}</div>
                                         )}
 
                                         {!isSearching && searchResults.length > 0 && (
                                             <>
-                                                <div style={{ padding: '0.25rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{searchSource === 'backend' ? 'Backend results' : 'Client-side results'}</div>
+                                                <div style={{ padding: '0.25rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{searchSource === 'backend' ? t('search.backend_results') : t('search.client_results')}</div>
                                                 {searchResults.filter(isValidUser).map((user) => (
                                                     <div key={user.id} className="nav-search-result-item">
                                                     <div className="nav-search-result-info">
@@ -313,7 +317,7 @@ const Navbar = () => {
                                                             <span className="nav-user-name">{user.username}</span>
                                                             <span className={`nav-user-status ${user.online_status ? 'online' : 'offline'}`}>
                                                                 <span className="nav-status-dot"></span>
-                                                                {user.online_status ? 'online' : 'offline'}
+                                                                {user.online_status ? t('status.online') : t('status.offline')}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -323,7 +327,7 @@ const Navbar = () => {
                                                         onMouseDown={(e) => e.preventDefault()}
                                                         disabled={pendingInvites.includes(user.id)}
                                                     >
-                                                        {pendingInvites.includes(user.id) ? 'Pending' : 'Invite'}
+                                                        {pendingInvites.includes(user.id) ? t('invite.pending') : t('invite.invite')}
                                                     </button>
                                                 </div>
                                                 ))}
@@ -331,19 +335,21 @@ const Navbar = () => {
                                         )}
 
                                         {!isSearching && searchResults.filter(isValidUser).length === 0 && (
-                                            <div className="nav-search-no-results">No users found</div>
+                                            <div className="nav-search-no-results">{t('search.no_users')}</div>
                                         )}
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        <button
-                            className="nav-icon-btn"
-                            onClick={toggleTheme}
-                            title="Toggle theme"
-                            aria-label="Toggle dark mode"
-                        >
+                            <LanguageSwitcher />
+
+                            <button
+                                className="nav-icon-btn"
+                                onClick={toggleTheme}
+                                title="Toggle theme"
+                                aria-label="Toggle dark mode"
+                            >
                             {theme === 'light' ? (
                                 <svg className="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <circle cx="12" cy="12" r="5"></circle>
@@ -384,17 +390,17 @@ const Navbar = () => {
 
             {showNotifications && (
                 <div className="notification-panel">
-                    <div className="notification-header">Friend Requests</div>
+                    <div className="notification-header">{t('notifications.title')}</div>
                     <div id="notificationList">
                         {notifications.length === 0 ? (
-                            <p className="text-center">No new notifications</p>
+                            <p className="text-center">{t('notifications.no_notifications')}</p>
                         ) : (
                             notifications.map((notif) => (
                                 <div key={notif.id} className="notification-item">
-                                    <div className="notification-text">{notif.fromName} sent you a friend request</div>
+                                    <div className="notification-text">{t('notifications.message').replace('{from}', notif.fromName)}</div>
                                     <div className="notification-actions">
-                                        <button className="btn btn-sm btn-success" onClick={() => handleAcceptRequest(notif.id)}>Accept</button>
-                                        <button className="btn btn-sm btn-secondary" onClick={() => handleDeclineRequest(notif.id)} style={{ marginLeft: '0.5rem' }}>Decline</button>
+                                        <button className="btn btn-sm btn-success" onClick={() => handleAcceptRequest(notif.id)}>{t('notifications.accept')}</button>
+                                        <button className="btn btn-sm btn-secondary" onClick={() => handleDeclineRequest(notif.id)} style={{ marginLeft: '0.5rem' }}>{t('notifications.decline')}</button>
                                     </div>
                                 </div>
                             ))

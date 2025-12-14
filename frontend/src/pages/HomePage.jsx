@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/home.css';
@@ -7,6 +8,7 @@ import '../styles/home.css';
 const HomePage = () => {
     const navigate = useNavigate();
     const { isAuthenticated, userData } = useAuth();
+    const { t } = useLanguage();
     const achievementsCount = Array.isArray(userData?.achievements) ? userData.achievements.length : (typeof userData?.achievements === 'number' ? userData.achievements : 0);
 
     const handleQuickPlay = () => {
@@ -27,33 +29,30 @@ const HomePage = () => {
                         {isAuthenticated ? (
                             <>
                                 <h1 className="hero-title animate-fade-in-up">
-                                    Welcome back, {userData?.username || 'Player'}!
+                                    {t('home.welcome_back').replace('{user}', userData?.username || t('profile.player'))}
                                 </h1>
                                 <p className="hero-subtitle animate-fade-in">
-                                    Ready for your next match? Challenge players worldwide or join a tournament
+                                    {t('home.welcome_subtitle')}
                                 </p>
                                 <div className="hero-cta animate-scale-in">
                                     <button onClick={handleQuickPlay} className="btn btn-hero btn-hero-primary">
-                                        Play Now
+                                        {t('home.play_now')}
                                     </button>
                                     <button onClick={handleTournament} className="btn btn-hero btn-hero-secondary">
-                                        Join Tournament
+                                        {t('home.join_tournament')}
                                     </button>
                                 </div>
                             </>
                         ) : (
                             <>
-                                <h1 className="hero-title animate-fade-in-up">Welcome to PingPong</h1>
-                                <p className="hero-subtitle animate-fade-in">
-                                    Experience the classic Pong game reimagined with modern multiplayer features,
-                                    tournaments, and competitive rankings
-                                </p>
+                                <h1 className="hero-title animate-fade-in-up">{t('home.welcome')}</h1>
+                                <p className="hero-subtitle animate-fade-in">{t('home.intro')}</p>
                                 <div className="hero-cta animate-scale-in">
                                     <button onClick={() => navigate('/register')} className="btn btn-hero btn-hero-primary">
-                                        Get Started Free
+                                        {t('home.get_started')}
                                     </button>
                                     <button onClick={() => navigate('/login')} className="btn btn-hero btn-hero-secondary">
-                                        Sign In
+                                        {t('home.sign_in')}
                                     </button>
                                 </div>
                             </>
@@ -77,11 +76,11 @@ const HomePage = () => {
                                             <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
                                         </svg>
                                     </div>
-                                    <h5 style={{fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text)'}}>Total Wins</h5>
+                                    <h5 style={{fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text)'}}>{t('home.total_wins')}</h5>
                                     <p className="display-4" style={{fontSize: '2.5rem', fontWeight: '700', color: 'var(--primary)', marginBottom: '0.25rem'}}>
                                         {userData?.wins || 0}
                                     </p>
-                                    <small style={{color: 'var(--text-muted)'}}>Keep playing!</small>
+                                    <small style={{color: 'var(--text-muted)'}}>{t('home.keep_playing')}</small>
                                 </div>
                             </div>
 
@@ -94,11 +93,11 @@ const HomePage = () => {
                                             <line x1="6" y1="20" x2="6" y2="16"></line>
                                         </svg>
                                     </div>
-                                    <h5 style={{fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text)'}}>Win Rate</h5>
+                                    <h5 style={{fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text)'}}>{t('home.win_rate_label')}</h5>
                                     <p className="display-4" style={{fontSize: '2.5rem', fontWeight: '700', color: '#10b981', marginBottom: '0.25rem'}}>
                                         {userData?.winRate || 0}%
                                     </p>
-                                    <small style={{color: 'var(--text-muted)'}}>Great progress!</small>
+                                    <small style={{color: 'var(--text-muted)'}}>{t('home.great_progress')}</small>
                                 </div>
                             </div>
 
@@ -111,11 +110,11 @@ const HomePage = () => {
                                             <circle cx="12" cy="12" r="2"></circle>
                                         </svg>
                                     </div>
-                                    <h5 style={{fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text)'}}>Global Rank</h5>
+                                    <h5 style={{fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text)'}}>{t('home.global_rank')}</h5>
                                     <p className="display-4" style={{fontSize: '2.5rem', fontWeight: '700', color: '#f59e0b', marginBottom: '0.25rem'}}>
                                         #{userData?.rank || '-'}
                                     </p>
-                                    <small style={{color: 'var(--text-muted)'}}>Keep climbing!</small>
+                                    <small style={{color: 'var(--text-muted)'}}>{t('home.keep_climbing')}</small>
                                 </div>
                             </div>
 
@@ -131,11 +130,11 @@ const HomePage = () => {
                                             <line x1="12" y1="22.08" x2="12" y2="12"></line>
                                         </svg>
                                     </div>
-                                    <h5 style={{fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text)'}}>Achievements</h5>
+                                    <h5 style={{fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text)'}}>{t('home.achievements')}</h5>
                                     <p className="display-4" style={{fontSize: '2.5rem', fontWeight: '700', color: '#8b5cf6', marginBottom: '0.25rem'}}>
                                         {achievementsCount}
                                     </p>
-                                    <small style={{color: 'var(--text-muted)'}}>Unlock more!</small>
+                                    <small style={{color: 'var(--text-muted)'}}>{t('home.unlock_more')}</small>
                                 </div>
                             </div>
                         </div>
@@ -147,51 +146,39 @@ const HomePage = () => {
                     <section className="features-section">
                         <div className="container">
                             <div className="section-header">
-                                <h2>Why Choose PingPong?</h2>
-                                <p>Join thousands of players in the ultimate online Pong experience</p>
+                                <h2>{t('home.features_title')}</h2>
+                                <p>{t('home.features_subtitle')}</p>
                             </div>
                             <div className="features-grid">
                                 <div className="feature-card hover-lift">
                                     <div className="feature-icon">🎮</div>
-                                    <h3 className="feature-title">Real-time Multiplayer</h3>
-                                    <p className="feature-description">
-                                        Challenge players from around the world in smooth, lag-free matches
-                                    </p>
+                                    <h3 className="feature-title">{t('home.feature_multiplayer.title')}</h3>
+                                    <p className="feature-description">{t('home.feature_multiplayer.desc')}</p>
                                 </div>
                                 <div className="feature-card hover-lift">
                                     <div className="feature-icon">🏆</div>
-                                    <h3 className="feature-title">Tournaments</h3>
-                                    <p className="feature-description">
-                                        Compete in daily tournaments and climb the championship brackets
-                                    </p>
+                                    <h3 className="feature-title">{t('home.feature_tournaments.title')}</h3>
+                                    <p className="feature-description">{t('home.feature_tournaments.desc')}</p>
                                 </div>
                                 <div className="feature-card hover-lift">
                                     <div className="feature-icon">📊</div>
-                                    <h3 className="feature-title">Advanced Stats</h3>
-                                    <p className="feature-description">
-                                        Track your performance with detailed statistics and match history
-                                    </p>
+                                    <h3 className="feature-title">{t('home.feature_stats.title')}</h3>
+                                    <p className="feature-description">{t('home.feature_stats.desc')}</p>
                                 </div>
                                 <div className="feature-card hover-lift">
                                     <div className="feature-icon">💬</div>
-                                    <h3 className="feature-title">Social Features</h3>
-                                    <p className="feature-description">
-                                        Chat with friends, form teams, and build your gaming community
-                                    </p>
+                                    <h3 className="feature-title">{t('home.feature_social.title')}</h3>
+                                    <p className="feature-description">{t('home.feature_social.desc')}</p>
                                 </div>
                                 <div className="feature-card hover-lift">
                                     <div className="feature-icon">🎖️</div>
-                                    <h3 className="feature-title">Achievements</h3>
-                                    <p className="feature-description">
-                                        Unlock badges and rewards as you master the game
-                                    </p>
+                                    <h3 className="feature-title">{t('home.feature_achievements.title')}</h3>
+                                    <p className="feature-description">{t('home.feature_achievements.desc')}</p>
                                 </div>
                                 <div className="feature-card hover-lift">
                                     <div className="feature-icon">📱</div>
-                                    <h3 className="feature-title">Cross-Platform</h3>
-                                    <p className="feature-description">
-                                        Play on any device with our responsive web design
-                                    </p>
+                                    <h3 className="feature-title">{t('home.feature_cross.title')}</h3>
+                                    <p className="feature-description">{t('home.feature_cross.desc')}</p>
                                 </div>
                             </div>
                         </div>
@@ -201,8 +188,8 @@ const HomePage = () => {
                 {/* Play Options Section */}
                 <section className="container section-spacing">
                     <div className="section-header">
-                        <h2>Choose Your Game Mode</h2>
-                        <p>Multiple ways to play and compete</p>
+                        <h2>{t('home.choose_mode_title')}</h2>
+                        <p>{t('home.choose_mode_subtitle')}</p>
                     </div>
                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem'}}>
                         <div>
@@ -212,11 +199,11 @@ const HomePage = () => {
                                         <polygon points="5 3 19 12 5 21 5 3"></polygon>
                                     </svg>
                                 </div>
-                                <h5 style={{fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text)'}}>Quick Play</h5>
+                                <h5 style={{fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text)'}}>{t('home.quick_play_title')}</h5>
                                 <p style={{color: 'var(--text-muted)', marginBottom: '1.5rem'}}>
-                                    Jump straight into action with instant matchmaking
+                                    {t('home.quick_play_desc')}
                                 </p>
-                                <span className="card-badge">Start Now</span>
+                                <span className="card-badge">{t('home.start_now')}</span>
                             </button>
                         </div>
 
@@ -229,11 +216,11 @@ const HomePage = () => {
                                         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                                     </svg>
                                 </div>
-                                <h5 style={{fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text)'}}>Online Game</h5>
+                                <h5 style={{fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text)'}}>{t('home.online_game_title')}</h5>
                                 <p style={{color: 'var(--text-muted)', marginBottom: '1.5rem'}}>
-                                    Challenge players from around the world
+                                    {t('home.online_game_desc')}
                                 </p>
-                                <span className="card-badge" style={{background: 'linear-gradient(135deg, #10b981, #059669)'}}>Play Online</span>
+                                <span className="card-badge" style={{background: 'linear-gradient(135deg, #10b981, #059669)'}}>{t('home.play_online')}</span>
                             </button>
                         </div>
 
@@ -249,11 +236,11 @@ const HomePage = () => {
                                         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
                                     </svg>
                                 </div>
-                                <h5 style={{fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text)'}}>Tournament</h5>
+                                <h5 style={{fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text)'}}>{t('home.tournament_title')}</h5>
                                 <p style={{color: 'var(--text-muted)', marginBottom: '1.5rem'}}>
-                                    Compete in brackets and win championships
+                                    {t('home.tournament_desc')}
                                 </p>
-                                <span className="card-badge" style={{background: 'linear-gradient(135deg, #f59e0b, #d97706)'}}>Join Now</span>
+                                <span className="card-badge" style={{background: 'linear-gradient(135deg, #f59e0b, #d97706)'}}>{t('home.join_now')}</span>
                             </button>
                         </div>
                     </div>
@@ -290,12 +277,10 @@ const HomePage = () => {
                     <section className="cta-section">
                         <div className="container">
                             <div className="cta-content">
-                                <h2 className="cta-title">Ready to Play?</h2>
-                                <p className="cta-description">
-                                    Join the community and start your journey to becoming a champion
-                                </p>
+                                <h2 className="cta-title">{t('home.cta.title')}</h2>
+                                <p className="cta-description">{t('home.cta.desc')}</p>
                                 <button onClick={() => navigate('/register')} className="btn btn-primary btn-lg" style={{fontSize: '1.125rem', padding: '1rem 2.5rem'}}>
-                                    Create Your Free Account
+                                    {t('home.cta.button')}
                                 </button>
                             </div>
                         </div>
@@ -309,9 +294,9 @@ const HomePage = () => {
                             <div className="card-header-modern" style={{borderBottom: '1px solid var(--border)', paddingBottom: '1rem'}}>
                                 <h3 style={{fontSize: '1.5rem', fontWeight: '600', margin: 0}}>
                                     <span style={{marginRight: '0.5rem'}}>🏆</span>
-                                    Top Players
+                                    {t('home.top_players')}
                                 </h3>
-                                <button 
+                                    <button 
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -328,14 +313,14 @@ const HomePage = () => {
                                         position: 'relative',
                                         zIndex: 10
                                     }}
-                                >
-                                    View All →
-                                </button>
+                                    >
+                                    {t('home.view_all')} →
+                                    </button>
                             </div>
                             <div style={{padding: '1.5rem 0'}}>
                                 <ol className="list-group list-group-numbered">
                                     <li className="list-group-item" style={{border: 'none', color: 'var(--text-muted)', padding: '1rem', textAlign: 'center'}}>
-                                        Play matches to appear on the leaderboard!
+                                        {t('leaderboard.empty_message')}
                                     </li>
                                 </ol>
                             </div>
