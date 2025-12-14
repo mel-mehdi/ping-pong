@@ -298,18 +298,6 @@ const Navbar = () => {
                         {isAuthenticated && (
                             <div className="nav-search-wrapper">
                                         <div className={`nav-search-input-wrapper ${searchExpanded ? 'search-expanded' : ''}`}>
-                                            <button
-                                                type="button"
-                                                className="nav-search-toggle nav-icon-btn"
-                                                aria-label="Open search"
-                                                aria-expanded={searchExpanded}
-                                                onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 0); }}
-                                            >
-                                                <svg className="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <circle cx="11" cy="11" r="8"></circle>
-                                                    <path d="m21 21-4.35-4.35"></path>
-                                                </svg>
-                                            </button>
                                             <input
                                                 ref={searchInputRef}
                                                 type="text"
@@ -322,6 +310,18 @@ const Navbar = () => {
                                                 onKeyDown={(e) => { if (e.key === 'Escape') { e.currentTarget.blur(); setShowSearchResults(false); setSearchExpanded(false); } }}
                                                 autoComplete="off"
                                             />
+                                            <button
+                                                type="button"
+                                                className="nav-search-toggle nav-icon-btn"
+                                                aria-label="Open search"
+                                                aria-expanded={searchExpanded}
+                                                onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 0); }}
+                                            >
+                                                <svg className="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <circle cx="11" cy="11" r="8"></circle>
+                                                    <path d="m21 21-4.35-4.35"></path>
+                                                </svg>
+                                            </button>
                                         </div>
                                 {showSearchResults && (
                                     <div className="nav-search-results">

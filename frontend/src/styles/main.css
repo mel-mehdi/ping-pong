@@ -232,7 +232,7 @@ body {
     color: var(--text);
     width: 200px;
     transition: border-color 0.2s, box-shadow 0.2s, opacity 0.12s, transform 0.18s ease;
-    transform-origin: left center;
+    transform-origin: right center;
     transform: scaleX(0.01);
     opacity: 0;
     pointer-events: none;
@@ -243,6 +243,11 @@ body {
     transform: scaleX(1);
     opacity: 1;
     pointer-events: auto;
+}
+
+/* move padding to right so text does not overlap icon on the right */
+.nav-search-input {
+    padding: 0.5rem 2.5rem 0.5rem 0.75rem;
 }
 
 .nav-search-input::placeholder {
