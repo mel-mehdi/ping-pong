@@ -16,7 +16,6 @@ const Navbar = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchSource, setSearchSource] = useState('backend');
     const [pendingInvites, setPendingInvites] = useState([]);
-    const [mockCleanResult, setMockCleanResult] = useState(null);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -245,60 +244,6 @@ const Navbar = () => {
                 <div className="nav-container">
                     <div className="nav-brand">
                         <h2>PingPong</h2>
-                        {!isBackendAuthenticated && (
-                            <>
-                                <button
-                                    className="mock-mode-badge"
-                                    title="Using client-side mock data. Click to check backend auth"
-                                    onClick={async () => {
-                                        try {
-                                            setSearchQuery('');
-                                            setSearchResults([]);
-                                            setShowSearchResults(false);
-                                            setIsSearching(true);
-                                            const ok = await checkBackendAuth();
-                                            setIsSearching(false);
-                                            if (ok) {
-                                                // backend connected — remove mock-mode badge automatically
-                                                console.log('Connected to backend');
-                                            } else {
-                                                // try to clean suspicious entries from local DB
-                                                try {
-                                                    const patterns = [
-                                                        'mehdimmmm',
-                                                        'melmehdi',
-                                                        'mehdimahfoud321@gmail.com',
-                                                        /om\/api\//i,
-                                                        /https?:\/\//i,
-                                                        /\?/i
-                                                    ];
-                                                    const result = db.cleanUsers(patterns);
-                                                    const removedCount = (result.removed || []).length;
-                                                    if (removedCount > 0) {
-                                                        setMockCleanResult(`Removed ${removedCount} suspicious user(s)`);
-                                                        setTimeout(() => setMockCleanResult(null), 3500);
-                                                        console.log('Cleaned local DB users:', result.removed);
-                                                    } else {
-                                                        setMockCleanResult('No suspicious users found');
-                                                        setTimeout(() => setMockCleanResult(null), 2500);
-                                                    }
-                                                } catch (e) {
-                                                    console.error('Local DB clean failed:', e);
-                                                }
-                                            }
-                                        } catch (err) {
-                                            setIsSearching(false);
-                                            console.error('Backend check failed:', err);
-                                        }
-                                    }}
-                                >
-                                    Mock Mode
-                                </button>
-                                {mockCleanResult && (
-                                    <div className="mock-clean-result" aria-live="polite">{mockCleanResult}</div>
-                                )}
-                            </>
-                        )}
                     </div>
                     <ul className="nav-menu">
                         <li>
