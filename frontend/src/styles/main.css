@@ -231,7 +231,10 @@ body {
     background: var(--bg);
     color: var(--text);
     width: 200px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, opacity 0.12s, transform 0.18s ease;
+    transform-origin: left center;
+    transform: scaleX(0.01);
+    opacity: 0;
     font-size: 0.875rem;
 }
 
@@ -243,6 +246,13 @@ body {
     outline: none; 
     border-color: var(--primary); 
     box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+/* Animated expansion using scaleX to avoid layout shifts */
+.nav-search-input.expanded,
+.nav-search-input:focus {
+    transform: scaleX(1);
+    opacity: 1;
 }
 
 .nav-search-results {
