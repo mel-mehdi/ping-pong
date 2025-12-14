@@ -19,6 +19,7 @@ const Navbar = () => {
     const [searchSource, setSearchSource] = useState('backend');
     const [pendingInvites, setPendingInvites] = useState([]);
     const searchInputRef = useRef(null);
+    const [searchExpanded, setSearchExpanded] = useState(false);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -296,12 +297,12 @@ const Navbar = () => {
                     <div className="nav-actions">
                         {isAuthenticated && (
                             <div className="nav-search-wrapper">
-                                        <div className="nav-search-input-wrapper">
+                                        <div className={`nav-search-input-wrapper ${searchExpanded ? 'search-expanded' : ''}`}>
                                             <button
                                                 type="button"
                                                 className="nav-search-toggle"
                                                 aria-label="Open search"
-                                                onClick={() => searchInputRef.current?.focus()}
+                                                onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 0); }}
                                             >
                                                 <svg className="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <circle cx="11" cy="11" r="8"></circle>
@@ -311,12 +312,13 @@ const Navbar = () => {
                                             <input
                                                 ref={searchInputRef}
                                                 type="text"
-                                                className={`nav-search-input ${searchQuery ? 'expanded' : ''}`}
+                                                className={`nav-search-input ${searchExpanded ? 'expanded' : ''}`}
                                                 placeholder={t('search.placeholder')}
                                                 value={searchQuery}
                                                 onChange={(e) => handleSearch(e.target.value)}
-                                                onFocus={() => { searchQuery.length >= 1 && setShowSearchResults(true); }}
-                                                onBlur={() => setTimeout(() => setShowSearchResults(false), 300)}
+                                                onFocus={() => { setSearchExpanded(true); searchQuery.length >= 1 && setShowSearchResults(true); }}
+                                                onBlur={() => setTimeout(() => { setShowSearchResults(false); if (!searchQuery) setSearchExpanded(false); }, 300)}
+                                                onKeyDown={(e) => { if (e.key === 'Escape') { e.currentTarget.blur(); setShowSearchResults(false); setSearchExpanded(false); } }}
                                                 autoComplete="off"
                                             />
                                         </div>
