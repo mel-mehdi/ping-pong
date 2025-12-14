@@ -119,6 +119,13 @@ const TournamentPage = () => {
                     if (badPattern.test(username) || badPattern.test(email)) return false;
                     return true;
                 });
+                // exclude current user from results
+                const filtered = fallback.filter(u => {
+                    if (!userData) return true;
+                    const uid = userData.userId || userData.id;
+                    if (!uid) return u.username !== userData.username;
+                    return (u.id !== uid && u.userId !== uid && u.username !== userData.username && u.email !== userData.email);
+                });
                 setSearchResults(filtered.map(u => ({ ...u, id: u.id || u.userId }))); 
             }
         } catch (err) {

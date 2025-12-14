@@ -92,8 +92,8 @@
     "decline": "Rechazar"
   },
   "invite": {
-    "invite": "Invite",
-    "pending": "Pending"
+    "invite": "Invitar",
+    "pending": "En espera"
   },
   "status": {
     "online": "en línea",

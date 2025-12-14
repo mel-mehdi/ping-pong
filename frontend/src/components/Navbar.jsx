@@ -102,8 +102,15 @@ const Navbar = () => {
                     const all = db.getCollection('users') || [];
                     const q = query.toLowerCase();
                     const fallback = (all || []).filter(u => u && typeof u === 'object' && ((u.username && (u.username || '').toLowerCase().includes(q)) || (u.email && (u.email || '').toLowerCase().includes(q)) || (u.fullname && (u.fullname || '').toLowerCase().includes(q)))).map(u => ({ ...u, id: u.id || u.userId })).filter(isValidUser);
+                    // exclude current user from search results
+                    const filteredFallback = fallback.filter(u => {
+                        if (!userData) return true;
+                        const uid = userData.userId || userData.id;
+                        if (!uid) return u.username !== userData.username;
+                        return (u.id !== uid && u.userId !== uid && u.username !== userData.username && u.email !== userData.email);
+                    });
 
-                    setSearchResults(fallback);
+                    setSearchResults(filteredFallback);
                     setSearchSource('mock');
                     setShowSearchResults(true);
                     return;
@@ -111,9 +118,17 @@ const Navbar = () => {
 
                 const results = await apiClient.searchUsers(query);
                 const normalized = (results || []).filter(u => u && typeof u === 'object' && (u.username || u.email)).map(u => ({ ...u, id: u.id || u.userId })).filter(isValidUser);
-                setSearchResults(normalized);
+                // exclude current user from backend results
+                const filteredNormalized = normalized.filter(u => {
+                    if (!userData) return true;
+                    const uid = userData.userId || userData.id;
+                    if (!uid) return u.username !== userData.username;
+                    return (u.id !== uid && u.userId !== uid && u.username !== userData.username && u.email !== userData.email);
+                });
+
+                setSearchResults(filteredNormalized);
                 setSearchSource('backend');
-                if (normalized.length === 0) {
+                if (filteredNormalized.length === 0) {
                     // backend returned no results; try local DB search directly as a last resort
                     try {
                         const dbModule = await import('../utils/database');
@@ -305,14 +320,21 @@ const Navbar = () => {
                                         {!isSearching && searchResults.length > 0 && (
                                             <>
                                                 <div style={{ padding: '0.25rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{searchSource === 'backend' ? t('search.backend_results') : t('search.client_results')}</div>
-                                                {searchResults.filter(isValidUser).map((user) => (
+                                                {searchResults.filter(u => isValidUser(u) && (!userData || (u.username !== userData.username && (u.id || u.userId) !== (userData.userId || userData.id)))).map((user) => (
                                                     <div key={user.id} className="nav-search-result-item">
                                                     <div className="nav-search-result-info">
-                                                        <span className="nav-user-avatar">{user.avatar && user.avatar.startsWith && user.avatar.startsWith('data:') ? (
-                                                            <img src={user.avatar} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%' }} />
-                                                        ) : (
-                                                            <span className="nav-avatar-fallback">{user.avatar || '🙂'}</span>
-                                                        )}</span>
+                                                        {(() => {
+                                                            const avatar = user.avatar;
+                                                            const isImage = typeof avatar === 'string' && (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('//'));
+                                                            const fallback = typeof avatar === 'string' && avatar.length <= 3 ? avatar : (user.username ? user.username.slice(0, 2).toUpperCase() : '🙂');
+                                                            return (
+                                                                <span className="nav-user-avatar">{isImage ? (
+                                                                    <img src={avatar} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                                                                ) : (
+                                                                    <span className="nav-avatar-fallback">{fallback}</span>
+                                                                )}</span>
+                                                            );
+                                                        })()}
                                                         <div className="nav-user-details">
                                                             <span className="nav-user-name">{user.username}</span>
                                                             <span className={`nav-user-status ${user.online_status ? 'online' : 'offline'}`}>
