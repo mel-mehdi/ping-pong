@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -18,6 +18,8 @@ const Navbar = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchSource, setSearchSource] = useState('backend');
     const [pendingInvites, setPendingInvites] = useState([]);
+    const [searchExpanded, setSearchExpanded] = useState(false);
+    const searchInputRef = useRef(null);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -296,18 +298,26 @@ const Navbar = () => {
                         {isAuthenticated && (
                             <div className="nav-search-wrapper">
                                 <div className="nav-search-input-wrapper">
-                                    <svg className="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="11" cy="11" r="8"></circle>
-                                        <path d="m21 21-4.35-4.35"></path>
-                                    </svg>
+                                    <button
+                                        type="button"
+                                        className="nav-search-toggle"
+                                        aria-label="Open search"
+                                        onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 0); }}
+                                    >
+                                        <svg className="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="11" cy="11" r="8"></circle>
+                                            <path d="m21 21-4.35-4.35"></path>
+                                        </svg>
+                                    </button>
                                     <input
+                                        ref={searchInputRef}
                                         type="text"
-                                        className="nav-search-input"
+                                        className={`nav-search-input ${searchExpanded ? 'expanded' : 'collapsed'}`}
                                         placeholder={t('search.placeholder')}
                                         value={searchQuery}
                                         onChange={(e) => handleSearch(e.target.value)}
-                                        onFocus={() => searchQuery.length >= 1 && setShowSearchResults(true)}
-                                        onBlur={() => setTimeout(() => setShowSearchResults(false), 300)}
+                                        onFocus={() => { setSearchExpanded(true); searchQuery.length >= 1 && setShowSearchResults(true); }}
+                                        onBlur={() => setTimeout(() => { setShowSearchResults(false); if (!searchQuery) setSearchExpanded(false); }, 300)}
                                         autoComplete="off"
                                     />
                                 </div>
