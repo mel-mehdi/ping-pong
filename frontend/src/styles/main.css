@@ -271,12 +271,27 @@ body {
     justify-content: center;
     cursor: pointer;
     color: var(--text-muted);
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 50%;
+}
+
+.nav-search-toggle svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+    pointer-events: none;
 }
 
 .nav-search-toggle:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.06);
 }
+
+.nav-search-input-wrapper { display:flex; align-items:center; gap:0.5rem; }
+
 
 .nav-search-results {
     position: absolute;
