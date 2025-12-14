@@ -300,8 +300,9 @@ const Navbar = () => {
                                         <div className={`nav-search-input-wrapper ${searchExpanded ? 'search-expanded' : ''}`}>
                                             <button
                                                 type="button"
-                                                className="nav-search-toggle"
+                                                className="nav-search-toggle nav-icon-btn"
                                                 aria-label="Open search"
+                                                aria-expanded={searchExpanded}
                                                 onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 0); }}
                                             >
                                                 <svg className="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
