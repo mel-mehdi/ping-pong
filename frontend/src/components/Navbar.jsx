@@ -20,6 +20,32 @@ const Navbar = () => {
     const [pendingInvites, setPendingInvites] = useState([]);
     const [searchExpanded, setSearchExpanded] = useState(false);
     const searchInputRef = useRef(null);
+    const navSearchRef = useRef(null);
+
+    useEffect(() => {
+        if (!searchExpanded) return;
+        const onDocClick = (e) => {
+            if (!navSearchRef.current) return;
+            if (!navSearchRef.current.contains(e.target)) {
+                // click outside -> collapse if no query
+                if (!searchQuery) setSearchExpanded(false);
+                setShowSearchResults(false);
+            }
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                setSearchExpanded(false);
+                setShowSearchResults(false);
+                searchInputRef.current?.blur();
+            }
+        };
+        document.addEventListener('mousedown', onDocClick);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onDocClick);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [searchExpanded, searchQuery]);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -296,7 +322,7 @@ const Navbar = () => {
                     </ul>
                     <div className="nav-actions">
                         {isAuthenticated && (
-                            <div className="nav-search-wrapper">
+                            <div className="nav-search-wrapper" ref={navSearchRef}>
                                 <div className="nav-search-input-wrapper">
                                     <button
                                         type="button"
@@ -318,6 +344,7 @@ const Navbar = () => {
                                         onChange={(e) => handleSearch(e.target.value)}
                                         onFocus={() => { setSearchExpanded(true); searchQuery.length >= 1 && setShowSearchResults(true); }}
                                         onBlur={() => setTimeout(() => { setShowSearchResults(false); if (!searchQuery) setSearchExpanded(false); }, 300)}
+                                        onKeyDown={(e) => { if (e.key === 'Escape') { setSearchExpanded(false); searchInputRef.current?.blur(); } }}
                                         autoComplete="off"
                                     />
                                 </div>
