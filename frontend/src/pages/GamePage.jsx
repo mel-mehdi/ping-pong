@@ -35,32 +35,15 @@ class PongGame {
         this.ctx = canvas.getContext('2d');
         this.options = options;
 
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const availableHeight = viewportHeight - 240;
-        const availableWidth = viewportWidth - 60;
-        const aspectRatio = 1.6;
+        // setup initial canvas dimensions and sizes
+        this.isFullscreen = false;
+        this.setupCanvasDimensions(false);
 
-        let canvasWidth = availableWidth;
-        let canvasHeight = canvasWidth / aspectRatio;
-
-        if (canvasHeight > availableHeight) {
-            canvasHeight = availableHeight;
-            canvasWidth = canvasHeight * aspectRatio;
-        }
-
-        this.CANVAS_WIDTH = Math.floor(canvasWidth);
-        this.CANVAS_HEIGHT = Math.floor(canvasHeight);
-        this.PADDLE_WIDTH = Math.floor(canvasWidth * 0.012);
-        this.PADDLE_HEIGHT = Math.floor(canvasHeight * 0.2);
-        this.PADDLE_SPEED = canvasHeight * 0.016;
-        this.BALL_SIZE = Math.floor(canvasHeight * 0.025);
-        this.BALL_SPEED = canvasWidth * 0.0075;
-        this.WINNING_SCORE = 5;
-        this.MAX_BALL_SPEED = this.BALL_SPEED * 2;
-
-        this.canvas.width = this.CANVAS_WIDTH;
-        this.canvas.height = this.CANVAS_HEIGHT;
+        // bind resize/fullscreen handlers so canvas is recalculated when viewport changes
+        this.handleResize = this.handleResize.bind(this);
+        this.handleFullscreenChange = this.handleFullscreenChange.bind(this);
+        window.addEventListener('resize', this.handleResize);
+        document.addEventListener('fullscreenchange', this.handleFullscreenChange);
 
         this.player1Score = 0;
         this.player2Score = 0;
@@ -114,6 +97,68 @@ class PongGame {
             dx: this.BALL_SPEED * (Math.random() > 0.5 ? 1 : -1),
             dy: this.BALL_SPEED * (Math.random() * 0.6 - 0.3)
         };
+    }
+
+    setupCanvasDimensions(fullscreen = false) {
+        // If fullscreen requested, use exact window inner size (no margins)
+        if (fullscreen) {
+            const canvasWidth = window.innerWidth;
+            const canvasHeight = window.innerHeight;
+            this.CANVAS_WIDTH = Math.floor(canvasWidth);
+            this.CANVAS_HEIGHT = Math.floor(canvasHeight);
+        } else {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const availableHeight = viewportHeight - 240;
+            const availableWidth = viewportWidth - 60;
+            const aspectRatio = 1.6;
+
+            let canvasWidth = availableWidth;
+            let canvasHeight = canvasWidth / aspectRatio;
+
+            if (canvasHeight > availableHeight) {
+                canvasHeight = availableHeight;
+                canvasWidth = canvasHeight * aspectRatio;
+            }
+
+            this.CANVAS_WIDTH = Math.floor(canvasWidth);
+            this.CANVAS_HEIGHT = Math.floor(canvasHeight);
+        }
+
+        // element sizes derived from final canvas dimensions
+        this.PADDLE_WIDTH = Math.floor(this.CANVAS_WIDTH * 0.012);
+        this.PADDLE_HEIGHT = Math.floor(this.CANVAS_HEIGHT * 0.2);
+        this.PADDLE_SPEED = this.CANVAS_HEIGHT * 0.016;
+        this.BALL_SIZE = Math.floor(this.CANVAS_HEIGHT * 0.025);
+        this.BALL_SPEED = this.CANVAS_WIDTH * 0.0075;
+        this.WINNING_SCORE = 5;
+        this.MAX_BALL_SPEED = this.BALL_SPEED * 2;
+
+        this.canvas.width = this.CANVAS_WIDTH;
+        this.canvas.height = this.CANVAS_HEIGHT;
+    }
+
+    handleResize() {
+        // Recalculate sizes and center paddles/ball so layout looks correct after resize/fullscreen
+        try {
+            this.setupCanvasDimensions(this.isFullscreen);
+            this.resetPositions();
+        } catch (err) {
+            // ignore
+        }
+    }
+
+    handleFullscreenChange() {
+        // small delay to allow browser to settle fullscreen layout
+        setTimeout(() => {
+            try {
+                this.isFullscreen = !!document.fullscreenElement;
+                this.setupCanvasDimensions(this.isFullscreen);
+                this.resetPositions();
+            } catch (err) {
+                // ignore
+            }
+        }, 50);
     }
 
     handleKeyDown(e) {
@@ -335,6 +380,8 @@ class PongGame {
     destroy() {
         window.removeEventListener('keydown', this.handleKeyDown);
         window.removeEventListener('keyup', this.handleKeyUp);
+        window.removeEventListener('resize', this.handleResize);
+        document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
         }
