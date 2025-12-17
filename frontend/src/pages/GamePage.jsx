@@ -71,6 +71,8 @@ class PongGame {
         this.player1Name = options.player1Name || 'Player 1';
         this.player2Name = options.player2Name || 'Player 2';
 
+
+
         this.player1 = {};
         this.player2 = {};
         this.ball = {};
@@ -328,6 +330,8 @@ class PongGame {
         this.notifyStatusChange(startMsg);
     }
 
+
+
     destroy() {
         window.removeEventListener('keydown', this.handleKeyDown);
         window.removeEventListener('keyup', this.handleKeyUp);
@@ -348,6 +352,7 @@ const GamePage = () => {
     const [showMessage, setShowMessage] = useState(true);
     const [gameOver, setGameOver] = useState(false);
     const [winner, setWinner] = useState('');
+
 
     useEffect(() => {
         if (canvasRef.current && !gameRef.current) {
@@ -377,6 +382,8 @@ const GamePage = () => {
                     }
                 }
             });
+
+
         }
 
         return () => {

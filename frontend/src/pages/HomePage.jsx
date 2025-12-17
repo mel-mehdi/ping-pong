@@ -191,7 +191,7 @@ const HomePage = () => {
                         <h2>{t('home.choose_mode_title')}</h2>
                         <p>{t('home.choose_mode_subtitle')}</p>
                     </div>
-                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem'}}>
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem'}}>
                         <div>
                             <button onClick={handleQuickPlay} className="modern-card hover-lift text-center w-100" style={{border: 'none', background: 'var(--bg)', cursor: 'pointer'}}>
                                 <div className="play-icon text-primary mb-3">
@@ -221,6 +221,22 @@ const HomePage = () => {
                                     {t('home.online_game_desc')}
                                 </p>
                                 <span className="card-badge" style={{background: 'linear-gradient(135deg, #10b981, #059669)'}}>{t('home.play_online')}</span>
+                            </button>
+                        </div>
+
+                        <div>
+                            <button onClick={() => navigate('/game?ai=normal')} className="modern-card hover-lift text-center w-100" style={{border: 'none', background: 'var(--bg)', cursor: 'pointer'}}>
+                                <div className="play-icon mb-3" style={{color: '#6366f1'}}>
+                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M12 2C8 2 4 4 4 8v8c0 4 4 6 8 6s8-2 8-6V8c0-4-4-6-8-6z"></path>
+                                        <circle cx="12" cy="11" r="2"></circle>
+                                    </svg>
+                                </div>
+                                <h5 style={{fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text)'}}>{t('home.play_vs_ai')}</h5>
+                                <p style={{color: 'var(--text-muted)', marginBottom: '1.5rem'}}>
+                                    {t('home.ai_desc')}
+                                </p>
+                                <span className="card-badge">{t('home.start_now')}</span>
                             </button>
                         </div>
 
