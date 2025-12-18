@@ -23,12 +23,8 @@ clean:
 fclean:
 	@echo "🧼 Performing full cleanup..."
 	docker compose down -v
-	docker system prune -f
-	docker volume prune -f
-	docker network prune -f
-	docker image prune -f
+	docker system prune -af
 	docker builder prune -f
-	docker container prune -f
 
 re: clean all
 
