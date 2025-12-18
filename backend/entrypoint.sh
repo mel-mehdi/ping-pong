@@ -8,6 +8,9 @@ done
 
 echo "PostgreSQL started."
 
+echo "Making database migrations..."
+python manage.py makemigrations
+
 echo "Applying database migrations..."
 python manage.py migrate
 
