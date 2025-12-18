@@ -12,12 +12,24 @@ class UserSerializer(serializers.ModelSerializer):
 			'id', 
 			'username', 
 			'email', 
+			'password',
 			'fullname',
 			'avatar', 
 			'online_status', 
 			'created_at'
 		]
 		read_only_fields = ['id', 'created_at']
+
+	def create(self, validated_data):
+		"""
+		Create a new User with hashed password
+		"""
+		password = validated_data.pop('password')
+		user = User(**validated_data)
+		if password:
+			user.set_password(password)
+		user.save()
+		return user
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

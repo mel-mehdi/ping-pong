@@ -38,6 +38,7 @@ INSTALLED_APPS = [
 	# Third-party apps
 	'rest_framework',
 	'corsheaders',
+	'drf_yasg',
 	# Local apps
 	'user_management',
 	'public_api',
@@ -52,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+	'public_api.middleware.APILoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -158,3 +160,14 @@ REST_FRAMEWORK = {
 SUPERUSER_USERNAME = env('DJANGO_SUPERUSER_USERNAME')
 SUPERUSER_EMAIL = env('DJANGO_SUPERUSER_EMAIL')
 SUPERUSER_PASSWORD = env('DJANGO_SUPERUSER_PASSWORD')
+
+# API Documentation settings
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'ApiKey': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'X-API-Key'
+        }
+    }
+}

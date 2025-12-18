@@ -15,11 +15,64 @@ class UserViewSet(viewsets.ModelViewSet):
 
 	def get_permissions(self):
 		"""
-		Allow anyone to create users (register), but require auth for other actions
+		Allow anyone to register or login, but require authentication for other actions
 		"""
-		if self.action == 'create':
+		if self.action == 'register' or self.action == 'login':
 			return [AllowAny()]
 		return [IsAuthenticated()]
+	
+	@action(detail=False, methods=['post'])
+	def register(self, request):
+		"""
+		Register a new user
+		POST /users/register/
+		Body: {"username": "", "email": "", "password": ""}
+		"""
+		serializer = self.get_serializer(data=request.data)
+		if not serializer.is_valid():
+			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+		self.perform_create(serializer)
+		return Response(serializer.data, status=status.HTTP_201_CREATED)
+	
+	@action(detail=False, methods=['post'])
+	def login(self, request):
+		"""
+		Login user
+		POST /users/login/
+		Body: {"username": "", "password": ""}
+		"""
+		username = request.data.get('username')
+		password = request.data.get('password')
+		
+		try:
+			user = User.objects.get(username=username)
+			if user.check_password(password):
+				user.online_status = True
+				user.save()
+				serializer = self.get_serializer(user)
+				return Response(serializer.data)
+			else:
+				return Response(
+					{'error': 'Invalid credentials'},
+					status=status.HTTP_401_UNAUTHORIZED
+				)
+		except User.DoesNotExist:
+			return Response(
+				{'error': 'User does not exist'},
+				status=status.HTTP_404_NOT_FOUND
+			)
+
+	@action(detail=False, methods=['post'])
+	def logout(self, request):
+		"""
+		Logout user
+		POST /users/logout/
+		"""
+		user = request.user
+		user.online_status = False
+		user.save()
+		django_logout(request)
+		return Response({'success': 'Logged out successfully'})
 
 	@action(detail=False, methods=['get'])
 	def me(self, request):
