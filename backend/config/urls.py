@@ -23,6 +23,7 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('user_management.urls')),
+	path('game/', include('game.urls')),
 	# Public API
     path('api/', include('public_api.urls')),
     # API Documentation

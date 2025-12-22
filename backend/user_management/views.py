@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.contrib.auth import logout as django_logout
 from .models import User, UserProfile, Friendship
 from .serializers import UserSerializer, UserProfileSerializer, FriendshipSerializer
 
@@ -27,10 +28,10 @@ class AuthViewSet(viewsets.ViewSet):
 		POST /auth/register/
 		Body: {"username": "", "email": "", "password": ""}
 		"""
-		serializer = self.get_serializer(data=request.data)
+		serializer = UserSerializer(data=request.data)
 		if not serializer.is_valid():
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-		self.perform_create(serializer)
+		serializer.save()
 		return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 	@action(detail=False, methods=['post'])
@@ -48,7 +49,7 @@ class AuthViewSet(viewsets.ViewSet):
 			if user.check_password(password):
 				user.online_status = True
 				user.save()
-				serializer = self.get_serializer(user)
+				serializer = UserSerializer(user)
 				return Response(serializer.data)
 			else:
 				return Response(
