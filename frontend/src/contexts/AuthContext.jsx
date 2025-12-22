@@ -21,7 +21,11 @@ export const AuthProvider = ({ children }) => {
     // Check backend auth only if stored user data contains a token (avoid noisy unauthenticated calls)
     if (storedUserData) {
       const parsed = (() => {
-        try { return JSON.parse(storedUserData); } catch (e) { return null; }
+        try {
+          return JSON.parse(storedUserData);
+        } catch (e) {
+          return null;
+        }
       })();
 
       const hasToken = parsed && (parsed.token || parsed.access);
@@ -107,7 +111,17 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isBackendAuthenticated, userData, login, updateUser, logout, checkBackendAuth }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        isBackendAuthenticated,
+        userData,
+        login,
+        updateUser,
+        logout,
+        checkBackendAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

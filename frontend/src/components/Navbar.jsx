@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
 import apiClient from '../utils/api';
-import db from '../utils/database';
 
 const Navbar = () => {
     const { isAuthenticated, isBackendAuthenticated, userData, logout } = useAuth();
@@ -27,21 +26,25 @@ const Navbar = () => {
         document.documentElement.setAttribute('data-theme', savedTheme);
     }, []);
 
+    const loadNotifications = useCallback(async () => {
+        try {
+            const requests = await apiClient.getFriendRequests(userData.userId);
+            setNotifications((requests || []).filter((req) => req.status === 'pending').map(r => ({ id: r.id, fromName: r.fromName || r.from_user?.username || r.from_user || 'Unknown' })));
+        } catch (error) {
+            console.error('Error loading notifications:', error);
+            setNotifications([]);
+        }
+    }, [userData]);
+
     useEffect(() => {
         if (!isAuthenticated || !userData?.userId) return;
         if (!isBackendAuthenticated) {
-            // Use mock fallback directly and avoid backend calls to prevent 403
-            try {
-                const mock = db.getCollection('friendships') || [];
-                const pending = mock.filter(f => f.status === 'pending').map(f => ({ id: f.id, fromName: f.fromName || f.from_user?.username || f.from_user || 'Unknown' }));
-                setNotifications(pending);
-            } catch (err) {
-                setNotifications([]);
-            }
+            // No backend auth — don't load notifications
+            setNotifications([]);
             return;
         }
         loadNotifications();
-    }, [isAuthenticated, userData, isBackendAuthenticated]);
+    }, [isAuthenticated, userData, isBackendAuthenticated, loadNotifications]);
 
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -59,24 +62,6 @@ const Navbar = () => {
         const badPattern = /https?:\/\/|www\.|\/.+|=|\?|&|om\/api|\bapi\b/i;
         if (badPattern.test(username) || badPattern.test(email)) return false;
         return true;
-    };
-
-    const loadNotifications = async () => {
-        try {
-            const requests = await apiClient.getFriendRequests(userData.userId);
-            setNotifications((requests || []).filter((req) => req.status === 'pending').map(r => ({ id: r.id, fromName: r.fromName || r.from_user?.username || r.from_user || 'Unknown' })));
-        } catch (error) {
-            console.error('Error loading notifications:', error);
-            // Fallback to local mock DB for friend requests
-            try {
-                const mock = db.getCollection('friendships') || [];
-                // Normalize stored friendships to the same shape used by the UI
-                const pending = mock.filter(f => f.status === 'pending').map(f => ({ id: f.id, fromName: f.fromName || f.from_user?.username || f.from_user || 'Unknown' }));
-                setNotifications(pending);
-            } catch (err) {
-                console.error('Error loading notifications from mock DB:', err);
-            }
-        }
     };
 
 
@@ -98,23 +83,10 @@ const Navbar = () => {
                 };
 
                 if (!isBackendAuthenticated) {
-                    // Avoid backend calls when not authenticated — use client DB
-                    const dbModule = await import('../utils/database');
-                    const db = dbModule.default;
-                    const all = db.getCollection('users') || [];
-                    const q = query.toLowerCase();
-                    const fallback = (all || []).filter(u => u && typeof u === 'object' && ((u.username && (u.username || '').toLowerCase().includes(q)) || (u.email && (u.email || '').toLowerCase().includes(q)) || (u.fullname && (u.fullname || '').toLowerCase().includes(q)))).map(u => ({ ...u, id: u.id || u.userId })).filter(isValidUser);
-                    // exclude current user from search results
-                    const filteredFallback = fallback.filter(u => {
-                        if (!userData) return true;
-                        const uid = userData.userId || userData.id;
-                        if (!uid) return u.username !== userData.username;
-                        return (u.id !== uid && u.userId !== uid && u.username !== userData.username && u.email !== userData.email);
-                    });
-
-                    setSearchResults(filteredFallback);
-                    setSearchSource('mock');
-                    setShowSearchResults(true);
+                    // No backend auth — disable search
+                    setSearchResults([]);
+                    setSearchSource('none');
+                    setShowSearchResults(false);
                     return;
                 }
 
@@ -130,48 +102,13 @@ const Navbar = () => {
 
                 setSearchResults(filteredNormalized);
                 setSearchSource('backend');
-                if (filteredNormalized.length === 0) {
-                    // backend returned no results; try local DB search directly as a last resort
-                    try {
-                        const dbModule = await import('../utils/database');
-                        const db = dbModule.default;
-                        const all = db.getCollection('users') || [];
-                        const q = query.toLowerCase();
-                        const fallback = (all || []).filter(u => {
-                            const username = (u.username || '').toLowerCase();
-                            const email = (u.email || '').toLowerCase();
-                            const fullname = (u.fullname || '').toLowerCase();
-                            return (username && username.includes(q)) || (email && email.includes(q)) || (fullname && fullname.includes(q));
-                        }).map(u => ({ ...u, id: u.id || u.userId }));
-                        if (fallback.length > 0) {
-                            setSearchResults(fallback);
-                            setSearchSource('mock');
-                        }
-                    } catch (err) {
-                        // ignore fallback failure
-                    }
-                }
+
                 setShowSearchResults(true);
             } catch (error) {
                 console.error('Search error:', error);
-                // Use local DB fallback
-                try {
-                    const dbModule = await import('../utils/database');
-                    const db = dbModule.default;
-                    const all = db.getCollection('users') || [];
-                    const q = query.toLowerCase();
-                    const fallback = (all || []).filter(u => {
-                        const username = (u.username || '').toLowerCase();
-                        const email = (u.email || '').toLowerCase();
-                        const fullname = (u.fullname || '').toLowerCase();
-                        return (username && username.includes(q)) || (email && email.includes(q)) || (fullname && fullname.includes(q));
-                    }).map(u => ({ ...u, id: u.id || u.userId }));
-                    setSearchResults(fallback);
-                    setSearchSource('mock');
-                    setShowSearchResults(true);
-                } catch (err) {
-                    console.error('Search fallback DB error:', err);
-                }
+                setSearchResults([]);
+                setSearchSource('none');
+                setShowSearchResults(false);
             } finally {
                 setIsSearching(false);
             }
@@ -185,18 +122,7 @@ const Navbar = () => {
         try {
             if (!userData) return;
             if (!isBackendAuthenticated) {
-                // Save pending invites locally when not backend authenticated
-                try {
-                    const dbModule = await import('../utils/database');
-                    const db = dbModule.default;
-                    const friendships = db.getCollection('friendships') || [];
-                    friendships.push({ id: db.generateId(), from_user: userData.userId || userData.id, to_user: userId, fromName: userData.username, toName: username, status: 'pending' });
-                    db.saveCollection('friendships', friendships);
-                } catch (err) {
-                    console.error('Error writing local friendship:', err);
-                }
-                setPendingInvites([...pendingInvites, userId]);
-                console.log('Invite saved locally (mock)');
+                console.warn('Cannot send invites when not backend authenticated');
                 return;
             }
 
@@ -210,16 +136,7 @@ const Navbar = () => {
     const handleAcceptRequest = async (id) => {
         try {
             if (!isBackendAuthenticated) {
-                const dbModule = await import('../utils/database');
-                const db = dbModule.default;
-                const friendships = db.getCollection('friendships') || [];
-                const idx = friendships.findIndex(f => f.id === id);
-                if (idx !== -1) {
-                    friendships[idx].status = 'accepted';
-                    db.saveCollection('friendships', friendships);
-                    // update local notifications state
-                    setNotifications(notifications.filter(n => n.id !== id));
-                }
+                console.warn('Cannot accept friend requests when not backend authenticated');
                 return;
             }
             await apiClient.updateFriendRequest(id, 'accepted');
@@ -233,15 +150,7 @@ const Navbar = () => {
     const handleDeclineRequest = async (id) => {
         try {
             if (!isBackendAuthenticated) {
-                const dbModule = await import('../utils/database');
-                const db = dbModule.default;
-                const friendships = db.getCollection('friendships') || [];
-                const idx = friendships.findIndex(f => f.id === id);
-                if (idx !== -1) {
-                    friendships[idx].status = 'rejected';
-                    db.saveCollection('friendships', friendships);
-                    setNotifications(notifications.filter(n => n.id !== id));
-                }
+                console.warn('Cannot decline friend requests when not backend authenticated');
                 return;
             }
             await apiClient.updateFriendRequest(id, 'rejected');
