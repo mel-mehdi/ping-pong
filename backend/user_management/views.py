@@ -2,43 +2,44 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.contrib.auth import logout as django_logout
 from .models import User, UserProfile, Friendship
 from .serializers import UserSerializer, UserProfileSerializer, FriendshipSerializer
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class AuthViewSet(viewsets.ViewSet):
 	"""
-	ViewSet for User CRUD operations
+	ViewSet for authentication actions
 	"""
-	queryset = User.objects.all()
-	serializer_class = UserSerializer
+	swagger_tags = ['Authentication']
+	permission_classes = [AllowAny]
 
 	def get_permissions(self):
 		"""
-		Allow anyone to register or login, but require authentication for other actions
+		Allow anyone to register or login, require auth for logout
 		"""
-		if self.action == 'register' or self.action == 'login':
+		if self.action in ['register', 'login']:
 			return [AllowAny()]
 		return [IsAuthenticated()]
-	
+
 	@action(detail=False, methods=['post'])
 	def register(self, request):
 		"""
 		Register a new user
-		POST /users/register/
+		POST /auth/register/
 		Body: {"username": "", "email": "", "password": ""}
 		"""
-		serializer = self.get_serializer(data=request.data)
+		serializer = UserSerializer(data=request.data)
 		if not serializer.is_valid():
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-		self.perform_create(serializer)
+		serializer.save()
 		return Response(serializer.data, status=status.HTTP_201_CREATED)
-	
+
 	@action(detail=False, methods=['post'])
 	def login(self, request):
 		"""
 		Login user
-		POST /users/login/
+		POST /auth/login/
 		Body: {"username": "", "password": ""}
 		"""
 		username = request.data.get('username')
@@ -49,7 +50,7 @@ class UserViewSet(viewsets.ModelViewSet):
 			if user.check_password(password):
 				user.online_status = True
 				user.save()
-				serializer = self.get_serializer(user)
+				serializer = UserSerializer(user)
 				return Response(serializer.data)
 			else:
 				return Response(
@@ -66,13 +67,23 @@ class UserViewSet(viewsets.ModelViewSet):
 	def logout(self, request):
 		"""
 		Logout user
-		POST /users/logout/
+		POST /auth/logout/
 		"""
 		user = request.user
 		user.online_status = False
 		user.save()
 		django_logout(request)
 		return Response({'success': 'Logged out successfully'})
+
+
+class UserViewSet(viewsets.ModelViewSet):
+	"""
+	ViewSet for User CRUD operations
+	"""
+	swagger_tags = ['Users']
+	queryset = User.objects.all()
+	serializer_class = UserSerializer
+	permission_classes = [IsAuthenticated]
 
 	@action(detail=False, methods=['get'])
 	def me(self, request):
@@ -86,32 +97,30 @@ class UserViewSet(viewsets.ModelViewSet):
 	@action(detail=True, methods=['get'])
 	def profile(self, request, pk=None):
 		"""
-		Get user profile
+		Get user profile by user ID
 		GET /users/{id}/profile/
 		"""
 		user = self.get_object()
-		profile = user.profile
-		serializer = UserProfileSerializer(profile)
-		return Response(serializer.data)
-
-	@action(detail=False, methods=['get'])
-	def online(self, request):
-		"""
-		Get all online users
-		GET /users/online/
-		"""
-		online_users = User.objects.filter(online_status=True)
-		serializer = self.get_serializer(online_users, many=True)
-		return Response(serializer.data)
+		profile = UserProfile.objects.get(user=user)
+		profile_serializer = UserProfileSerializer(profile)
+		return Response(profile_serializer.data)
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
 	"""
 	ViewSet for UserProfile operations
 	"""
+	swagger_tags = ['User Profiles']
 	queryset = UserProfile.objects.all()
 	serializer_class = UserProfileSerializer
 	permission_classes = [IsAuthenticated]
+
+	def get_queryset(self):
+		"""
+		Filter profiles to only show current user's profile
+		"""
+		user = self.request.user
+		return UserProfile.objects.filter(user=user)
 
 	@action(detail=True, methods=['post'])
 	def update_stats(self, request, pk=None):
@@ -137,6 +146,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
 	"""
 	ViewSet for Friendship operations
 	"""
+	swagger_tags = ['Friendships']
 	queryset = Friendship.objects.all()
 	serializer_class = FriendshipSerializer
 	permission_classes = [IsAuthenticated]

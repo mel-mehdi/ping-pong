@@ -13,15 +13,17 @@ class UserAdmin(BaseUserAdmin):
 	search_fields = ['username', 'email', 'fullname']
 	ordering = ['-created_at']
 
-	fieldsets = BaseUserAdmin.fieldsets + (
-		('Additional Info', {
-			'fields': ('avatar', 'online_status')
-		}),
+	fieldsets = (
+		(None, {'fields': ('username', 'password')}),
+		('Personal info', {'fields': ('email', 'fullname', 'avatar')}),
+		('Permissions', {'fields': ('is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+		('Status', {'fields': ('online_status',)}),
 	)
 
-	add_fieldsets = BaseUserAdmin.add_fieldsets + (
-		('Additional Info', {
-			'fields': ('avatar', 'online_status')
+	add_fieldsets = (
+		(None, {
+			'classes': ('wide',),
+			'fields': ('username', 'email', 'password1', 'password2'),
 		}),
 	)
 

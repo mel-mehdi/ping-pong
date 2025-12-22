@@ -18,6 +18,7 @@ class PublicAPIViewSet(viewsets.ViewSet):
     
     All endpoints require X-API-Key header
     """
+	swagger_tags = ['Public API']
 	authentication_classes = [APIKeyAuthentication]
 	permission_classes = [HasValidAPIKey]
 

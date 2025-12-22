@@ -42,6 +42,7 @@ INSTALLED_APPS = [
 	# Local apps
 	'user_management',
 	'public_api',
+	'game'
 ]
 
 MIDDLEWARE = [
@@ -170,4 +171,9 @@ SWAGGER_SETTINGS = {
             'name': 'X-API-Key'
         }
     }
+}
+
+# Swagger settings
+SWAGGER_SETTINGS = {
+    'DEFAULT_AUTO_SCHEMA_CLASS': 'config.urls.CustomAutoSchema',
 }
