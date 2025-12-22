@@ -263,33 +263,137 @@ const HomePage = () => {
                 <p>{t('home.features_subtitle')}</p>
               </div>
               <div className="features-grid">
+                {/* Multiplayer Icon - Already correct! */}
                 <div className="feature-card hover-lift">
-                  <div className="feature-icon">🎮</div>
+                  <div className="feature-icon icon-multiplayer">
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      aria-hidden="true"
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      fill="none" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
                   <h3 className="feature-title">{t('home.feature_multiplayer.title')}</h3>
                   <p className="feature-description">{t('home.feature_multiplayer.desc')}</p>
                 </div>
+
+                {/* Tournaments Icon - Fixed */}
                 <div className="feature-card hover-lift">
-                  <div className="feature-icon">🏆</div>
+                  <div className="feature-icon icon-tournaments">
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      aria-hidden="true"
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      fill="none" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                      <path d="M4 22h16" />
+                      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                    </svg>
+                  </div>
                   <h3 className="feature-title">{t('home.feature_tournaments.title')}</h3>
                   <p className="feature-description">{t('home.feature_tournaments.desc')}</p>
                 </div>
+
+                {/* Stats Icon - Fixed */}
                 <div className="feature-card hover-lift">
-                  <div className="feature-icon">📊</div>
+                  <div className="feature-icon icon-stats">
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      aria-hidden="true"
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      fill="none" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="12" width="4" height="8" rx="1" />
+                      <rect x="10" y="8" width="4" height="12" rx="1" />
+                      <rect x="17" y="4" width="4" height="16" rx="1" />
+                    </svg>
+                  </div>
                   <h3 className="feature-title">{t('home.feature_stats.title')}</h3>
                   <p className="feature-description">{t('home.feature_stats.desc')}</p>
                 </div>
+
+                {/* Social/Chat Icon - Fixed */}
                 <div className="feature-card hover-lift">
-                  <div className="feature-icon">💬</div>
+                  <div className="feature-icon icon-social">
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      aria-hidden="true"
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      fill="none" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      <circle cx="9" cy="10" r="1" fill="currentColor" stroke="none" />
+                      <circle cx="12" cy="10" r="1" fill="currentColor" stroke="none" />
+                      <circle cx="15" cy="10" r="1" fill="currentColor" stroke="none" />
+                    </svg>
+                  </div>
                   <h3 className="feature-title">{t('home.feature_social.title')}</h3>
                   <p className="feature-description">{t('home.feature_social.desc')}</p>
                 </div>
+
+                {/* Achievements/Star Icon - Fixed */}
                 <div className="feature-card hover-lift">
-                  <div className="feature-icon">🎖️</div>
+                  <div className="feature-icon icon-achievements">
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      aria-hidden="true"
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      fill="none" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  </div>
                   <h3 className="feature-title">{t('home.feature_achievements.title')}</h3>
                   <p className="feature-description">{t('home.feature_achievements.desc')}</p>
                 </div>
+
+                {/* Cross-Platform Icon - Fixed */}
                 <div className="feature-card hover-lift">
-                  <div className="feature-icon">📱</div>
+                  <div className="feature-icon icon-cross">
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      aria-hidden="true"
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      fill="none" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <rect x="2" y="7" width="20" height="10" rx="2" />
+                      <path d="M7 22h10" />
+                      <path d="M12 17v5" />
+                    </svg>
+                  </div>
                   <h3 className="feature-title">{t('home.feature_cross.title')}</h3>
                   <p className="feature-description">{t('home.feature_cross.desc')}</p>
                 </div>

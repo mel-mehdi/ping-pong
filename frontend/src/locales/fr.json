@@ -111,6 +111,34 @@
     "cta": { "title": "Prêt à jouer ?", "desc": "Rejoignez la communauté et commencez votre parcours pour devenir champion", "button": "Créez votre compte gratuit" },
     "top_players": "Meilleurs joueurs",
     "view_all": "Voir tout",
+    "intro": "Prêt pour votre prochain match ? Défiez des joueurs du monde entier ou rejoignez un tournoi",
+    "sign_in": "Se connecter",
+    "features_title": "Fonctionnalités",
+    "features_subtitle": "Découvrez les points forts de PingPong",
+    "feature_multiplayer": {
+      "title": "Multijoueur",
+      "desc": "Jouez en temps réel avec des joueurs du monde entier"
+    },
+    "feature_tournaments": {
+      "title": "Tournois",
+      "desc": "Compétitions organisées avec tableaux et récompenses"
+    },
+    "feature_stats": {
+      "title": "Statistiques & Suivi",
+      "desc": "Suivez vos performances et vos progrès dans le temps"
+    },
+    "feature_social": {
+      "title": "Social",
+      "desc": "Connectez-vous et discutez avec d'autres joueurs"
+    },
+    "feature_achievements": {
+      "title": "Succès",
+      "desc": "Débloquez des badges et des jalons en jouant"
+    },
+    "feature_cross": {
+      "title": "Multi-plateforme",
+      "desc": "Jouez sur plusieurs appareils en toute transparence"
+    },
     "choose_mode_title": "Choisissez votre mode de jeu",
     "choose_mode_subtitle": "Plusieurs façons de jouer et de concourir"
   },

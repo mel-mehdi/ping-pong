@@ -72,6 +72,34 @@
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature-icon svg {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.08));
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Per-icon color helpers (use currentColor in SVG so color can be changed via color property) */
+.icon-multiplayer { color: var(--primary); }
+.icon-tournaments { color: #f59e0b; }
+.icon-stats { color: #10b981; }
+.icon-social { color: #06b6d4; }
+.icon-achievements { color: #8b5cf6; }
+.icon-cross { color: var(--text); }
+
 /* Section Title */
 .section-title {
   font-size: clamp(2rem, 4vw, 2.5rem);

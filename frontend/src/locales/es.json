@@ -50,6 +50,34 @@
     },
     "top_players": "Mejores jugadores",
     "view_all": "Ver todo",
+    "intro": "¿Listo para tu próximo partido? Desafía a jugadores de todo el mundo o únete a un torneo",
+    "sign_in": "Iniciar sesión",
+    "features_title": "Características",
+    "features_subtitle": "Explora lo más destacado de PingPong",
+    "feature_multiplayer": {
+      "title": "Multijugador",
+      "desc": "Juega partidas en tiempo real con jugadores de todo el mundo"
+    },
+    "feature_tournaments": {
+      "title": "Torneos",
+      "desc": "Competiciones organizadas con cuadros y recompensas"
+    },
+    "feature_stats": {
+      "title": "Estadísticas y seguimiento",
+      "desc": "Haz seguimiento de tu rendimiento y progreso a lo largo del tiempo"
+    },
+    "feature_social": {
+      "title": "Social",
+      "desc": "Conéctate y chatea con otros jugadores"
+    },
+    "feature_achievements": {
+      "title": "Logros",
+      "desc": "Desbloquea insignias y hitos a medida que juegas"
+    },
+    "feature_cross": {
+      "title": "Multiplataforma",
+      "desc": "Juega en varios dispositivos sin problemas"
+    },
     "choose_mode_title": "Elige tu modo de juego",
     "choose_mode_subtitle": "Varias maneras de jugar y competir"
   },

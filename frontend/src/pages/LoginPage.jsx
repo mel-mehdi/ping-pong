@@ -5,10 +5,11 @@ import { validateRequired } from '../utils/validation';
 import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
 import '../styles/auth.css';
+import SplashCursor from '../components/SplashCursor';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, checkBackendAuth } = useAuth();
+  const { login, checkBackendAuth, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -79,6 +80,7 @@ const LoginPage = () => {
 
   return (
     <div className="auth-page">
+      <SplashCursor paused={isAuthenticated} />
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">

@@ -1824,11 +1824,11 @@ section + section {
 }
 
 /* Footer */
-.app-footer {
+.site-footer {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
-  margin-top: 4rem;
-  padding: 3rem 0 1rem;
+  margin-top: 2rem; /* reduced vertical spacing */
+  padding: 1.5rem 0 0.75rem; /* smaller height */
 }
 
 .footer-container {
@@ -1840,8 +1840,8 @@ section + section {
 .footer-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
+  gap: 1.25rem; /* slightly reduced gap */
+  margin-bottom: 1rem; /* reduce bottom spacing */
 }
 
 .footer-section h4,

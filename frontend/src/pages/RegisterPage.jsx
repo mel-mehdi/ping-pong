@@ -11,10 +11,11 @@ import {
 } from '../utils/validation';
 import apiClient from '../utils/api';
 import '../styles/auth.css';
+import SplashCursor from '../components/SplashCursor';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { login, checkBackendAuth } = useAuth();
+  const { login, checkBackendAuth, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     fullname: '',
     email: '',
@@ -106,6 +107,7 @@ const RegisterPage = () => {
 
   return (
     <div className="auth-page">
+      <SplashCursor paused={isAuthenticated} />
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">

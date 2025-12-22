@@ -4,7 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 const Footer = () => {
   const { t } = useLanguage();
   return (
-    <footer className="app-footer">
+    <footer className="site-footer">
       <div className="footer-container">
         <div className="footer-content">
           <div className="footer-section">
@@ -40,17 +40,7 @@ const Footer = () => {
               </li>
             </ul>
           </div>
-          <div className="footer-section">
-            <h5>{t('footer.connect')}</h5>
-            <div className="footer-social">
-              <a href="#" aria-label="GitHub" title="GitHub">
-                <i className="fab fa-github"></i>
-              </a>
-              <a href="#" aria-label="Discord" title="Discord">
-                <i className="fab fa-discord"></i>
-              </a>
-            </div>
-          </div>
+
         </div>
         <div className="footer-bottom">
           <p>
