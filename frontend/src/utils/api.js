@@ -1,12 +1,17 @@
 // Use Django base for user routes and /api for other resources
-const DJANGO_USER_BASE = '/user';
+// Backend exposes user routes under /users/, so keep base empty to avoid /user/users/
+const DJANGO_USER_BASE = '';
 const DJANGO_API_BASE = '/api';
 
 class ApiClient {
     async request(endpoint, options = {}) {
         try {
-            // If caller passes an absolute path (starting with '/'), use it as-is.
-            const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+            // Allow overriding backend base via Vite env. Fallback to localhost:8001 for dev.
+            const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
+            // Normalize path
+            const urlPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+            const url = endpoint.startsWith('http') ? endpoint : `${BACKEND_BASE}${urlPath}`;
+
             const token = (() => {
                 try {
                     const data = localStorage.getItem('userData');
@@ -28,11 +33,41 @@ class ApiClient {
                 }
             };
 
+            // For state-changing requests, ensure CSRF cookie/header is present
+            const method = (config.method || 'GET').toUpperCase();
+            const unsafeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+            if (unsafeMethods.includes(method)) {
+                // Read CSRF cookie if present
+                const getCookie = (name) => {
+                    if (typeof document === 'undefined') return null;
+                    const match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]+)'));
+                    return match ? decodeURIComponent(match[2]) : null;
+                };
+
+                let csrfToken = getCookie('csrftoken');
+                // If no CSRF cookie yet, request it from backend
+                if (!csrfToken) {
+                    const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
+                    await fetch(`${BACKEND_BASE}/api/csrf/`, { credentials: 'include' });
+                    csrfToken = getCookie('csrftoken');
+                }
+
+                if (csrfToken) {
+                    config.headers = { ...config.headers, 'X-CSRFToken': csrfToken };
+                }
+            }
+
             const response = await fetch(url, config);
-            const data = await response.json();
+            // Some endpoints may return no content; handle JSON parse failures gracefully
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = null;
+            }
 
             if (!response.ok) {
-                const err = new Error(data?.error || `HTTP ${response.status}: ${response.statusText}`);
+                const err = new Error((data && (data.error || data.detail)) || `HTTP ${response.status}: ${response.statusText}`);
                 err.status = response.status;
                 if (response.status === 401 || response.status === 403) err.isAuthError = true;
                 throw err;
@@ -108,11 +143,16 @@ class ApiClient {
                 return null;
             }
 
-            const url = `${DJANGO_USER_BASE}/users/me/`;
+            const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
+            const url = `${BACKEND_BASE}${DJANGO_USER_BASE}/users/me/`;
             const response = await fetch(url, { credentials: 'include', headers: { 'Authorization': `Bearer ${token}` } });
             if (response.status === 200) {
-                const data = await response.json();
-                return data;
+                try {
+                    const data = await response.json();
+                    return data;
+                } catch (e) {
+                    return null;
+                }
             }
             // Auth failures are expected if token expired or invalid; return null silently
             if (response.status === 401 || response.status === 403) return null;
@@ -137,15 +177,16 @@ class ApiClient {
     }
 
     async register(username, email, password) {
-        return this.request(`${DJANGO_USER_BASE}/users/`, {
+        // Backend exposes registration at /users/register/
+        return this.request(`${DJANGO_USER_BASE}/users/register/`, {
             method: 'POST',
             body: JSON.stringify({ username, email, password })
         });
     }
 
     async login(username, password) {
-        // Login should be performed against the Django auth endpoint if available
-        return this.request(`${DJANGO_API_BASE}/auth/login/`, {
+        // Login endpoint uses user routes
+        return this.request(`${DJANGO_USER_BASE}/users/login/`, {
             method: 'POST',
             body: JSON.stringify({ username, password })
         });
@@ -182,17 +223,8 @@ class ApiClient {
             console.warn('searchUsers fallback: no users to filter, attempting local DB', err);
         }
 
-        // Final fallback: try local mock DB (client-only)
-        try {
-            const dbModule = await import('./database');
-            const db = dbModule.default;
-            const all = db.getCollection('users') || [];
-            const q = query.toLowerCase();
-            return (all || []).filter(u => u && typeof u === 'object' && ((u.username && (u.username || '').toLowerCase().includes(q)) || (u.email && (u.email || '').toLowerCase().includes(q)) || (u.fullname && (u.fullname || '').toLowerCase().includes(q))));
-        } catch (err) {
-            console.warn('searchUsers: local DB fallback failed', err);
-            return [];
-        }
+        // No client-side database fallback — search offline will return empty list
+        return [];
     }
 
     async getInvitations(userId) {
@@ -208,7 +240,7 @@ class ApiClient {
         try {
             return await this.request(`${DJANGO_USER_BASE}/friendships/`, {
                 method: 'POST',
-                body: JSON.stringify({ to_user: toId })
+                body: JSON.stringify({ to_user: toId, to_name: toName })
             });
         } catch (err) {
             console.warn('sendInvitation: friendships endpoint not available', err);
@@ -223,7 +255,7 @@ class ApiClient {
         });
     }
 
-    async getFriendRequests(userId) {
+    async getFriendRequests() {
         try {
             return await this.request(`${DJANGO_USER_BASE}/friendships/`);
         } catch (err) {
@@ -235,7 +267,7 @@ class ApiClient {
     async sendFriendRequest(fromId, fromName, toId, toName) {
         return this.request(`${DJANGO_USER_BASE}/friendships/`, {
             method: 'POST',
-            body: JSON.stringify({ to_user: toId })
+            body: JSON.stringify({ to_user: toId, to_name: toName })
         });
     }
 

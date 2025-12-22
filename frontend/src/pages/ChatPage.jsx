@@ -49,20 +49,14 @@ const ChatPage = () => {
     useEffect(() => {
         const loadConversations = async () => {
             if (!userData?.userId) return;
-            // If not backend auth, use local DB immediately
+            // If not backend auth, skip loading conversations
             if (!isBackendAuthenticated) {
-                try {
-                    const dbModule = await import('../utils/database');
-                    const db = dbModule.default;
-                    const users = db.getCollection('users') || [];
-                    const others = (users || []).filter(u => u.id !== userData.userId).map(u => ({ id: u.id, name: u.username, lastMessage: '', time: '', unread: 0, online: false }));
-                    setConversations(others);
-                    if (!selectedChat && others.length > 0) setSelectedChat(others[0]);
-                } catch (err2) {
-                    console.error('Error using local DB fallback for conversations:', err2);
-                }
+                setConversations([]);
+                setSelectedChat(null);
                 return;
             }
+
+            // include selectedChat in dependencies to satisfy hooks linter
 
             try {
                 const users = await apiClient.getAllUsers();
@@ -71,36 +65,19 @@ const ChatPage = () => {
                 if (!selectedChat && others.length > 0) setSelectedChat(others[0]);
             } catch (err) {
                 console.error('Error loading users for conversations:', err);
-                // Fallback to local DB mock users
-                try {
-                    const dbModule = await import('../utils/database');
-                    const db = dbModule.default;
-                    const users = db.getCollection('users') || [];
-                    const others = (users || []).filter(u => u.id !== userData.userId).map(u => ({ id: u.id, name: u.username, lastMessage: '', time: '', unread: 0, online: false }));
-                    setConversations(others);
-                    if (!selectedChat && others.length > 0) setSelectedChat(others[0]);
-                } catch (err2) {
-                    console.error('Error using local DB fallback for conversations:', err2);
-                }
+                setConversations([]);
+                setSelectedChat(null);
             }
         };
         loadConversations();
-    }, [userData, isBackendAuthenticated]);
+    }, [userData, isBackendAuthenticated, selectedChat]);
 
     useEffect(() => {
         const loadMessagesForSelected = async () => {
             if (!userData?.userId || !selectedChat) return;
             try {
                 if (!isBackendAuthenticated) {
-                    try {
-                        const dbModule = await import('../utils/database');
-                        const db = dbModule.default;
-                        const msgs = db.getCollection('messages') || [];
-                        const local = (msgs || []).filter(m => (m.fromId === userData.userId && m.toId === selectedChat.id) || (m.fromId === selectedChat.id && m.toId === userData.userId));
-                        setMessages(local || []);
-                    } catch (err2) {
-                        console.error('Error loading local messages:', err2);
-                    }
+                    setMessages([]);
                 } else {
                     const msgs = await apiClient.getMessages(userData.userId, selectedChat.id);
                     setMessages(msgs || []);
@@ -129,17 +106,17 @@ const ChatPage = () => {
         if (!selectedChat) return;
         if (!blockedUsers.includes(selectedChat.id)) {
             setBlockedUsers([...blockedUsers, selectedChat.id]);
-            console.log(`${selectedChat.name} has been blocked`);
-        }
-        setShowMenu(false);
-    };
+                console.info(`${selectedChat.name} has been blocked`);
+            }
+            setShowMenu(false);
+        };
 
-    const unblockUser = () => {
-        if (!selectedChat) return;
-        setBlockedUsers(blockedUsers.filter(id => id !== selectedChat.id));
-        console.log(`${selectedChat.name} has been unblocked`);
-        setShowMenu(false);
-    };
+        const unblockUser = () => {
+            if (!selectedChat) return;
+            setBlockedUsers(blockedUsers.filter(id => id !== selectedChat.id));
+            console.info(`${selectedChat.name} has been unblocked`);
+            setShowMenu(false);
+        };
 
     const selectedChatId = selectedChat?.id;
     const isBlocked = selectedChatId ? blockedUsers.includes(selectedChatId) : false;
@@ -272,3 +249,5 @@ const ChatPage = () => {
 };
 
 export default ChatPage;
+
+/* end of ChatPage */

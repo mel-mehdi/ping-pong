@@ -15,4 +15,5 @@ leaderboard_view = views.PublicAPIViewSet.as_view({
 urlpatterns = [
     path('me/', user_view, name='user-me'),
     path('leaderboard/', leaderboard_view, name='leaderboard'),
+    path('csrf/', views.set_csrf_cookie, name='set-csrf'),
 ]

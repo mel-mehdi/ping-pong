@@ -28,20 +28,10 @@ const TournamentPage = () => {
         const loadTournaments = async () => {
             try {
                 if (!isBackendAuthenticated) {
-                    // try local mock DB
-                    try {
-                        const dbModule = await import('../utils/database');
-                        const db = dbModule.default;
-                        const all = db.getCollection('tournaments') || [];
-                        setActiveTournaments(all || []);
-                        setMyTournaments((all || []).filter(t => t.ownerId === userData?.userId));
-                        if (all && all.length > 0) {
-                            const first = all[0];
-                            setBrackets({ name: first.name, round: 'Quarterfinals', matches: first.matches || [] });
-                        }
-                    } catch (err) {
-                        console.error('Local tournaments fallback error:', err);
-                    }
+                    // No backend auth — don't load tournaments
+                    setActiveTournaments([]);
+                    setMyTournaments([]);
+                    setBrackets({ round: '', matches: [] });
                     return;
                 }
 
@@ -106,27 +96,10 @@ const TournamentPage = () => {
         setIsSearching(true);
         try {
             if (!isBackendAuthenticated) {
-                const dbModule = await import('../utils/database');
-                const db = dbModule.default;
-                const all = db.getCollection('users') || [];
-                const q = searchTerm.toLowerCase();
-                const badPattern = /https?:\/\/|www\.|\/.+|=|\?|&|om\/api|\bapi\b/i;
-                const fallback = (all || []).filter(u => u && typeof u === 'object' && ((u.username || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))).filter(u => !invitedPlayers.includes(u.username)).filter(u => {
-                    const username = (u.username || '').toString();
-                    const email = (u.email || '').toString();
-                    if (!username && !email) return false;
-                    if (username.length > 50) return false;
-                    if (badPattern.test(username) || badPattern.test(email)) return false;
-                    return true;
-                });
-                // exclude current user from results
-                const filtered = fallback.filter(u => {
-                    if (!userData) return true;
-                    const uid = userData.userId || userData.id;
-                    if (!uid) return u.username !== userData.username;
-                    return (u.id !== uid && u.userId !== uid && u.username !== userData.username && u.email !== userData.email);
-                });
-                setSearchResults(filtered.map(u => ({ ...u, id: u.id || u.userId }))); 
+                // No backend auth — can't search users
+                setSearchResults([]);
+                setIsSearching(false);
+                return;
             }
         } catch (err) {
             console.error('Search users error:', err);
@@ -148,16 +121,7 @@ const TournamentPage = () => {
                 try {
                     if (!userData) return;
                     if (!isBackendAuthenticated) {
-                        // Save invitation locally (mock)
-                        try {
-                            const dbModule = await import('../utils/database');
-                            const db = dbModule.default;
-                            const friendships = db.getCollection('friendships') || [];
-                            friendships.push({ id: db.generateId(), from_user: userData.userId || userData.id, to_user: user.id, fromName: userData.username, toName: user.username, status: 'pending' });
-                            db.saveCollection('friendships', friendships);
-                        } catch (err) {
-                            console.error('Local friendship save error:', err);
-                        }
+                        console.warn('Cannot send invitations when not backend authenticated');
                         return;
                     }
                     if (user && user.id && userData) {

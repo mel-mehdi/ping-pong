@@ -8,8 +8,17 @@ from rest_framework.response import Response
 from user_management.serializers import UserProfileSerializer, UserSerializer
 from user_management.models import UserProfile
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
+
 
 User = get_user_model()
+
+
+@ensure_csrf_cookie
+def set_csrf_cookie(request):
+    """Simple endpoint to ensure the CSRF cookie is set for SPA clients."""
+    return JsonResponse({'detail': 'CSRF cookie set'})
 
 
 class PublicAPIViewSet(viewsets.ViewSet):

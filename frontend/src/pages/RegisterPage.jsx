@@ -9,12 +9,12 @@ import {
     validatePassword,
     validatePasswordMatch
 } from '../utils/validation';
-import db from '../utils/database';
+import apiClient from '../utils/api';
 import '../styles/auth.css';
 
 const RegisterPage = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, checkBackendAuth } = useAuth();
     const [formData, setFormData] = useState({
         fullname: '',
         email: '',
@@ -63,49 +63,33 @@ const RegisterPage = () => {
         setLoading(true);
 
         try {
-            // Check if user already exists
-            const existingUser = db.findOne('users', { username: formData.username });
-            if (existingUser) {
-                    setErrors({ username: t('auth.username_exists') });
-                setLoading(false);
-                return;
-            }
-
-            const existingEmail = db.findOne('users', { email: formData.email });
-            if (existingEmail) {
-                setErrors({ email: t('auth.email_registered') });
-                setLoading(false);
-                return;
-            }
-
-            // Create new user
-            const passwordHash = db.hashPassword(formData.password);
-            const newUser = db.insert('users', {
-                fullname: formData.fullname,
-                email: formData.email,
-                username: formData.username,
-                passwordHash,
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullname)}&background=random`
-            });
-
-            const userData = {
-                userId: newUser.id,
-                username: newUser.username,
-                email: newUser.email,
-                fullname: newUser.fullname,
-                avatar: newUser.avatar,
+            // Create new user via backend
+            await apiClient.register(formData.username, formData.email, formData.password);
+            const loginResp = await apiClient.login(formData.username, formData.password);
+            // Normalize login response
+            const userDataPayload = loginResp?.user || loginResp || {};
+            const newUserData = {
+                userId: userDataPayload.id || userDataPayload.userId || null,
+                username: userDataPayload.username || formData.username,
+                email: userDataPayload.email || formData.email,
+                fullname: userDataPayload.fullname || formData.fullname,
+                avatar: userDataPayload.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullname)}&background=random`,
+                token: loginResp?.token || loginResp?.access || null,
                 loggedIn: true,
                 registrationTime: new Date().toISOString()
             };
 
-            login(userData);
+            login(newUserData);
+            // Attempt to verify backend session (set isBackendAuthenticated)
+            try { await checkBackendAuth(); } catch (e) { /* ignore */ }
+            navigate('/');
 
             setTimeout(() => {
                 navigate('/');
             }, 500);
         } catch (error) {
+            // Log the error only (do not show on UI)
             console.error('Registration error:', error);
-            setErrors({ general: t('auth.registration_error') });
             setLoading(false);
         }
     };
@@ -123,24 +107,23 @@ const RegisterPage = () => {
                         </div>
                     </div>
 
-                    {errors.general && (
-                        <div className="alert alert-danger">{errors.general}</div>
-                    )}
+
 
                     <form onSubmit={handleSubmit} className="auth-form">
                         <div className="form-row">
                             <div className="form-group">
                                     <label htmlFor="fullname">{t('auth.fullname')}</label>
-                                    type="text"
-                                    id="fullname"
-                                    name="fullname"
-                                    className={`form-control ${errors.fullname ? 'is-invalid' : ''}`}
-                                    value={formData.fullname}
-                                    onChange={handleChange}
-                                />
-                                {errors.fullname && (
-                                    <div className="invalid-feedback">{errors.fullname}</div>
-                                )}
+                                    <input
+                                        type="text"
+                                        id="fullname"
+                                        name="fullname"
+                                        className={`form-control ${errors.fullname ? 'is-invalid' : ''}`}
+                                        value={formData.fullname}
+                                        onChange={handleChange}
+                                    />
+                                    {errors.fullname && (
+                                        <div className="invalid-feedback">{errors.fullname}</div>
+                                    )}
                             </div>
 
                             <div className="form-group">
@@ -239,7 +222,7 @@ const RegisterPage = () => {
                             <span>{t('auth.or')}</span>
                         </div>
 
-                        <button className="gsi-material-button" type="button" onClick={() => console.log('Google sign-up')}>
+                        <button className="gsi-material-button" type="button" onClick={() => console.info('Google sign-up')}>
                             <div className="gsi-material-button-state"></div>
                             <div className="gsi-material-button-content-wrapper">
                                 <div className="gsi-material-button-icon">

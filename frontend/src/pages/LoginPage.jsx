@@ -3,12 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { validateRequired } from '../utils/validation';
 import { useLanguage } from '../contexts/LanguageContext';
-import db from '../utils/database';
+import apiClient from '../utils/api';
 import '../styles/auth.css';
 
 const LoginPage = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, checkBackendAuth } = useAuth();
     const [formData, setFormData] = useState({
         username: '',
         password: ''
@@ -47,39 +47,26 @@ const LoginPage = () => {
         setLoading(true);
 
         try {
-            const user = db.findOne('users', { username: formData.username });
-
-            if (!user) {
-                setErrors({ username: t('auth.user_not_found') });
-                setLoading(false);
-                return;
-            }
-
-            if (!db.verifyPassword(formData.password, user.passwordHash)) {
-                setErrors({ password: t('auth.invalid_password') });
-                setLoading(false);
-                return;
-            }
-
-            const userData = {
-                userId: user.id,
-                username: user.username,
-                email: user.email,
-                fullname: user.fullname,
-                avatar: user.avatar,
+            const resp = await apiClient.login(formData.username, formData.password);
+            const userPayload = resp?.user || resp || {};
+            const userDataObj = {
+                userId: userPayload.id || userPayload.userId || null,
+                username: userPayload.username || formData.username,
+                email: userPayload.email || null,
+                fullname: userPayload.fullname || '',
+                avatar: userPayload.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userPayload.username || formData.username)}&background=random`,
+                token: resp?.token || resp?.access || null,
                 loggedIn: true,
                 loginTime: new Date().toISOString()
             };
 
-            login(userData);
-            db.insert('sessions', { userId: user.id, loginTime: new Date().toISOString() });
-
-            setTimeout(() => {
-                navigate('/');
-            }, 500);
+            login(userDataObj);
+            // Attempt to verify backend session
+            try { await checkBackendAuth(); } catch (e) { /* ignore */ }
+            navigate('/');
         } catch (error) {
+            // Log error only (do not show in UI)
             console.error('Login error:', error);
-            setErrors({ general: t('auth.login_error') });
             setLoading(false);
         }
     };
@@ -97,9 +84,7 @@ const LoginPage = () => {
                         </div>
                     </div>
 
-                    {errors.general && (
-                        <div className="alert alert-danger">{errors.general}</div>
-                    )}
+
 
                     <form onSubmit={handleSubmit} className="auth-form">
                         <div className="form-group">
@@ -146,7 +131,7 @@ const LoginPage = () => {
                             <span>{t('auth.or')}</span>
                         </div>
 
-                        <button className="gsi-material-button" type="button" onClick={() => console.log('Google sign-in')}>
+                        <button className="gsi-material-button" type="button" onClick={() => console.info('Google sign-in')}>
                             <div className="gsi-material-button-state"></div>
                             <div className="gsi-material-button-content-wrapper">
                                 <div className="gsi-material-button-icon">

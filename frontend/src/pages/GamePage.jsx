@@ -5,30 +5,6 @@ import '../styles/game.css';
 import { useLanguage } from '../contexts/LanguageContext';
 
 class PongGame {
-    canvas;
-    ctx;
-    options;
-    CANVAS_WIDTH;
-    CANVAS_HEIGHT;
-    PADDLE_WIDTH;
-    PADDLE_HEIGHT;
-    PADDLE_SPEED;
-    BALL_SIZE;
-    BALL_SPEED;
-    MAX_BALL_SPEED;
-    WINNING_SCORE;
-    player1Score;
-    player2Score;
-    isRunning;
-    isPaused;
-    gameOver;
-    player1;
-    player2;
-    ball;
-    keys;
-    animationId;
-    player1Name;
-    player2Name;
 
     constructor(canvas, options = {}) {
         this.canvas = canvas;
@@ -262,7 +238,7 @@ class PongGame {
 
     handlePaddleCollision(paddle) {
         const ballCenterY = this.ball.y + this.BALL_SIZE / 2;
-        const paddleCenterY = paddle.y + paddle.height / 2;
+
         const hitPos = (ballCenterY - paddle.y) / paddle.height;
         const angle = (hitPos - 0.5) * 1.6;
 
@@ -439,7 +415,7 @@ const GamePage = () => {
                 gameRef.current = null;
             }
         };
-    }, []);
+    }, [t]);
 
     const handlePlayAgain = () => {
         if (gameRef.current) {

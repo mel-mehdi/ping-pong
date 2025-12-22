@@ -390,6 +390,24 @@
     font-size: 1.25rem;
 }
 
+/* Subtle inline error used on auth forms */
+.form-error {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    border-left: 4px solid #f59e0b; /* amber */
+    background: rgba(255, 250, 205, 0.6); /* light amber */
+    color: #92400e; /* dark amber */
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+.form-error::before {
+    content: 'ℹ️';
+    margin-right: 0.5rem;
+}
+
 /* Responsive */
 @media (max-width: 576px) {
     .auth-page {

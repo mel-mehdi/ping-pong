@@ -33,22 +33,7 @@ const ProfilePage = () => {
         setSaving(true);
         try {
             if (!isBackendAuthenticated) {
-                // update local DB and AuthContext
-                try {
-                    const dbModule = await import('../utils/database');
-                    const db = dbModule.default;
-                    const users = db.getCollection('users') || [];
-                    const idx = users.findIndex(u => (u.id === userIdForCalls || u.userId == userIdForCalls));
-                    if (idx !== -1) {
-                        users[idx] = { ...users[idx], username: editForm.username, fullname: editForm.fullname, email: editForm.email, bio: editForm.bio };
-                        db.saveCollection('users', users);
-                        const fresh = users[idx];
-                        if (updateUser) updateUser(fresh);
-                        else login(fresh);
-                    }
-                } catch (err) {
-                    console.error('Local save profile error:', err);
-                }
+                console.warn('Updating profile requires backend authentication');
                 setShowEditModal(false);
                 setSaving(false);
                 return;
@@ -115,36 +100,7 @@ const ProfilePage = () => {
         setUploading(true);
         try {
             if (!isBackendAuthenticated) {
-                // Save as data URL in local DB
-                try {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const dataUrl = reader.result;
-                        (async () => {
-                            try {
-                                const dbModule = await import('../utils/database');
-                                const db = dbModule.default;
-                                const users = db.getCollection('users') || [];
-                                const idx = users.findIndex(u => (u.id === userIdForCalls || u.userId == userIdForCalls));
-                                if (idx !== -1) {
-                                    users[idx] = { ...users[idx], avatar: dataUrl };
-                                    db.saveCollection('users', users);
-                                    const fresh = users[idx];
-                                    if (updateUser) updateUser(fresh);
-                                    else login(fresh);
-                                }
-                                setShowAvatarModal(false);
-                                setSelectedFile(null);
-                                setPreviewUrl(null);
-                            } catch (err) {
-                                console.error('Local avatar save error:', err);
-                            }
-                        })();
-                    };
-                    reader.readAsDataURL(selectedFile);
-                } catch (err) {
-                    console.error('Local avatar file error:', err);
-                }
+                console.warn('Uploading avatar requires backend authentication');
                 setUploading(false);
                 return;
             }
@@ -234,7 +190,10 @@ const ProfilePage = () => {
                                 { (profile?.user?.avatar || userData?.avatar) ? (
                                     <img src={profile?.user?.avatar || userData?.avatar} alt={profile?.user?.username || userData?.username} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
                                 ) : (
-                                    ((profile?.user?.username || userData?.username) ? (profile?.user?.username || userData?.username)[0].toUpperCase() : 'U')
+                                    (() => {
+                                        const usernameForAvatar = (profile && profile.user && profile.user.username) || (userData && userData.username) || null;
+                                        return usernameForAvatar ? usernameForAvatar[0].toUpperCase() : 'U';
+                                    })()
                                 )}
                             </div>
                             <button className="btn-change-avatar" title="Change Avatar" onClick={handleChangeAvatar}>

@@ -16,7 +16,7 @@ const LeaderboardPage = () => {
     useEffect(() => {
         const loadLeaderboard = async () => {
             try {
-                const data = isBackendAuthenticated ? await apiClient.getLeaderboard() : (await import('../utils/database')).default.getCollection('leaderboard') || [];
+                const data = isBackendAuthenticated ? await apiClient.getLeaderboard() : [];
                 setLeaderboardData((data || []).map((p, idx) => ({ ...p, rank: idx + 1 })));
             } catch (err) {
                 console.error('Error fetching leaderboard:', err);
