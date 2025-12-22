@@ -12,6 +12,7 @@ from .serializers import (
 
 
 class TournamentViewSet(viewsets.ModelViewSet):
+	swagger_tags = ['Tournaments']
 	permission_classes = [IsAuthenticated]
 
 	def get_queryset(self):
@@ -104,6 +105,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
 
 class InvitationViewSet(viewsets.ModelViewSet):
+	swagger_tags = ['Invitations']
 	serializer_class = InvitationSerializer
 	permission_classes = [IsAuthenticated]
 
@@ -169,6 +171,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
 
 class MatchViewSet(viewsets.ModelViewSet):
+	swagger_tags = ['Matches']
 	serializer_class = MatchSerializer
 	permission_classes = [IsAuthenticated]
 

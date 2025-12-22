@@ -3,22 +3,54 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import permissions
+from drf_yasg.generators import OpenAPISchemaGenerator
+from drf_yasg.inspectors import SwaggerAutoSchema
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
+
+class CustomAutoSchema(SwaggerAutoSchema):
+    """
+    Custom schema inspector that reads swagger_tags from ViewSet
+    """
+    def get_tags(self, operation_keys=None):
+        tags = getattr(self.view, 'swagger_tags', None)
+        if tags:
+            return tags
+        return super().get_tags(operation_keys)
+
+
+class CustomSchemaGenerator(OpenAPISchemaGenerator):
+    """
+    Custom generator to define tag order and descriptions
+    """
+    def get_schema(self, request=None, public=False):
+        schema = super().get_schema(request, public)
+        schema.tags = [
+            {'name': 'Authentication', 'description': 'User authentication endpoints'},
+            {'name': 'Users', 'description': 'User management endpoints'},
+            {'name': 'User Profiles', 'description': 'User profile management'},
+            {'name': 'Friendships', 'description': 'Friend management endpoints'},
+            {'name': 'Tournaments', 'description': 'Tournament management'},
+            {'name': 'Invitations', 'description': 'Invitation system'},
+            {'name': 'Matches', 'description': 'Match tracking'},
+            {'name': 'Public API', 'description': 'Public endpoints'},
+        ]
+        return schema
+    
+
 # API Documentation
 schema_view = get_schema_view(
-   openapi.Info(
-      title="ft_transcendence Public API",
-      default_version='v1',
-      description="Public API for external access to ft_transcendence data",
-      terms_of_service="https://www.example.com/terms/",
-      contact=openapi.Contact(email="contact@transcendence.local"),
-      license=openapi.License(name="MIT License"),
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
+    openapi.Info(
+        title="ft_transcendence API",
+        default_version='v1',
+        description="API for ft_transcendence",
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+    generator_class=CustomSchemaGenerator,
 )
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),

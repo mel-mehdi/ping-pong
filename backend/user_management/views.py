@@ -11,6 +11,7 @@ class AuthViewSet(viewsets.ViewSet):
 	"""
 	ViewSet for authentication actions
 	"""
+	swagger_tags = ['Authentication']
 	permission_classes = [AllowAny]
 
 	def get_permissions(self):
@@ -79,6 +80,7 @@ class UserViewSet(viewsets.ModelViewSet):
 	"""
 	ViewSet for User CRUD operations
 	"""
+	swagger_tags = ['Users']
 	queryset = User.objects.all()
 	serializer_class = UserSerializer
 	permission_classes = [IsAuthenticated]
@@ -108,6 +110,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 	"""
 	ViewSet for UserProfile operations
 	"""
+	swagger_tags = ['User Profiles']
 	queryset = UserProfile.objects.all()
 	serializer_class = UserProfileSerializer
 	permission_classes = [IsAuthenticated]
@@ -143,6 +146,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
 	"""
 	ViewSet for Friendship operations
 	"""
+	swagger_tags = ['Friendships']
 	queryset = Friendship.objects.all()
 	serializer_class = FriendshipSerializer
 	permission_classes = [IsAuthenticated]

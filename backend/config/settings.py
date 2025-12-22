@@ -172,3 +172,8 @@ SWAGGER_SETTINGS = {
         }
     }
 }
+
+# Swagger settings
+SWAGGER_SETTINGS = {
+    'DEFAULT_AUTO_SCHEMA_CLASS': 'config.urls.CustomAutoSchema',
+}
