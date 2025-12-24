@@ -33,6 +33,21 @@ class ApiClient {
         },
       };
 
+      // If an active API key is stored in localStorage, attach it to requests
+      // that target the backend API base (e.g. `/api/...`) so Public API endpoints
+      // can be accessed with an X-API-Key header.
+      try {
+        const activeKey = localStorage.getItem('active_api_key');
+        if (activeKey) {
+          const urlPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+          if (urlPath.startsWith(DJANGO_API_BASE)) {
+            config.headers = { ...config.headers, 'X-API-Key': activeKey };
+          }
+        }
+      } catch (e) {
+        // ignore localStorage errors
+      }
+
       // For state-changing requests, ensure CSRF cookie/header is present
       const method = (config.method || 'GET').toUpperCase();
       const unsafeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
@@ -94,7 +109,8 @@ class ApiClient {
   // Tournaments endpoints may be absent; try /api/tournaments/ and return empty list on failure
   async getTournaments() {
     try {
-      return await this.request(`${DJANGO_API_BASE}/tournaments/`);
+      // Backend exposes tournaments under /game/tournaments/
+      return await this.request(`/game/tournaments/`);
     } catch (err) {
       console.warn('getTournaments: no tournaments endpoint', err);
       return [];
@@ -103,7 +119,7 @@ class ApiClient {
 
   async getTournamentById(id) {
     try {
-      return await this.request(`${DJANGO_API_BASE}/tournaments/${id}/`);
+      return await this.request(`/game/tournaments/${id}/`);
     } catch (err) {
       console.warn('getTournamentById: not available', err);
       throw err;
@@ -112,12 +128,23 @@ class ApiClient {
 
   async createTournament(data) {
     try {
-      return await this.request(`${DJANGO_API_BASE}/tournaments/`, {
+      return await this.request(`/game/tournaments/`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
     } catch (err) {
       console.warn('createTournament: not available', err);
+      throw err;
+    }
+  }
+
+  async joinTournament(tournamentId) {
+    try {
+      return await this.request(`/game/tournaments/${tournamentId}/join/`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.warn('joinTournament: failed', err);
       throw err;
     }
   }
@@ -185,17 +212,26 @@ class ApiClient {
     }
   }
 
+  async getProfiles() {
+    try {
+      return await this.request(`${DJANGO_USER_BASE}/profiles/`);
+    } catch (err) {
+      console.warn('getProfiles: not available', err);
+      return [];
+    }
+  }
+
   async register(username, email, password) {
-    // Backend exposes registration at /users/register/
-    return this.request(`${DJANGO_USER_BASE}/users/register/`, {
+    // Registration is exposed under /auth/register/ (AuthViewSet)
+    return this.request(`/auth/register/`, {
       method: 'POST',
       body: JSON.stringify({ username, email, password }),
     });
   }
 
   async login(username, password) {
-    // Login endpoint uses user routes
-    return this.request(`${DJANGO_USER_BASE}/users/login/`, {
+    // Login is exposed under /auth/login/ (AuthViewSet)
+    return this.request(`/auth/login/`, {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
@@ -369,6 +405,39 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+  }
+
+  async updateProfile(profileId, data) {
+    return this.request(`${DJANGO_USER_BASE}/profiles/${profileId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Local active API key helpers (frontend-only)
+  getActiveApiKey() {
+    try {
+      return localStorage.getItem('active_api_key');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  setActiveApiKey(key) {
+    try {
+      if (key === null) localStorage.removeItem('active_api_key');
+      else localStorage.setItem('active_api_key', key);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  clearActiveApiKey() {
+    try {
+      localStorage.removeItem('active_api_key');
+    } catch (e) {
+      /* ignore */
+    }
   }
 }
 

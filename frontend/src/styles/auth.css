@@ -36,16 +36,7 @@
   z-index: 1;
 }
 
-.auth-card {
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 2rem 2.5rem;
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
-  animation: slideIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  max-width: 100%;
-}
+
 
 @keyframes slideIn {
   from {
@@ -403,10 +394,6 @@
     padding: 1.5rem;
   }
 
-  .auth-card {
-    padding: 2.5rem 2rem;
-    border-radius: 25px;
-  }
 
   .auth-logo {
     width: 75px;
