@@ -14,5 +14,8 @@ python manage.py makemigrations
 echo "Applying database migrations..."
 python manage.py migrate
 
-echo "Starting Django server..."
-exec python manage.py runserver 0.0.0.0:8001
+echo "Collecting static files..."
+python manage.py collectstatic --noinput
+
+echo "Starting ASGI server with Daphne..."
+exec daphne -b 0.0.0.0 -p 8001 config.asgi:application

@@ -7,3 +7,7 @@ Pillow==12.0.0 # Image processing library
 djangorestframework-simplejwt==5.5.1 # JWT authentication for DRF
 django-ratelimiter==0.2.2 # Rate limiting for Django public API
 drf-yasg==1.21.11 # Automated generation of real Swagger/OpenAPI 2.0 schemas from DRF code
+channels==4.3.2 # Asynchronous support for Django
+channels-redis==4.2.1 # Redis backend for Django Channels
+daphne==4.2.1 # ASGI server for Django Channels
+redis==5.3.0 # Redis client for Python
