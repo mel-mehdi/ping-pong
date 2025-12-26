@@ -1,14 +1,70 @@
+from django.utils.timezone import timedelta
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Count, F
 from .models import Tournament, TournamentParticipant, Invitation, Match
+from user_management.models import User
 from .serializers import (
 	TournamentSerializer, TournamentListSerializer, InvitationSerializer, MatchSerializer
 )
+from user_management.serializers import UserSerializer
+
+
+class LeaderboardViewSet(viewsets.ViewSet):
+	"""
+	ViewSet for retrieving tournament leaderboards
+	"""
+	swagger_tags = ['Leaderboard']
+	permission_classes = [IsAuthenticated]
+
+	@action(detail=False, methods=['get'])
+	def all_time(self, request):
+		"""
+		Get all-time leaderboard
+		GET /leaderboard/all_time/
+		"""
+		leaderboard = User.objects.annotate(
+			wins=Count('matches_won'),
+			losses=Count('matches_as_player1', filter=~Q(matches_as_player1__winner=F('id'))) + Count('matches_as_player2', filter=~Q(matches_as_player2__winner=F('id')))
+		).filter(wins__gt=0).order_by('-wins')[:50]
+
+		serializer = UserSerializer(leaderboard, many=True)
+		return Response(serializer.data)
+
+	@action(detail=False, methods=['get'])
+	def this_month(self, request):
+		"""
+		Get leaderboard for current month
+		GET /leaderboard/this_month/
+		"""
+		start_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+		
+		leaderboard = User.objects.annotate(
+			wins=Count('matches_won', filter=Q(matches_won__completed_at__gte=start_of_month))
+		).filter(wins__gt=0).order_by('-wins')[:50]
+		
+		serializer = UserSerializer(leaderboard, many=True)
+		return Response(serializer.data)
+	
+	@action(detail=False, methods=['get'])
+	def this_week(self, request):
+		"""
+		Get leaderboard for current week
+		GET /leaderboard/this_week/
+		"""
+		start_of_week = timezone.now() - timedelta(days=timezone.now().weekday())
+		start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+		
+		leaderboard = User.objects.annotate(
+			wins=Count('matches_won', filter=Q(matches_won__completed_at__gte=start_of_week))
+		).filter(wins__gt=0).order_by('-wins')[:50]
+		
+		serializer = UserSerializer(leaderboard, many=True)
+		return Response(serializer.data)
 
 
 class TournamentViewSet(viewsets.ModelViewSet):

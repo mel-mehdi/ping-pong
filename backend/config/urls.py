@@ -34,6 +34,7 @@ class CustomSchemaGenerator(OpenAPISchemaGenerator):
             {'name': 'Tournaments', 'description': 'Tournament management'},
             {'name': 'Invitations', 'description': 'Invitation system'},
             {'name': 'Matches', 'description': 'Match tracking'},
+            {'name': 'Leaderboard', 'description': 'Tournament leaderboards'},
             {'name': 'Chat', 'description': 'Real-time chat'},
             {'name': 'Public API', 'description': 'Public endpoints'},
         ]
@@ -48,6 +49,7 @@ schema_view = get_schema_view(
         description="API for ft_transcendence",
     ),
     public=True,
+    url='http://localhost/',
     permission_classes=(permissions.AllowAny,),
     generator_class=CustomSchemaGenerator,
 )
