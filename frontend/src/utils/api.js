@@ -5,6 +5,8 @@ const DJANGO_API_BASE = '/api';
 
 class ApiClient {
   async request(endpoint, options = {}) {
+    // `quiet` option can be set on requests that are expected to 404 so we avoid noisy console errors
+    const quiet = options.quiet === true;
     try {
       // Allow overriding backend base via Vite env. Fallback to localhost:8001 for dev.
       const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
@@ -92,11 +94,12 @@ class ApiClient {
 
       return data;
     } catch (error) {
-      // Treat auth failures as expected (warn) to avoid noisy error logs
+      // Treat auth failures as expected (warn) to avoid noisy error logs.
+      // When `quiet` was set on the request, suppress logging for expected 404s or other non-critical errors.
       if (error && error.isAuthError) {
-        console.warn(`API Error [${endpoint}]:`, error.message);
+        if (!quiet) console.warn(`API Error [${endpoint}]:`, error.message);
       } else {
-        console.error(`API Error [${endpoint}]:`, error.message);
+        if (!quiet) console.error(`API Error [${endpoint}]:`, error.message);
       }
       throw error;
     }
@@ -110,9 +113,10 @@ class ApiClient {
   async getTournaments() {
     try {
       // Backend exposes tournaments under /game/tournaments/
-      return await this.request(`/game/tournaments/`);
+      // Use `quiet: true` to avoid noisy console logging when the endpoint is absent (404)
+      return await this.request(`/game/tournaments/`, { quiet: true });
     } catch (err) {
-      console.warn('getTournaments: no tournaments endpoint', err);
+      // Endpoint not available; return empty array silently
       return [];
     }
   }
@@ -222,19 +226,41 @@ class ApiClient {
   }
 
   async register(username, email, password) {
-    // Registration is exposed under /auth/register/ (AuthViewSet)
-    return this.request(`/auth/register/`, {
-      method: 'POST',
-      body: JSON.stringify({ username, email, password }),
-    });
+    // Backend exposes registration under /users/register/ (UserViewSet)
+    try {
+      return await this.request(`/users/register/`, {
+        method: 'POST',
+        body: JSON.stringify({ username, email, password }),
+      });
+    } catch (err) {
+      // Backwards compatibility: if /users/register/ is not present, try /auth/register/
+      if (err && err.status === 404) {
+        return this.request(`/auth/register/`, {
+          method: 'POST',
+          body: JSON.stringify({ username, email, password }),
+        });
+      }
+      throw err;
+    }
   }
 
   async login(username, password) {
-    // Login is exposed under /auth/login/ (AuthViewSet)
-    return this.request(`/auth/login/`, {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    });
+    // Backend login is under /users/login/
+    try {
+      return await this.request(`/users/login/`, {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      });
+    } catch (err) {
+      // Backwards compatibility: if /users/login/ not available, fallback to /auth/login/
+      if (err && err.status === 404) {
+        return this.request(`/auth/login/`, {
+          method: 'POST',
+          body: JSON.stringify({ username, password }),
+        });
+      }
+      throw err;
+    }
   }
 
   async searchUsers(query) {
