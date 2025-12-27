@@ -198,7 +198,20 @@
   background: var(--bg);
   padding: 1.5rem;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+}
+
+.leaderboard-warning {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: var(--radius);
+  background: rgba(255, 165, 0, 0.08);
+  border: 1px solid rgba(255, 165, 0, 0.15);
+  color: var(--text);
+}
+
+.leaderboard-warning p {
+  margin: 0;
+}  border: 1px solid var(--border);
 }
 
 .info-card h3 {

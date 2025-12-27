@@ -22,28 +22,68 @@ const TournamentPage = () => {
   const [activeTournaments, setActiveTournaments] = useState([]);
   const [brackets, setBrackets] = useState({ round: '', matches: [] });
   const [myTournaments, setMyTournaments] = useState([]);
+  // UI message state (shows brief informational messages on the page)
+  const [apiMessage, setApiMessage] = useState(null);
   const { userData, isBackendAuthenticated } = useAuth();
+
+  // Local cache helpers for tournaments (frontend-only)
+  const LOCAL_TOURNAMENTS_KEY = 'local_tournaments';
+  const loadLocalTournaments = () => {
+    try {
+      const raw = localStorage.getItem(LOCAL_TOURNAMENTS_KEY);
+      if (!raw) return [];
+      return JSON.parse(raw) || [];
+    } catch (e) {
+      console.warn('loadLocalTournaments error', e);
+      return [];
+    }
+  };
+  const saveLocalTournament = (tournament) => {
+    try {
+      const existing = loadLocalTournaments();
+      // dedupe by temporary id if present or by name+creator
+      const filtered = existing.filter((t) => !(t._localId === tournament._localId || (t.name === tournament.name && t.creator && tournament.creator && t.creator.id === tournament.creator.id)));
+      localStorage.setItem(LOCAL_TOURNAMENTS_KEY, JSON.stringify([tournament, ...filtered]));
+    } catch (e) {
+      console.warn('saveLocalTournament error', e);
+    }
+  };
 
   useEffect(() => {
     const loadTournaments = async () => {
       try {
-        if (!isBackendAuthenticated) {
-          // No backend auth — don't load tournaments
-          setActiveTournaments([]);
-          setMyTournaments([]);
-          setBrackets({ round: '', matches: [] });
-          return;
+        // Always attempt to fetch tournaments from backend when possible; fall back to local cache
+        let all = [];
+        try {
+          const fetched = await apiClient.getTournaments();
+          if (fetched && Array.isArray(fetched)) {
+            all = fetched;
+          }
+        } catch (err) {
+          console.warn('Failed to fetch tournaments from backend, using local cache', err);
+          const local = loadLocalTournaments();
+          all = local;
         }
 
-        const all = await apiClient.getTournaments();
         setActiveTournaments(all || []);
-        setMyTournaments((all || []).filter((t) => t.ownerId === userData?.userId));
+
+        // Determine my tournaments: prefer creator.id or participant owner-like fields
+        const my = (all || []).filter((t) => {
+          const creatorId = t.creator?.id || t.ownerId || t.owner_id || null;
+          return creatorId && userData && creatorId === userData.userId;
+        });
+        setMyTournaments(my);
+
         if (all && all.length > 0) {
           const first = all[0];
           setBrackets({ name: first.name, round: 'Quarterfinals', matches: first.matches || [] });
         }
       } catch (err) {
         console.error('Error loading tournaments:', err);
+        // Fallback: load local tournaments even in unexpected errors
+        const local = loadLocalTournaments();
+        setActiveTournaments(local || []);
+        setMyTournaments((local || []).filter((t) => (t.creator && userData && t.creator.id === userData.userId) || (t.ownerId && userData && t.ownerId === userData.userId)));
       }
     };
 
@@ -54,20 +94,35 @@ const TournamentPage = () => {
     e.preventDefault();
     (async () => {
       try {
+        // Use backend-expected field names: max_players, prize_pool
         const payload = {
           name: tournamentForm.name,
-          maxPlayers: tournamentForm.maxPlayers,
-          prize: tournamentForm.prize,
-          ownerId: userData?.userId || null,
-          ownerName: userData?.username || 'Anonymous',
-          invitedPlayers,
+          max_players: tournamentForm.maxPlayers,
+          prize_pool: tournamentForm.prize,
+          invited_players: invitedPlayers,
         };
+
         const created = await apiClient.createTournament(payload);
         if (created) {
-          // Refresh tournaments list
-          const all = await apiClient.getTournaments();
-          setActiveTournaments(all || []);
-          setMyTournaments((all || []).filter((t) => t.ownerId === userData?.userId));
+          // Save to local cache so it shows up even if a subsequent refresh can't hit backend
+          const owner = { id: userData?.userId, username: userData?.username };
+          const localCopy = {
+            ...created,
+            creator: created.creator || owner,
+            _localId: `local_${Date.now()}`,
+          };
+          saveLocalTournament(localCopy);
+
+          // Refresh tournaments list (prefer backend data when available)
+          try {
+            const all = await apiClient.getTournaments();
+            setActiveTournaments(all || []);
+            setMyTournaments((all || []).filter((t) => t.creator?.id === userData?.userId || t.ownerId === userData?.userId));
+          } catch (e) {
+            // If fetching fails, include the local copy in-active tournaments
+            setActiveTournaments((prev) => [localCopy, ...(prev || [])]);
+            setMyTournaments((prev) => [localCopy, ...(prev || [])]);
+          }
         }
       } catch (err) {
         console.error('Error creating tournament:', err);
@@ -150,6 +205,28 @@ const TournamentPage = () => {
     setInvitedPlayers(invitedPlayers.filter((player) => player !== username));
   };
 
+  const handleJoinTournament = async (tournament) => {
+    if (!isBackendAuthenticated) {
+      setApiMessage('Please sign in to join tournaments');
+      setTimeout(() => setApiMessage(null), 3000);
+      return;
+    }
+
+    try {
+      const result = await apiClient.joinTournament(tournament.id);
+      setApiMessage(result?.detail || 'Joined tournament');
+
+      // Refresh tournaments list so UI reflects updated participant counts/status
+      const all = await apiClient.getTournaments();
+      setActiveTournaments(all || []);
+      setMyTournaments((all || []).filter((t) => (t.creator && t.creator.id === userData?.userId) || t.ownerId === userData?.userId));
+    } catch (err) {
+      setApiMessage(err?.message || 'Unable to join tournament');
+    } finally {
+      setTimeout(() => setApiMessage(null), 3000);
+    }
+  };
+
   const { t } = useLanguage();
 
   return (
@@ -163,6 +240,12 @@ const TournamentPage = () => {
             <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
               {t('tournaments.create')}
             </button>
+            {/* Message banner for user feedback (join errors, success) */}
+            {apiMessage && (
+              <div className="alert alert-info mt-2" role="status">
+                {apiMessage}
+              </div>
+            )}
           </div>
 
           <div className="tournament-tabs">
@@ -203,31 +286,37 @@ const TournamentPage = () => {
                       <div className="tournament-info-row">
                         <span className="info-label">{t('tournaments.players_label')}</span>
                         <span className="info-value">
-                          {(tournament.participants || []).length}/{tournament.maxPlayers}
+                          {((tournament.participants && tournament.participants.length) || tournament.participant_count || 0)}/{tournament.max_players}
                         </span>
                       </div>
                       <div className="tournament-info-row">
                         <span className="info-label">{t('tournaments.prize_pool')}</span>
-                        <span className="info-value">{tournament.prize}</span>
+                        <span className="info-value">{tournament.prize || tournament.prize_pool}</span>
                       </div>
                       <div className="tournament-progress">
                         <div
                           className="tournament-progress-bar"
                           style={{
-                            width: `${(tournament.players / tournament.maxPlayers) * 100}%`,
+                            width: `${((((tournament.participants && tournament.participants.length) || tournament.participant_count || 0) / (tournament.max_players || tournament.maxPlayers)) * 100) || 0}%`,
                           }}
                         ></div>
                       </div>
                     </div>
                     <div className="tournament-card-footer">
-                      <button
-                        className="btn btn-primary w-100"
-                        disabled={tournament.status === 'Full'}
-                      >
-                        {tournament.status === 'Full'
-                          ? t('tournaments.full')
-                          : t('tournaments.join')}
-                      </button>
+                      {(() => {
+                        const participantCount = (tournament.participants && tournament.participants.length) || tournament.participant_count || 0;
+                        const isFull = participantCount >= (tournament.max_players || tournament.maxPlayers);
+                        const isJoinable = (tournament.status === 'pending') && !isFull;
+                        return (
+                          <button
+                            className="btn btn-primary w-100"
+                            disabled={!isJoinable}
+                            onClick={() => handleJoinTournament(tournament)}
+                          >
+                            {isFull ? t('tournaments.full') : (tournament.status !== 'pending' ? (tournament.status || 'Closed') : t('tournaments.join'))}
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 ))}

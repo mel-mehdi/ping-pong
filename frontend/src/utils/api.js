@@ -5,6 +5,8 @@ const DJANGO_API_BASE = '/api';
 
 class ApiClient {
   async request(endpoint, options = {}) {
+    // `quiet` option can be set on requests that are expected to 404 so we avoid noisy console errors
+    const quiet = options.quiet === true;
     try {
       // Allow overriding backend base via Vite env. Fallback to localhost:8001 for dev.
       const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
@@ -32,6 +34,21 @@ class ApiClient {
           ...options.headers,
         },
       };
+
+      // If an active API key is stored in localStorage, attach it to requests
+      // that target the backend API base (e.g. `/api/...`) so Public API endpoints
+      // can be accessed with an X-API-Key header.
+      try {
+        const activeKey = localStorage.getItem('active_api_key');
+        if (activeKey) {
+          const urlPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+          if (urlPath.startsWith(DJANGO_API_BASE)) {
+            config.headers = { ...config.headers, 'X-API-Key': activeKey };
+          }
+        }
+      } catch (e) {
+        // ignore localStorage errors
+      }
 
       // For state-changing requests, ensure CSRF cookie/header is present
       const method = (config.method || 'GET').toUpperCase();
@@ -77,11 +94,12 @@ class ApiClient {
 
       return data;
     } catch (error) {
-      // Treat auth failures as expected (warn) to avoid noisy error logs
+      // Treat auth failures as expected (warn) to avoid noisy error logs.
+      // When `quiet` was set on the request, suppress logging for expected 404s or other non-critical errors.
       if (error && error.isAuthError) {
-        console.warn(`API Error [${endpoint}]:`, error.message);
+        if (!quiet) console.warn(`API Error [${endpoint}]:`, error.message);
       } else {
-        console.error(`API Error [${endpoint}]:`, error.message);
+        if (!quiet) console.error(`API Error [${endpoint}]:`, error.message);
       }
       throw error;
     }
@@ -94,16 +112,18 @@ class ApiClient {
   // Tournaments endpoints may be absent; try /api/tournaments/ and return empty list on failure
   async getTournaments() {
     try {
-      return await this.request(`${DJANGO_API_BASE}/tournaments/`);
+      // Backend exposes tournaments under /game/tournaments/
+      // Use `quiet: true` to avoid noisy console logging when the endpoint is absent (404)
+      return await this.request(`/game/tournaments/`, { quiet: true });
     } catch (err) {
-      console.warn('getTournaments: no tournaments endpoint', err);
+      // Endpoint not available; return empty array silently
       return [];
     }
   }
 
   async getTournamentById(id) {
     try {
-      return await this.request(`${DJANGO_API_BASE}/tournaments/${id}/`);
+      return await this.request(`/game/tournaments/${id}/`);
     } catch (err) {
       console.warn('getTournamentById: not available', err);
       throw err;
@@ -112,12 +132,23 @@ class ApiClient {
 
   async createTournament(data) {
     try {
-      return await this.request(`${DJANGO_API_BASE}/tournaments/`, {
+      return await this.request(`/game/tournaments/`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
     } catch (err) {
       console.warn('createTournament: not available', err);
+      throw err;
+    }
+  }
+
+  async joinTournament(tournamentId) {
+    try {
+      return await this.request(`/game/tournaments/${tournamentId}/join/`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.warn('joinTournament: failed', err);
       throw err;
     }
   }
@@ -185,20 +216,51 @@ class ApiClient {
     }
   }
 
+  async getProfiles() {
+    try {
+      return await this.request(`${DJANGO_USER_BASE}/profiles/`);
+    } catch (err) {
+      console.warn('getProfiles: not available', err);
+      return [];
+    }
+  }
+
   async register(username, email, password) {
-    // Backend exposes registration at /users/register/
-    return this.request(`${DJANGO_USER_BASE}/users/register/`, {
-      method: 'POST',
-      body: JSON.stringify({ username, email, password }),
-    });
+    // Backend exposes registration under /users/register/ (UserViewSet)
+    try {
+      return await this.request(`/users/register/`, {
+        method: 'POST',
+        body: JSON.stringify({ username, email, password }),
+      });
+    } catch (err) {
+      // Backwards compatibility: if /users/register/ is not present, try /auth/register/
+      if (err && err.status === 404) {
+        return this.request(`/auth/register/`, {
+          method: 'POST',
+          body: JSON.stringify({ username, email, password }),
+        });
+      }
+      throw err;
+    }
   }
 
   async login(username, password) {
-    // Login endpoint uses user routes
-    return this.request(`${DJANGO_USER_BASE}/users/login/`, {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    });
+    // Backend login is under /users/login/
+    try {
+      return await this.request(`/users/login/`, {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      });
+    } catch (err) {
+      // Backwards compatibility: if /users/login/ not available, fallback to /auth/login/
+      if (err && err.status === 404) {
+        return this.request(`/auth/login/`, {
+          method: 'POST',
+          body: JSON.stringify({ username, password }),
+        });
+      }
+      throw err;
+    }
   }
 
   async searchUsers(query) {
@@ -369,6 +431,39 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+  }
+
+  async updateProfile(profileId, data) {
+    return this.request(`${DJANGO_USER_BASE}/profiles/${profileId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Local active API key helpers (frontend-only)
+  getActiveApiKey() {
+    try {
+      return localStorage.getItem('active_api_key');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  setActiveApiKey(key) {
+    try {
+      if (key === null) localStorage.removeItem('active_api_key');
+      else localStorage.setItem('active_api_key', key);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  clearActiveApiKey() {
+    try {
+      localStorage.removeItem('active_api_key');
+    } catch (e) {
+      /* ignore */
+    }
   }
 }
 
