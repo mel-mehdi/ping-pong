@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from .models import APIKey, APIRequestLog
 
 
@@ -31,9 +31,8 @@ class APIKeyAdmin(admin.ModelAdmin):
     )
     
     def save_model(self, request, obj, form, change):
-        if not change:  # Creating new key
-            # Generate key through admin action instead
-            pass
+        if not change:
+            messages.error(request, 'API keys cannot be created through admin. Use the API endpoint.')
         super().save_model(request, obj, form, change)
 
 
@@ -57,4 +56,10 @@ class APIRequestLogAdmin(admin.ModelAdmin):
         return False
     
     def has_change_permission(self, request, obj=None):
+        return True
+    
+    def has_delete_permission(self, request, obj=None):
         return False
+    
+    def get_readonly_fields(self, request, obj=None):
+        return [f.name for f in self.model._meta.fields]

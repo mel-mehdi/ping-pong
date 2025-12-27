@@ -1,19 +1,27 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
-user_view = views.PublicAPIViewSet.as_view({
-    'get': 'me',
-	'post': 'register',
-    'put': 'me',
-    'delete': 'me'
+router = DefaultRouter()
+router.register(r'keys', views.APIKeyViewSet, basename='api-keys')
+
+tournaments_list = views.PublicAPIViewSet.as_view({
+	'get': 'tournaments',
+	'post': 'create_tournament'
+})
+
+tournament_detail = views.PublicAPIViewSet.as_view({
+	'put': 'update_tournament',
+	'delete': 'delete_tournament'
 })
 
 leaderboard_view = views.PublicAPIViewSet.as_view({
-    'get': 'leaderboard'
+	'get': 'leaderboard'
 })
 
 urlpatterns = [
-    path('me/', user_view, name='user-me'),
-    path('leaderboard/', leaderboard_view, name='leaderboard'),
-    path('csrf/', views.set_csrf_cookie, name='set-csrf'),
+	path('', include(router.urls)),
+	path('tournaments/', tournaments_list, name='api-tournaments'),
+	path('tournaments/<int:pk>/', tournament_detail, name='api-tournament-detail'),
+	path('leaderboard/', leaderboard_view, name='api-leaderboard'),
 ]

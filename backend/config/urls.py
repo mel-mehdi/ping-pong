@@ -36,6 +36,7 @@ class CustomSchemaGenerator(OpenAPISchemaGenerator):
             {'name': 'Matches', 'description': 'Match tracking'},
             {'name': 'Leaderboard', 'description': 'Tournament leaderboards'},
             {'name': 'Chat', 'description': 'Real-time chat'},
+            {'name': 'API Key Management', 'description': 'API key creation and management'},
             {'name': 'Public API', 'description': 'Public endpoints'},
         ]
         return schema
