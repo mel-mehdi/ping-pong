@@ -57,3 +57,10 @@ env/
 # Python Cache
 __pycache__/
 *.py[co]
+
+# Migration files
+**/migrations/[0-9]*.py
+
+# SSL Certificates
+*.crt
+*.key
