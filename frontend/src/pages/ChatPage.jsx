@@ -17,88 +17,69 @@ const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
 
-  const sendMessage = (e) => {
+  const sendMessage = async (e) => {
     e.preventDefault();
-    if (newMessage.trim()) {
-      (async () => {
-        try {
-          if (!userData || !selectedChat) return;
-          if (!isBackendAuthenticated) {
-            // local-only send
-            setMessages([
-              ...messages,
-              {
-                id: messages.length + 1,
-                sender: 'You',
-                text: newMessage.trim(),
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                isOwn: true,
-              },
-            ]);
-            setNewMessage('');
-            return;
-          }
-          await apiClient.sendMessage(userData.userId, selectedChat.id, newMessage.trim());
-          const updated = await apiClient.getMessages(userData.userId, selectedChat.id);
-          setMessages(updated || []);
-        } catch (err) {
-          console.error('Error sending message:', err);
-        }
-      })();
-      setNewMessage('');
+    if (!newMessage.trim() || !userData || !selectedChat) return;
+
+    const msg = newMessage.trim();
+    setNewMessage('');
+
+    if (!isBackendAuthenticated) {
+      setMessages([...messages, {
+        id: messages.length + 1,
+        sender: 'You',
+        text: msg,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isOwn: true,
+      }]);
+      return;
+    }
+
+    try {
+      await apiClient.sendMessage(userData.userId, selectedChat.id, msg);
+      const updated = await apiClient.getMessages(userData.userId, selectedChat.id);
+      setMessages(updated || []);
+    } catch (err) {
+      console.error('Error sending message:', err);
     }
   };
 
   useEffect(() => {
-    const loadConversations = async () => {
-      if (!userData?.userId) return;
-      // If not backend auth, skip loading conversations
-      if (!isBackendAuthenticated) {
-        setConversations([]);
-        setSelectedChat(null);
-        return;
-      }
+    if (!userData?.userId || !isBackendAuthenticated) {
+      setConversations([]);
+      setSelectedChat(null);
+      return;
+    }
 
-      // include selectedChat in dependencies to satisfy hooks linter
-
+    (async () => {
       try {
         const users = await apiClient.getAllUsers();
         const others = (users || [])
-          .filter((u) => u.id !== userData.userId)
-          .map((u) => ({
-            id: u.id,
-            name: u.username,
-            lastMessage: '',
-            time: '',
-            unread: 0,
-            online: false,
-          }));
+          .filter(u => u.id !== userData.userId)
+          .map(u => ({ id: u.id, name: u.username, lastMessage: '', time: '', unread: 0, online: false }));
+        
         setConversations(others);
-        if (!selectedChat && others.length > 0) setSelectedChat(others[0]);
+        if (!selectedChat && others.length) setSelectedChat(others[0]);
       } catch (err) {
         console.error('Error loading users for conversations:', err);
         setConversations([]);
-        setSelectedChat(null);
       }
-    };
-    loadConversations();
+    })();
   }, [userData, isBackendAuthenticated, selectedChat]);
 
   useEffect(() => {
-    const loadMessagesForSelected = async () => {
-      if (!userData?.userId || !selectedChat) return;
+    if (!userData?.userId || !selectedChat) return;
+
+    (async () => {
       try {
-        if (!isBackendAuthenticated) {
-          setMessages([]);
-        } else {
-          const msgs = await apiClient.getMessages(userData.userId, selectedChat.id);
-          setMessages(msgs || []);
-        }
+        const msgs = isBackendAuthenticated 
+          ? await apiClient.getMessages(userData.userId, selectedChat.id)
+          : [];
+        setMessages(msgs || []);
       } catch (err) {
         console.error('Error loading messages for conversation:', err);
       }
-    };
-    loadMessagesForSelected();
+    })();
   }, [selectedChat, userData, isBackendAuthenticated]);
 
   const sendGameInvite = () => {
@@ -121,7 +102,6 @@ const ChatPage = () => {
     if (!selectedChat) return;
     if (!blockedUsers.includes(selectedChat.id)) {
       setBlockedUsers([...blockedUsers, selectedChat.id]);
-      console.info(`${selectedChat.name} has been blocked`);
     }
     setShowMenu(false);
   };
@@ -129,7 +109,6 @@ const ChatPage = () => {
   const unblockUser = () => {
     if (!selectedChat) return;
     setBlockedUsers(blockedUsers.filter((id) => id !== selectedChat.id));
-    console.info(`${selectedChat.name} has been unblocked`);
     setShowMenu(false);
   };
 

@@ -1,16 +1,11 @@
-import React from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import PropTypes from 'prop-types';
 
 const order = ['en', 'fr', 'es'];
 
 const LanguageSwitcher = ({ className = '' }) => {
   const { locale, setLocale, t } = useLanguage();
-
-  const cycle = () => {
-    const idx = order.indexOf(locale);
-    const next = order[(idx + 1) % order.length];
-    setLocale(next);
-  };
+  const cycle = () => setLocale(order[(order.indexOf(locale) + 1) % order.length]);
 
   return (
     <button
@@ -22,6 +17,10 @@ const LanguageSwitcher = ({ className = '' }) => {
       {t(`lang.${locale}`) || locale.toUpperCase()}
     </button>
   );
+};
+
+LanguageSwitcher.propTypes = {
+  className: PropTypes.string,
 };
 
 export default LanguageSwitcher;

@@ -4,8 +4,6 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  root: 'src',
-  publicDir: '../public',
   base: '/',
   server: {
     port: Number(process.env.PORT) || 8000,
@@ -13,6 +11,7 @@ export default defineConfig({
     open: false,
     strictPort: false,
     hmr: false,
+    allowedHosts: ['frontend', 'react', 'localhost'],
 	watch: {
 		usePolling: true,
 	},
@@ -36,7 +35,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '../dist',
+    outDir: 'dist',
     emptyOutDir: true,
   },
   resolve: {

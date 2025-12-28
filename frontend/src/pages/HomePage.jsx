@@ -1,19 +1,61 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import apiClient from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/home.css';
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, userData } = useAuth();
+  const { isAuthenticated, userData, isBackendAuthenticated } = useAuth();
   const { t } = useLanguage();
+  const [userStats, setUserStats] = useState(null);
+  const [recentMatches, setRecentMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const achievementsCount = Array.isArray(userData?.achievements)
     ? userData.achievements.length
     : typeof userData?.achievements === 'number'
       ? userData.achievements
       : 0;
+
+  // Fetch user stats from API
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!isAuthenticated || !isBackendAuthenticated || !userData?.userId) return;
+      
+      setLoading(true);
+      try {
+        // Fetch user profile for complete stats
+        const profile = await apiClient.getUserProfile(userData.userId);
+        if (profile) {
+          setUserStats({
+            wins: profile.wins || 0,
+            losses: profile.losses || 0,
+            winRate: profile.wins && (profile.wins + profile.losses) 
+              ? Math.round((profile.wins / (profile.wins + profile.losses)) * 100) 
+              : 0,
+            rank: profile.rank || 0,
+            level: profile.level || 1,
+          });
+        }
+
+        // Fetch recent matches
+        const matches = await apiClient.getMyMatches();
+        if (Array.isArray(matches)) {
+          setRecentMatches(matches.slice(0, 5)); // Get last 5 matches
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [isAuthenticated, isBackendAuthenticated, userData]);
 
   const handleQuickPlay = () => {
     navigate('/game');
@@ -119,7 +161,7 @@ const HomePage = () => {
                       marginBottom: '0.25rem',
                     }}
                   >
-                    {userData?.wins || 0}
+                    {userStats?.wins || userData?.wins || 0}
                   </p>
                   <small style={{ color: 'var(--text-muted)' }}>{t('home.keep_playing')}</small>
                 </div>
@@ -160,7 +202,7 @@ const HomePage = () => {
                       marginBottom: '0.25rem',
                     }}
                   >
-                    {userData?.winRate || 0}%
+                    {userStats?.winRate || userData?.winRate || 0}%
                   </p>
                   <small style={{ color: 'var(--text-muted)' }}>{t('home.great_progress')}</small>
                 </div>
@@ -201,7 +243,7 @@ const HomePage = () => {
                       marginBottom: '0.25rem',
                     }}
                   >
-                    #{userData?.rank || '-'}
+                    #{userStats?.rank || userData?.rank || '-'}
                   </p>
                   <small style={{ color: 'var(--text-muted)' }}>{t('home.keep_climbing')}</small>
                 </div>

@@ -1,16 +1,16 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import App from './App';
-import './styles/main.css';
-import './styles/professional.css';
 import { LanguageProvider } from './contexts/LanguageContext';
 import ThemeInitializer from './components/ThemeInitializer';
+import './styles/main.css';
+import './styles/professional.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
     <LanguageProvider>
       <ThemeInitializer />
       <App />
     </LanguageProvider>
-  </React.StrictMode>
+  </StrictMode>
 );
