@@ -57,75 +57,52 @@ const Navbar = () => {
         if (!u || typeof u !== 'object') return false;
         const username = (u.username || '').toString().trim();
         const email = (u.email || '').toString().trim();
-        if (!username && !email) return false;
-        if (username.length > 50 || email.length > 120) return false;
+        if (!username && !email || username.length > 50 || email.length > 120) return false;
         const badPattern = /https?:\/\/|www\.|\/.+|=|\?|&|om\/api|\bapi\b/i;
-        if (badPattern.test(username) || badPattern.test(email)) return false;
-        return true;
+        return !badPattern.test(username) && !badPattern.test(email);
     };
-
-
 
     const handleSearch = async (query) => {
         setSearchQuery(query);
-        if (query.trim().length >= 1) {
-            setIsSearching(true);
-            try {
-                const isValidUser = (u) => {
-                    if (!u || typeof u !== 'object') return false;
-                    const username = (u.username || '').toString().trim();
-                    const email = (u.email || '').toString().trim();
-                    if (!username && !email) return false;
-                    if (username.length > 50 || email.length > 120) return false;
-                    const badPattern = /https?:\/\/|www\.|\/.+|=|\?|&|om\/api|\bapi\b/i;
-                    if (badPattern.test(username) || badPattern.test(email)) return false;
-                    return true;
-                };
-
-                if (!isBackendAuthenticated) {
-                    // No backend auth — disable search
-                    setSearchResults([]);
-                    setSearchSource('none');
-                    setShowSearchResults(false);
-                    return;
-                }
-
-                const results = await apiClient.searchUsers(query);
-                const normalized = (results || []).filter(u => u && typeof u === 'object' && (u.username || u.email)).map(u => ({ ...u, id: u.id || u.userId })).filter(isValidUser);
-                // exclude current user from backend results
-                const filteredNormalized = normalized.filter(u => {
-                    if (!userData) return true;
-                    const uid = userData.userId || userData.id;
-                    if (!uid) return u.username !== userData.username;
-                    return (u.id !== uid && u.userId !== uid && u.username !== userData.username && u.email !== userData.email);
-                });
-
-                setSearchResults(filteredNormalized);
-                setSearchSource('backend');
-
-                setShowSearchResults(true);
-            } catch (error) {
-                console.error('Search error:', error);
-                setSearchResults([]);
-                setSearchSource('none');
-                setShowSearchResults(false);
-            } finally {
-                setIsSearching(false);
-            }
-        } else {
+        
+        if (query.trim().length < 1) {
             setShowSearchResults(false);
             setSearchResults([]);
+            return;
+        }
+
+        if (!isBackendAuthenticated) {
+            setSearchResults([]);
+            setSearchSource('none');
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            const results = await apiClient.searchUsers(query);
+            const uid = userData?.userId || userData?.id;
+            const filtered = (results || [])
+                .filter(u => u && (u.username || u.email))
+                .map(u => ({ ...u, id: u.id || u.userId }))
+                .filter(isValidUser)
+                .filter(u => u.id !== uid && u.userId !== uid);
+
+            setSearchResults(filtered);
+            setSearchSource('backend');
+            setShowSearchResults(true);
+        } catch (error) {
+            console.error('Search error:', error);
+            setSearchResults([]);
+            setSearchSource('none');
+        } finally {
+            setIsSearching(false);
         }
     };
 
     const handleSendInvite = async (userId, username) => {
+        if (!userData || !isBackendAuthenticated) return;
+        
         try {
-            if (!userData) return;
-            if (!isBackendAuthenticated) {
-                console.warn('Cannot send invites when not backend authenticated');
-                return;
-            }
-
             await apiClient.sendInvitation(userData.userId, userData.username, userId, username);
             setPendingInvites([...pendingInvites, userId]);
         } catch (error) {
@@ -134,13 +111,10 @@ const Navbar = () => {
     };
 
     const handleAcceptRequest = async (id) => {
+        if (!isBackendAuthenticated) return;
+        
         try {
-            if (!isBackendAuthenticated) {
-                console.warn('Cannot accept friend requests when not backend authenticated');
-                return;
-            }
             await apiClient.updateFriendRequest(id, 'accepted');
-            // reload notifications from backend
             loadNotifications();
         } catch (err) {
             console.error('Error accepting friend request:', err);
@@ -148,11 +122,9 @@ const Navbar = () => {
     };
 
     const handleDeclineRequest = async (id) => {
+        if (!isBackendAuthenticated) return;
+        
         try {
-            if (!isBackendAuthenticated) {
-                console.warn('Cannot decline friend requests when not backend authenticated');
-                return;
-            }
             await apiClient.updateFriendRequest(id, 'rejected');
             loadNotifications();
         } catch (err) {
