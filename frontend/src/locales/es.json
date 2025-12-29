@@ -1,0 +1,274 @@
+{
+  "brand": "Ping pong",
+  "lang": {
+    "en": "EN",
+    "fr": "FR",
+    "es": "ES"
+  },
+  "nav": {
+    "home": "Inicio",
+    "play": "Jugar",
+    "tournaments": "Torneos",
+    "leaderboard": "Clasificación",
+    "chat": "Charlar",
+    "profile": "Perfil",
+    "logout": "Cerrar sesión",
+    "login": "Iniciar sesión",
+    "signup": "Registrarse"
+  },
+  "home": {
+    "welcome": "Bienvenido a PingPong",
+    "welcome_back": "Bienvenido de nuevo, {user}!",
+    "subtitle": "¿Listo para tu próximo partido? Desafía a jugadores de todo el mundo o únete a un torneo",
+    "welcome_subtitle": "¿Listo para tu próximo partido? Desafía a jugadores de todo el mundo o únete a un torneo",
+    "play_now": "Jugar ahora",
+    "join_tournament": "Unirse al torneo",
+    "get_started": "Comenzar gratis",
+    "total_wins": "Victorias totales",
+    "keep_playing": "¡Sigue jugando!",
+    "win_rate_label": "Tasa de victorias",
+    "great_progress": "¡Gran progreso!",
+    "global_rank": "Clasificación global",
+    "keep_climbing": "¡Sigue subiendo!",
+    "achievements": "Logros",
+    "unlock_more": "¡Desbloquea más!",
+    "quick_play_title": "Partida rápida",
+    "quick_play_desc": "Entra directamente en la acción con emparejamiento instantáneo",
+    "start_now": "Comenzar",
+    "online_game_title": "Juego en línea",
+    "online_game_desc": "Enfréntate a jugadores de todo el mundo",
+    "play_online": "Jugar en línea",
+    "play_vs_ai": "Jugar contra IA",
+    "ai_desc": "Juega contra un oponente de ordenador",
+    "tournament_title": "Torneo",
+    "tournament_desc": "Compite en cuadros y gana campeonatos",
+    "join_now": "Unirse ahora",
+    "cta": {
+      "title": "¿Listo para jugar?",
+      "desc": "Únete a la comunidad y comienza tu camino para convertirte en campeón",
+      "button": "Crea tu cuenta gratuita"
+    },
+    "top_players": "Mejores jugadores",
+    "view_all": "Ver todo",
+    "intro": "¿Listo para tu próximo partido? Desafía a jugadores de todo el mundo o únete a un torneo",
+    "sign_in": "Iniciar sesión",
+    "features_title": "Características",
+    "features_subtitle": "Explora lo más destacado de PingPong",
+    "feature_multiplayer": {
+      "title": "Multijugador",
+      "desc": "Juega partidas en tiempo real con jugadores de todo el mundo"
+    },
+    "feature_tournaments": {
+      "title": "Torneos",
+      "desc": "Competiciones organizadas con cuadros y recompensas"
+    },
+    "feature_stats": {
+      "title": "Estadísticas y seguimiento",
+      "desc": "Haz seguimiento de tu rendimiento y progreso a lo largo del tiempo"
+    },
+    "feature_social": {
+      "title": "Social",
+      "desc": "Conéctate y chatea con otros jugadores"
+    },
+    "feature_achievements": {
+      "title": "Logros",
+      "desc": "Desbloquea insignias y hitos a medida que juegas"
+    },
+    "feature_cross": {
+      "title": "Multiplataforma",
+      "desc": "Juega en varios dispositivos sin problemas"
+    },
+    "choose_mode_title": "Elige tu modo de juego",
+    "choose_mode_subtitle": "Varias maneras de jugar y competir"
+  },
+  "profile": {
+    "player": "Jugador",
+    "edit_profile": "Editar perfil",
+    "tabs": {
+      "overview": "Resumen",
+      "matches": "Historial",
+      "achievements": "Logros"
+    },
+    "games_played": "Partidos jugados",
+    "wins": "Victorias",
+    "losses": "Derrotas",
+    "win_rate": "Tasa de victorias",
+    "rank": "Clasificación",
+    "click_upload": "Haz clic para subir o arrastra y suelta",
+    "file_types": "PNG, JPG o GIF (máx. 2MB)",
+    "cancel": "Cancelar",
+    "upload": "Subir",
+    "uploading": "Subiendo...",
+    "username": "Nombre de usuario",
+    "fullname": "Nombre completo",
+    "email": "Correo electrónico",
+    "bio": "Biografía",
+    "bio_placeholder": "Cuéntanos sobre ti...",
+    "save_changes": "Guardar cambios",
+    "saving": "Guardando..."
+  },
+  "search": {
+    "placeholder": "Buscar jugadores...",
+    "searching": "Buscando...",
+    "backend_results": "Resultados del servidor",
+    "client_results": "Resultados del cliente",
+    "no_users": "No se encontraron jugadores"
+  },
+  "notifications": {
+    "title": "Solicitudes de amistad",
+    "no_notifications": "No hay nuevas notificaciones",
+    "message": "{from} te ha enviado una solicitud de amistad",
+    "accept": "Aceptar",
+    "decline": "Rechazar"
+  },
+  "invite": {
+    "invite": "Invitar",
+    "pending": "En espera"
+  },
+  "status": {
+    "online": "en línea",
+    "offline": "desconectado"
+  },
+  "tournaments": {
+    "title": "Torneos",
+    "subtitle": "Compite en competiciones organizadas y gana premios.",
+    "create": "+ Crear torneo",
+    "create_title": "Crear nuevo torneo",
+    "name_label": "Nombre del torneo",
+    "name_placeholder": "ej., Campeonato de invierno 2025",
+    "max_players_label": "Número máximo de jugadores",
+    "players_option": "{n} jugadores",
+    "prize_label": "Cagnotte",
+    "prize_placeholder": "ej., 1000 Puntos",
+    "invite_friends": "Invitar amigos (hasta {n} jugadores)",
+    "search_placeholder": "Buscar amigos por nombre de usuario...",
+    "add": "Agregar",
+    "searching": "Buscando...",
+    "players_label": "Jugadores:",
+    "prize_pool": "Cagnotte:",
+    "full": "Torneo completo",
+    "join": "Unirse al torneo",
+    "vs": "VS",
+    "upcoming": "Próximos",
+    "participant": "Participante",
+    "no_placement": "Sin clasificación",
+    "prize": "Premio",
+    "empty_slot": "Lugar vacío",
+    "invited_info": "{invited}/{max} jugadores invitados",
+    "remove_player_title": "Eliminar jugador",
+    "cancel": "Cancelar",
+    "create_submit": "Crear torneo",
+    "tabs": {
+      "active": "Torneos activos",
+      "brackets": "Soportes en vivo",
+      "history": "Mi historia"
+    }
+  },
+  "leaderboard": {
+    "title": "Clasificación mundial",
+    "subtitle": "Compite con los mejores jugadores del mundo.",
+    "filters": {
+      "all_time": "Todo el tiempo",
+      "monthly": "Este mes",
+      "weekly": "Esta semana"
+    },
+    "table": {
+      "rank": "Rango",
+      "player": "Jugador",
+      "level": "Nivel",
+      "wins": "Victorias",
+      "losses": "Pérdidas",
+      "win_rate": "Tasa de victorias",
+      "points": "Agujas"
+    },
+    "info": {
+      "title": "Cómo funcionan las clasificaciones",
+      "win_matches": "Gana partidos para ganar puntos y ascender en la clasificación.",
+      "harder_opponents": "Los oponentes de mayor dificultad otorgan más puntos.",
+      "streaks": "Las rachas de victorias proporcionan multiplicadores de bonificación",
+      "reset_monthly": "Las clasificaciones se restablecen mensualmente para la competencia de temporada."
+    },
+    "empty_message": "¡Juega partidos para aparecer en la clasificación!"
+  },
+  "chat": {
+    "conversations": "Conversaciones",
+    "blocked": "Bloqueado",
+    "send_game_invite": "Enviar invitación de juego",
+    "block_user": "Bloquear usuario",
+    "unblock_user": "Desbloquear usuario",
+    "blocked_notice": "Has bloqueado a este usuario. Los mensajes no pueden ser enviados.",
+    "user_blocked": "El usuario está bloqueado",
+    "type_message": "Escribe un mensaje..."
+  },
+  "game": {
+    "player1": "Jugador 1",
+    "player2": "Jugador 2",
+    "ready": "Listo",
+    "quick_match": "Partida rápida",
+    "first_to": "Primero en llegar a {n}",
+    "press_space_start": "Presiona ESPACIO para comenzar",
+    "paused_resume": "PAUSADO - Presiona ESPACIO para reanudar",
+    "winner_wins": "{winner} gana!",
+    "play_again": "Jugar de nuevo",
+    "main_menu": "Menú principal",
+    "controls": "Controles",
+    "label": "Juego",
+    "playing_vs_ai": "Jugando contra IA ({level})",
+    "ai_easy": "Fácil",
+    "ai_normal": "Normal",
+    "ai_hard": "Difícil",
+    "keys": {
+      "player1": ["O","S"],
+      "player2": ["I","K"],
+      "game": ["ESPACIO","F"]
+    }
+  },
+  "footer": {
+    "description": "Un moderno juego de Pong basado en la web con torneos, modo multijugador y juego competitivo.",
+    "academic": "Parte del currículo escolar 42",
+    "quick_links": "Enlaces rápidos",
+    "play_game": "Jugar juego",
+    "legal": "Legal",
+    "privacy": "política de privacidad",
+    "terms": "Condiciones de servicio",
+    "connect": "Conectar",
+    "all_rights": "© 2025 PingPong. Todos los derechos reservados.",
+    "disclaimer": "Este es un proyecto educativo creado para el currículo de la Escuela 42."
+  },
+  "legal": {
+    "terms_title": "Terms of Service",
+    "privacy_title": "Privacy Policy",
+    "last_updated": "Last updated",
+    "back_home": "Back to Home"
+  },
+  "auth": {
+    "welcome_back": "Welcome Back",
+    "signin_subtitle": "Sign in to continue to PingPong",
+    "no_account": "Don't have an account?",
+    "sign_up": "Sign Up",
+    "username": "Username",
+    "password": "Password",
+    "signing_in": "Signing In...",
+    "sign_in": "Sign In",
+    "or": "or",
+    "create_account": "Create Account",
+    "join_subtitle": "Join PingPong and start playing",
+    "already_have_account": "Already have an account?",
+    "must_accept_terms": "You must accept the terms and conditions",
+    "username_exists": "Username already exists",
+    "email_registered": "Email already registered",
+    "registration_error": "An error occurred during registration",
+    "fullname": "Full Name",
+    "email": "Email",
+    "confirm_password": "Confirm Password",
+    "terms_prefix": "I agree to the",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "and": "and",
+    "creating_account": "Creating Account...",
+    "sign_in_with_google": "Sign in with Google",
+    "user_not_found": "User not found",
+    "invalid_password": "Invalid password",
+    "login_error": "An error occurred during login"
+  }
+}

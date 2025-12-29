@@ -1,0 +1,265 @@
+/* Home Page Styles */
+
+.home-main {
+  min-height: 100vh;
+}
+
+.home-main .container {
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 6rem 0 4rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-title {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.welcome-text,
+.welcome-subtitle {
+  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+  margin-bottom: 2rem;
+  opacity: 0.95;
+  line-height: 1.6;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.welcome-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+/* Play Option Cards */
+.hover-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.hover-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.15);
+  border-color: var(--primary) !important;
+}
+
+.play-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.play-icon svg {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+}
+
+.card-icon svg {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature-icon svg {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.08));
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Per-icon color helpers (use currentColor in SVG so color can be changed via color property) */
+.icon-multiplayer { color: var(--primary); }
+.icon-tournaments { color: #f59e0b; }
+.icon-stats { color: #10b981; }
+.icon-social { color: #06b6d4; }
+.icon-achievements { color: #8b5cf6; }
+.icon-cross { color: var(--text); }
+
+/* Section Title */
+.section-title {
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--text);
+}
+
+/* Button Enhancements */
+.btn {
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-lg {
+  padding: 0.875rem 2rem;
+  font-size: 1.125rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .welcome-section {
+    padding: 4rem 0 3rem;
+  }
+
+  .welcome-title {
+    font-size: 2rem;
+  }
+
+  .welcome-text,
+  .welcome-subtitle {
+    font-size: 1.125rem;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+  }
+
+  .play-icon {
+    font-size: 2.5rem;
+  }
+}
+
+/* Stats Grid Enhancement */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+/* List Group */
+.list-group {
+  list-style: none;
+  padding: 0;
+}
+
+.list-group-item {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.list-group-item:last-child {
+  border-bottom: none;
+}
+
+.list-group-numbered {
+  counter-reset: list-counter;
+}
+
+.list-group-numbered .list-group-item {
+  counter-increment: list-counter;
+  position: relative;
+  padding-left: 3rem;
+}
+
+.list-group-numbered .list-group-item::before {
+  content: counter(list-counter);
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--primary);
+  color: white;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Gap Utilities */
+.g-4 {
+  gap: 1.5rem;
+}
+
+/* Display utilities */
+.d-flex {
+  display: flex;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+.mb-3 {
+  margin-bottom: 1rem !important;
+}
+.mb-4 {
+  margin-bottom: 1.5rem !important;
+}
+.my-4 {
+  margin-top: 1.5rem !important;
+  margin-bottom: 1.5rem !important;
+}
+.my-5 {
+  margin-top: 3rem !important;
+  margin-bottom: 3rem !important;
+}
+
+/* Display */
+.display-4 {
+  font-size: 3rem;
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+/* Border utilities */
+.border-0 {
+  border: none !important;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+/* Width utilities */
+.w-100 {
+  width: 100%;
+}
+
+/* Height utilities */
+.h-100 {
+  height: 100%;
+}

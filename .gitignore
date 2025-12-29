@@ -1,7 +1,13 @@
 # Node modules
 node_modules/
-backend/node_modules/
 frontend/node_modules/
+
+# Migration files
+**/migrations/[0-9]*.py
+
+# SSL Certificates
+*.crt
+*.key
 
 # Package locks
 package-lock.json
@@ -42,3 +48,19 @@ build/
 tmp/
 temp/
 *.tmp
+
+# Python / Django
+# Virtual environment directories
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.py[co]
+
+# Migration files
+**/migrations/[0-9]*.py
+
+# SSL Certificates
+*.crt
+*.key
