@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import logout as django_logout
 from django.shortcuts import get_object_or_404
+from .google_auth import verify_google_token
 from .models import User, UserProfile, Friendship, Notification, Achievement, UserAchievement
 from .serializers import (
 	UserSerializer,
@@ -82,6 +83,61 @@ class AuthViewSet(viewsets.ViewSet):
 		user.save()
 		django_logout(request)
 		return Response({'success': 'Logged out successfully'})
+	
+	@action(detail=False, methods=['post'])
+	def google_login(self, request):
+		"""
+		Login/Register with Google OAuth
+		POST /auth/google_login/
+		Body: {"token": "google_oauth_token"}
+		"""
+		token = request.data.get('token')
+		
+		if not token:
+			return Response(
+				{'error': 'Token is required'}, 
+				status=status.HTTP_400_BAD_REQUEST
+			)
+		
+		user_info = verify_google_token(token)
+		
+		if not user_info:
+			return Response(
+				{'error': 'Invalid Google token'}, 
+				status=status.HTTP_401_UNAUTHORIZED
+			)
+
+		try:
+			user = User.objects.get(google_id=user_info['google_id'])
+			user.online_status = True
+			user.save()
+		except User.DoesNotExist:
+			try:
+				user = User.objects.get(email=user_info['email'])
+				user.google_id = user_info['google_id']
+				user.online_status = True
+				user.save()
+				
+			except User.DoesNotExist:
+				username = user_info['email'].split('@')[0]
+				base_username = username
+				counter = 1
+				while User.objects.filter(username=username).exists():
+					username = f"{base_username}{counter}"
+					counter += 1
+				
+				user = User.objects.create_user(
+					username=username,
+					email=user_info['email'],
+					fullname=user_info['full_name'],
+					google_id=user_info['google_id'],
+					online_status=True
+				)
+				user.set_unusable_password()
+				user.save()
+
+		serializer = UserSerializer(user)
+		return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserViewSet(viewsets.ModelViewSet):
