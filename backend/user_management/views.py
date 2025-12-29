@@ -1,10 +1,18 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import logout as django_logout
-from .models import User, UserProfile, Friendship
-from .serializers import UserSerializer, UserProfileSerializer, FriendshipSerializer
+from django.shortcuts import get_object_or_404
+from .models import User, UserProfile, Friendship, Notification, Achievement, UserAchievement
+from .serializers import (
+	UserSerializer,
+	UserProfileSerializer,
+	FriendshipSerializer,
+	NotificationSerializer,
+	AchievementSerializer,
+	UserAchievementSerializer
+)
 
 
 class AuthViewSet(viewsets.ViewSet):
@@ -219,4 +227,80 @@ class FriendshipViewSet(viewsets.ModelViewSet):
 		friendship.save()
 		
 		serializer = self.get_serializer(friendship)
+		return Response(serializer.data)
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+	swagger_tags = ['Notifications']
+	serializer_class = NotificationSerializer
+	permission_classes = [permissions.IsAuthenticated]
+
+	def get_queryset(self):
+		return Notification.objects.filter(
+			user=self.request.user
+		).select_related('related_user', 'friend_request', 'achievement')
+
+	@action(detail=False, methods=['get'])
+	def unread(self, request):
+		notifications = self.get_queryset().filter(is_read=False)
+		serializer = self.get_serializer(notifications, many=True)
+		return Response(serializer.data)
+
+	@action(detail=False, methods=['get'])
+	def count_unread(self, request):
+		count = self.get_queryset().filter(is_read=False).count()
+		return Response({'count': count})
+
+	@action(detail=True, methods=['post'])
+	def mark_as_read(self, request, pk=None):
+		notification = get_object_or_404(
+			Notification,
+			id=pk,
+			user=request.user
+		)
+		
+		notification.mark_as_read()
+		serializer = self.get_serializer(notification)
+		return Response(serializer.data)
+
+	@action(detail=False, methods=['post'])
+	def mark_all_as_read(self, request):
+		self.get_queryset().filter(is_read=False).update(is_read=True)
+		return Response({'message': 'All notifications marked as read'})
+
+	@action(detail=True, methods=['delete'])
+	def delete_notification(self, request, pk=None):
+		notification = get_object_or_404(
+			Notification,
+			id=pk,
+			user=request.user
+		)
+		
+		notification.delete()
+		return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AchievementViewSet(viewsets.ReadOnlyModelViewSet):
+	swagger_tags = ['Achievements']
+	serializer_class = AchievementSerializer
+	permission_classes = [permissions.IsAuthenticated]
+	queryset = Achievement.objects.all()
+
+	@action(detail=False, methods=['get'])
+	def user_achievements(self, request):
+		user_achievements = UserAchievement.objects.filter(
+			user=request.user
+		).select_related('achievement')
+		
+		serializer = UserAchievementSerializer(user_achievements, many=True)
+		return Response(serializer.data)
+
+	@action(detail=False, methods=['get'])
+	def available(self, request):
+		unlocked_ids = UserAchievement.objects.filter(
+			user=request.user
+		).values_list('achievement_id', flat=True)
+		
+		available = Achievement.objects.exclude(id__in=unlocked_ids)
+		serializer = self.get_serializer(available, many=True)
 		return Response(serializer.data)
