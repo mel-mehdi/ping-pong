@@ -1,23 +1,24 @@
 export const STORAGE_KEYS = {
   USER_DATA: 'userData',
+  THEME: 'theme',
+  ACTIVE_API_KEY: 'active_api_key',
 };
 
-export const ROUTES = {
-  LOGIN: '/login',
-  REGISTER: '/register',
-  HOME: '/',
+export const THEMES = {
+  LIGHT: 'light',
+  DARK: 'dark',
 };
 
-export const GAME_SETTINGS = {
-  CANVAS_WIDTH: 700,
-  CANVAS_HEIGHT: 500,
-  PADDLE_WIDTH: 10,
-  PADDLE_HEIGHT: 80,
-  BALL_SIZE: 10,
-  PADDLE_SPEED: 6,
-  INITIAL_BALL_SPEED: 4,
-  SPEED_INCREMENT: 1.05,
-  WINNING_SCORE: 5,
+export const HTTP_STATUS = {
+  OK: 200,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+};
+
+export const API_ENDPOINTS = {
+  DJANGO_USER_BASE: '',
+  DJANGO_API_BASE: '/api',
 };
 
 export const ACHIEVEMENTS = [
@@ -43,6 +44,8 @@ export const VALIDATION_RULES = {
   MIN_PASSWORD_LENGTH: 8,
   MIN_USERNAME_LENGTH: 3,
   MAX_USERNAME_LENGTH: 20,
+  MAX_EMAIL_LENGTH: 120,
+  MAX_FULLNAME_LENGTH: 50,
   EMAIL_PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   USERNAME_PATTERN: /^[a-zA-Z0-9_]+$/,
 };
@@ -55,4 +58,19 @@ export const ERROR_MESSAGES = {
   USERNAME_TOO_LONG: `Username must not exceed ${VALIDATION_RULES.MAX_USERNAME_LENGTH} characters`,
   PASSWORD_TOO_SHORT: `Password must be at least ${VALIDATION_RULES.MIN_PASSWORD_LENGTH} characters`,
   PASSWORDS_NOT_MATCH: 'Passwords do not match',
+  UPLOAD_FAILED: 'Upload failed',
+  NETWORK_ERROR: 'Network error occurred',
+};
+
+export const GAME_DEFAULTS = {
+  CANVAS_ASPECT_RATIO: 1.6,
+  MARGIN_HEIGHT: 240,
+  MARGIN_WIDTH: 60,
+  PADDLE_WIDTH_RATIO: 0.012,
+  PADDLE_HEIGHT_RATIO: 0.2,
+  PADDLE_SPEED_RATIO: 0.016,
+  BALL_SIZE_RATIO: 0.025,
+  BALL_SPEED_RATIO: 0.0075,
+  BALL_SPEED_MULTIPLIER: 2,
+  WINNING_SCORE: 5,
 };

@@ -26,6 +26,7 @@ const RegisterPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const { t } = useLanguage();
 
   const handleChange = (e) => {
@@ -39,28 +40,28 @@ const RegisterPage = () => {
     }
   };
 
+  const handleFocus = () => setIsTyping(true);
+  const handleBlur = () => setIsTyping(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrors = {};
 
-    const fullnameValidation = validateRequired(formData.fullname);
-    const emailValidation = validateEmail(formData.email);
-    const usernameValidation = validateUsername(formData.username);
-    const passwordValidation = validatePassword(formData.password);
-    const passwordMatchValidation = validatePasswordMatch(
-      formData.password,
-      formData.confirmPassword
-    );
+    const validations = {
+      fullname: validateRequired(formData.fullname),
+      email: validateEmail(formData.email),
+      username: validateUsername(formData.username),
+      password: validatePassword(formData.password),
+      confirmPassword: validatePasswordMatch(formData.password, formData.confirmPassword),
+    };
 
-    if (!fullnameValidation.isValid) newErrors.fullname = fullnameValidation.message;
-    if (!emailValidation.isValid) newErrors.email = emailValidation.message;
-    if (!usernameValidation.isValid) newErrors.username = usernameValidation.message;
-    if (!passwordValidation.isValid) newErrors.password = passwordValidation.message;
-    if (!passwordMatchValidation.isValid)
-      newErrors.confirmPassword = passwordMatchValidation.message;
+    const newErrors = Object.entries(validations).reduce((acc, [key, val]) => {
+      if (!val.isValid) acc[key] = val.message;
+      return acc;
+    }, {});
+
     if (!formData.terms) newErrors.terms = t('auth.must_accept_terms');
 
-    if (Object.keys(newErrors).length > 0) {
+    if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
     }
@@ -68,38 +69,24 @@ const RegisterPage = () => {
     setLoading(true);
 
     try {
-      // Create new user via backend
       await apiClient.register(formData.username, formData.email, formData.password);
       const loginResp = await apiClient.login(formData.username, formData.password);
-      // Normalize login response
-      const userDataPayload = loginResp?.user || loginResp || {};
-      const newUserData = {
-        userId: userDataPayload.id || userDataPayload.userId || null,
-        username: userDataPayload.username || formData.username,
-        email: userDataPayload.email || formData.email,
-        fullname: userDataPayload.fullname || formData.fullname,
-        avatar:
-          userDataPayload.avatar ||
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullname)}&background=random`,
-        token: loginResp?.token || loginResp?.access || null,
+      const userPayload = loginResp?.user || loginResp || {};
+      
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
+        username: userPayload.username || formData.username,
+        email: userPayload.email || formData.email,
+        fullname: userPayload.fullname || formData.fullname,
+        token: loginResp?.token || loginResp?.access,
         loggedIn: true,
         registrationTime: new Date().toISOString(),
-      };
+      });
 
-      login(newUserData);
-      // Attempt to verify backend session (set isBackendAuthenticated)
-      try {
-        await checkBackendAuth();
-      } catch (e) {
-        /* ignore */
-      }
-      navigate('/');
-
-      setTimeout(() => {
-        navigate('/');
-      }, 500);
+      checkBackendAuth().catch(() => {});
+      setTimeout(() => navigate('/'), 500);
     } catch (error) {
-      // Log the error only (do not show on UI)
       console.error('Registration error:', error);
       setLoading(false);
     }
@@ -107,7 +94,7 @@ const RegisterPage = () => {
 
   return (
     <div className="auth-page">
-      <SplashCursor paused={isAuthenticated} />
+      <SplashCursor paused={isAuthenticated || isTyping} />
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
@@ -132,6 +119,8 @@ const RegisterPage = () => {
                   className={`form-control ${errors.fullname ? 'is-invalid' : ''}`}
                   value={formData.fullname}
                   onChange={handleChange}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                 />
                 {errors.fullname && <div className="invalid-feedback">{errors.fullname}</div>}
               </div>
@@ -145,6 +134,8 @@ const RegisterPage = () => {
                   className={`form-control ${errors.email ? 'is-invalid' : ''}`}
                   value={formData.email}
                   onChange={handleChange}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                   autoComplete="email"
                 />
                 {errors.email && <div className="invalid-feedback">{errors.email}</div>}
@@ -161,6 +152,8 @@ const RegisterPage = () => {
                   className={`form-control ${errors.username ? 'is-invalid' : ''}`}
                   value={formData.username}
                   onChange={handleChange}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                   autoComplete="username"
                 />
                 {errors.username && <div className="invalid-feedback">{errors.username}</div>}
@@ -175,6 +168,8 @@ const RegisterPage = () => {
                   className={`form-control ${errors.password ? 'is-invalid' : ''}`}
                   value={formData.password}
                   onChange={handleChange}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                   autoComplete="new-password"
                 />
                 {errors.password && <div className="invalid-feedback">{errors.password}</div>}
@@ -190,6 +185,8 @@ const RegisterPage = () => {
                 className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 autoComplete="new-password"
               />
               {errors.confirmPassword && (
@@ -228,7 +225,7 @@ const RegisterPage = () => {
             <button
               className="gsi-material-button"
               type="button"
-              onClick={() => console.info('Google sign-up')}
+              onClick={() => {/* Google sign-up not implemented */}}
             >
               <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">

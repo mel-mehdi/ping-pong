@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -13,7 +14,11 @@ import TermsPage from './pages/TermsPage';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 const App = () => {

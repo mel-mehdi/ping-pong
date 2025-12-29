@@ -741,14 +741,12 @@ body {
 }
 
 .auth-card {
-  background: var(--bg);
+  background: #00000000;
   border-radius: 16px;
   width: 100%;
   max-width: 900px;
-  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
   position: relative;
   z-index: 1;
-  animation: slideUp 0.4s ease;
   display: grid;
   grid-template-columns: 1fr 1fr;
   overflow: hidden;

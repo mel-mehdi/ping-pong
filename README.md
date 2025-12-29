@@ -484,7 +484,11 @@ Before running the project, ensure you have the following installed:
    ```bash
    python manage.py runserver 0.0.0.0:8001
    ```
-   Backend will run on `http://localhost:8001`
+   Backend will run on `http://localhost:8001`.
+
+   Note: The frontend defaults to making API requests using the **same origin** (e.g., `/api/...`).
+   To explicitly point the frontend to a different backend host/port (for local dev), set
+   `VITE_BACKEND_URL` in `frontend/.env` (e.g. `VITE_BACKEND_URL=http://localhost:8001`).
 
 3. **Install frontend dependencies** (in a new terminal):
    ```bash
@@ -496,7 +500,9 @@ Before running the project, ensure you have the following installed:
    ```bash
    npm run dev
    ```
-   Frontend will run on `http://localhost:5173`
+   Frontend will run on `http://localhost:5173`.
+
+   Note: The dev server proxies backend routes for local development. The proxy now forwards `/api`, `/auth`, `/users`, `/profiles`, `/game`, and `/chat` to the backend. If you change `vite.config.js` or `.env`, restart the dev server to apply the updates.
 
 5. **Build for production**:
    ```bash

@@ -16,6 +16,7 @@ const LoginPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const { t } = useLanguage();
 
   const handleChange = (e) => {
@@ -26,21 +27,23 @@ const LoginPage = () => {
     }
   };
 
+  const handleFocus = () => setIsTyping(true);
+  const handleBlur = () => setIsTyping(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrors = {};
+    
+    const validations = {
+      username: validateRequired(formData.username),
+      password: validateRequired(formData.password),
+    };
+    
+    const newErrors = Object.entries(validations).reduce((acc, [key, val]) => {
+      if (!val.isValid) acc[key] = val.message;
+      return acc;
+    }, {});
 
-    const usernameValidation = validateRequired(formData.username);
-    const passwordValidation = validateRequired(formData.password);
-
-    if (!usernameValidation.isValid) {
-      newErrors.username = usernameValidation.message;
-    }
-    if (!passwordValidation.isValid) {
-      newErrors.password = passwordValidation.message;
-    }
-
-    if (Object.keys(newErrors).length > 0) {
+    if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
     }
@@ -50,29 +53,19 @@ const LoginPage = () => {
     try {
       const resp = await apiClient.login(formData.username, formData.password);
       const userPayload = resp?.user || resp || {};
-      const userDataObj = {
-        userId: userPayload.id || userPayload.userId || null,
+      
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
         username: userPayload.username || formData.username,
-        email: userPayload.email || null,
-        fullname: userPayload.fullname || '',
-        avatar:
-          userPayload.avatar ||
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(userPayload.username || formData.username)}&background=random`,
-        token: resp?.token || resp?.access || null,
+        token: resp?.token || resp?.access,
         loggedIn: true,
         loginTime: new Date().toISOString(),
-      };
-
-      login(userDataObj);
-      // Attempt to verify backend session
-      try {
-        await checkBackendAuth();
-      } catch (e) {
-        /* ignore */
-      }
+      });
+      
+      checkBackendAuth().catch(() => {});
       navigate('/');
     } catch (error) {
-      // Log error only (do not show in UI)
       console.error('Login error:', error);
       setLoading(false);
     }
@@ -80,7 +73,7 @@ const LoginPage = () => {
 
   return (
     <div className="auth-page">
-      <SplashCursor paused={isAuthenticated} />
+      <SplashCursor paused={isAuthenticated || isTyping} />
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
@@ -104,6 +97,8 @@ const LoginPage = () => {
                 className={`form-control ${errors.username ? 'is-invalid' : ''}`}
                 value={formData.username}
                 onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 autoComplete="username"
               />
               {errors.username && <div className="invalid-feedback">{errors.username}</div>}
@@ -118,6 +113,8 @@ const LoginPage = () => {
                 className={`form-control ${errors.password ? 'is-invalid' : ''}`}
                 value={formData.password}
                 onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 autoComplete="current-password"
               />
               {errors.password && <div className="invalid-feedback">{errors.password}</div>}
@@ -138,7 +135,7 @@ const LoginPage = () => {
             <button
               className="gsi-material-button"
               type="button"
-              onClick={() => console.info('Google sign-in')}
+              onClick={() => {/* Google sign-in not implemented */}}
             >
               <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">

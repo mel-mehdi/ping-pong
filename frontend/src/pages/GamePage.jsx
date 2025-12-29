@@ -3,6 +3,8 @@ import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import '../styles/game.css';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
+import apiClient from '../utils/api';
 
 class PongGame {
   constructor(canvas, options = {}) {
@@ -382,6 +384,7 @@ class PongGame {
 const GamePage = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { userData, isBackendAuthenticated } = useAuth();
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
   const [player1Score, setPlayer1Score] = useState(0);
@@ -390,6 +393,26 @@ const GamePage = () => {
   const [showMessage, setShowMessage] = useState(true);
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState('');
+
+  // Save match result to backend
+  const saveMatchResult = async (winnerName, p1Score, p2Score) => {
+    if (!isBackendAuthenticated || !userData?.userId) return;
+    
+    try {
+      const matchData = {
+        player1_id: userData.userId,
+        player2_id: null, // Local game, no second player
+        player1_score: p1Score,
+        player2_score: p2Score,
+        winner_id: winnerName === t('game.player1') ? userData.userId : null,
+        match_type: 'local',
+        duration: 0, // Could track actual duration if needed
+      };
+      await apiClient.createMatch(matchData);
+    } catch (err) {
+      console.warn('Failed to save match result:', err);
+    }
+  };
 
   useEffect(() => {
     if (canvasRef.current && !gameRef.current) {
@@ -409,6 +432,8 @@ const GamePage = () => {
           setWinner(winnerName);
           setGameOver(true);
           setShowMessage(true);
+          // Save match result to backend
+          saveMatchResult(winnerName, gameRef.current.player1Score, gameRef.current.player2Score);
         },
         onStatusChange: (message) => {
           if (message) {

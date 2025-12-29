@@ -2,6 +2,13 @@
 node_modules/
 frontend/node_modules/
 
+# Migration files
+**/migrations/[0-9]*.py
+
+# SSL Certificates
+*.crt
+*.key
+
 # Package locks
 package-lock.json
 yarn.lock

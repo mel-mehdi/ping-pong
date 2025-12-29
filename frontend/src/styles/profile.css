@@ -399,6 +399,102 @@
   color: white;
 }
 
+.profile-api {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+}
+
+/* status labels */
+.api-active {
+  color: var(--success);
+  font-weight: 700;
+}
+.api-inactive {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* main button */
+.btn-api {
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.75rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-api:hover:not([disabled]) {
+  transform: translateY(-1px);
+}
+
+/* active visual */
+.btn-api.active {
+  background: var(--success);
+  color: white;
+  border-color: rgba(0,0,0,0.06);
+}
+
+/* disabled look */
+.btn-api[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+  box-shadow: none;
+}
+
+.api-key-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-family: monospace;
+}
+
+.api-key-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.api-key-value {
+  background: var(--bg);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.api-message {
+  color: var(--primary);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.profile-api .api-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.api-input {
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  min-width: 220px;
+}
+
+.btn-api.small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
 .friend-item {
   display: flex;
   align-items: center;

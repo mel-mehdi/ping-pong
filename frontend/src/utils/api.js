@@ -1,125 +1,153 @@
-// Use Django base for user routes and /api for other resources
-// Backend exposes user routes under /users/, so keep base empty to avoid /user/users/
-const DJANGO_USER_BASE = '';
-const DJANGO_API_BASE = '/api';
+import { API_ENDPOINTS, HTTP_STATUS } from './constants';
+import logger from './logger';
+
+const { DJANGO_USER_BASE, DJANGO_API_BASE } = API_ENDPOINTS;
+const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL ?? '';
 
 class ApiClient {
-  async request(endpoint, options = {}) {
+  // Helper methods
+  _getAuthToken() {
     try {
-      // Allow overriding backend base via Vite env. Fallback to localhost:8001 for dev.
-      const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
-      // Normalize path
-      const urlPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-      const url = endpoint.startsWith('http') ? endpoint : `${BACKEND_BASE}${urlPath}`;
+      const data = localStorage.getItem('userData');
+      if (!data) return null;
+      const parsed = JSON.parse(data);
+      return parsed?.token || parsed?.access || null;
+    } catch {
+      return null;
+    }
+  }
 
-      const token = (() => {
-        try {
-          const data = localStorage.getItem('userData');
-          if (!data) return null;
-          const p = JSON.parse(data);
-          return p?.token || p?.access || null;
-        } catch (e) {
-          return null;
-        }
-      })();
+  _getCSRFToken() {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(new RegExp('(^|; )csrftoken=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  }
+
+  _getActiveApiKey() {
+    try {
+      return localStorage.getItem('active_api_key');
+    } catch {
+      return null;
+    }
+  }
+
+  _isUnsafeMethod(method) {
+    return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase());
+  }
+
+  _buildUrl(endpoint) {
+    if (endpoint.startsWith('http')) return endpoint;
+    const urlPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${BACKEND_BASE}${urlPath}`;
+  }
+
+  _buildHeaders(endpoint, options) {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add JWT Authorization token
+    const token = this._getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Add API key if targeting API endpoints
+    const activeKey = this._getActiveApiKey();
+    if (activeKey) {
+      const urlPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      if (urlPath.startsWith(DJANGO_API_BASE)) {
+        headers['X-API-Key'] = activeKey;
+      }
+    }
+
+    // Add CSRF token for unsafe methods
+    const method = (options.method || 'GET').toUpperCase();
+    if (this._isUnsafeMethod(method)) {
+      const csrfToken = this._getCSRFToken();
+      if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+      }
+    }
+
+    return headers;
+  }
+
+  async _parseResponse(response) {
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+
+  _logError(endpoint, error, quiet) {
+    if (quiet) return;
+    
+    const message = `API Error [${endpoint}]: ${error.message}`;
+    if (error?.isAuthError) {
+      logger.warn(message);
+    } else {
+      logger.error(message);
+    }
+  }
+
+  async request(endpoint, options = {}) {
+    const quiet = options.quiet === true;
+    
+    try {
+      const url = this._buildUrl(endpoint);
+      const headers = this._buildHeaders(endpoint, options);
 
       const config = {
         ...options,
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...options.headers,
-        },
+        headers,
       };
 
-      // For state-changing requests, ensure CSRF cookie/header is present
-      const method = (config.method || 'GET').toUpperCase();
-      const unsafeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
-      if (unsafeMethods.includes(method)) {
-        // Read CSRF cookie if present
-        const getCookie = (name) => {
-          if (typeof document === 'undefined') return null;
-          const match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]+)'));
-          return match ? decodeURIComponent(match[2]) : null;
-        };
-
-        let csrfToken = getCookie('csrftoken');
-        // If no CSRF cookie yet, request it from backend
-        if (!csrfToken) {
-          const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
-          await fetch(`${BACKEND_BASE}/api/csrf/`, { credentials: 'include' });
-          csrfToken = getCookie('csrftoken');
-        }
-
-        if (csrfToken) {
-          config.headers = { ...config.headers, 'X-CSRFToken': csrfToken };
-        }
-      }
-
       const response = await fetch(url, config);
-      // Some endpoints may return no content; handle JSON parse failures gracefully
-      let data = null;
-      try {
-        data = await response.json();
-      } catch (e) {
-        data = null;
-      }
+      const data = await this._parseResponse(response);
 
       if (!response.ok) {
         const err = new Error(
-          (data && (data.error || data.detail)) || `HTTP ${response.status}: ${response.statusText}`
+          (data && (data.error || data.detail)) || 
+          `HTTP ${response.status}: ${response.statusText}`
         );
         err.status = response.status;
-        if (response.status === 401 || response.status === 403) err.isAuthError = true;
+        if (response.status === HTTP_STATUS.UNAUTHORIZED || 
+            response.status === HTTP_STATUS.FORBIDDEN) {
+          err.isAuthError = true;
+        }
         throw err;
       }
 
       return data;
     } catch (error) {
-      // Treat auth failures as expected (warn) to avoid noisy error logs
-      if (error && error.isAuthError) {
-        console.warn(`API Error [${endpoint}]:`, error.message);
-      } else {
-        console.error(`API Error [${endpoint}]:`, error.message);
-      }
+      this._logError(endpoint, error, quiet);
       throw error;
     }
   }
 
+  async _safeRequest(endpoint, options = {}, fallback = []) {
+    try {
+      return await this.request(endpoint, { quiet: true, ...options });
+    } catch {
+      return fallback;
+    }
+  }
+
+  async _safeRequest(endpoint, options = {}, fallback = []) {
+    try {
+      return await this.request(endpoint, { quiet: true, ...options });
+    } catch {
+      return fallback;
+    }
+  }
+
+  // User Management
   async getAllUsers() {
-    return await this.request(`${DJANGO_USER_BASE}/users/`);
-  }
-
-  // Tournaments endpoints may be absent; try /api/tournaments/ and return empty list on failure
-  async getTournaments() {
-    try {
-      return await this.request(`${DJANGO_API_BASE}/tournaments/`);
-    } catch (err) {
-      console.warn('getTournaments: no tournaments endpoint', err);
-      return [];
-    }
-  }
-
-  async getTournamentById(id) {
-    try {
-      return await this.request(`${DJANGO_API_BASE}/tournaments/${id}/`);
-    } catch (err) {
-      console.warn('getTournamentById: not available', err);
-      throw err;
-    }
-  }
-
-  async createTournament(data) {
-    try {
-      return await this.request(`${DJANGO_API_BASE}/tournaments/`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    } catch (err) {
-      console.warn('createTournament: not available', err);
-      throw err;
-    }
+    return this._safeRequest(`${DJANGO_USER_BASE}/users/`, {}, []);
   }
 
   async getUserById(id) {
@@ -127,166 +155,184 @@ class ApiClient {
   }
 
   async getMe() {
-    // If there's no stored token, skip the network check to avoid noisy 403s
-    try {
-      let token = null;
-      try {
-        const data = localStorage.getItem('userData');
-        if (data) {
-          const p = JSON.parse(data);
-          token = p?.token || p?.access || null;
-        }
-      } catch (e) {
-        token = null;
-      }
-
-      if (!token) {
-        // No token found — don't call backend automatically (cookie-based sessions are uncommon in this setup)
-        return null;
-      }
-
-      const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
-      const url = `${BACKEND_BASE}${DJANGO_USER_BASE}/users/me/`;
-      const response = await fetch(url, {
-        credentials: 'include',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.status === 200) {
-        try {
-          const data = await response.json();
-          return data;
-        } catch (e) {
-          return null;
-        }
-      }
-      // Auth failures are expected if token expired or invalid; return null silently
-      if (response.status === 401 || response.status === 403) return null;
-
-      let payload = null;
-      try {
-        payload = await response.json();
-      } catch (e) {
-        /* ignore */
-      }
-      console.warn('getMe: unexpected response', response.status, payload);
-      return null;
-    } catch (err) {
-      console.warn('getMe: network or other error', err);
-      return null;
-    }
+    return this._safeRequest(`${DJANGO_USER_BASE}/users/me/`, { quiet: true }, null);
   }
 
   async getUserProfile(id) {
+    return this._safeRequest(`${DJANGO_USER_BASE}/users/${id}/profile/`, {}, null);
+  }
+
+  async getProfiles() {
+    return this._safeRequest(`${DJANGO_USER_BASE}/profiles/`, {}, []);
+  }
+
+  async updateUser(userId, data) {
+    return this.request(`${DJANGO_USER_BASE}/users/${userId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProfile(profileId, data) {
+    return this.request(`${DJANGO_USER_BASE}/profiles/${profileId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async uploadAvatar(userId, file) {
     try {
-      return await this.request(`${DJANGO_USER_BASE}/users/${id}/profile/`);
-    } catch (err) {
-      console.warn('getUserProfile: not available', err);
-      return null;
+      const url = `${BACKEND_BASE}${DJANGO_USER_BASE}/users/${userId}/`;
+      const form = new FormData();
+      form.append('avatar', file);
+
+      const response = await fetch(url, {
+        method: 'PATCH',
+        body: form,
+        credentials: 'include',
+      });
+
+      const data = await this._parseResponse(response);
+      if (!response.ok) throw new Error(data?.error || 'Upload failed');
+      return data;
+    } catch (error) {
+      logger.error('Upload avatar error:', error);
+      throw error;
     }
   }
 
+  // Authentication
   async register(username, email, password) {
-    // Backend exposes registration at /users/register/
-    return this.request(`${DJANGO_USER_BASE}/users/register/`, {
-      method: 'POST',
-      body: JSON.stringify({ username, email, password }),
-    });
-  }
-
-  async login(username, password) {
-    // Login endpoint uses user routes
-    return this.request(`${DJANGO_USER_BASE}/users/login/`, {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    });
-  }
-
-  async searchUsers(query) {
-    if (!query || !query.toString().trim()) return [];
     try {
-      const results = await this.request(
-        `${DJANGO_USER_BASE}/users/?search=${encodeURIComponent(query)}`
-      );
-      // If backend supports search, return sanitized results
-      if (Array.isArray(results) && results.length > 0) {
-        const badPattern = /https?:\/\/|www\.|\/.+|=|\?|&|om\/api|\bapi\b/i;
-        return results
-          .filter(
-            (u) =>
-              u &&
-              typeof u === 'object' &&
-              ((u.username && u.username.toString().trim()) ||
-                (u.email && u.email.toString().trim()))
-          )
-          .filter((u) => {
-            const username = (u.username || '').toString();
-            const email = (u.email || '').toString();
-            if (!username && !email) return false;
-            if (username.length > 50 || email.length > 120) return false;
-            if (badPattern.test(username) || badPattern.test(email)) return false;
-            return true;
-          });
-      }
-    } catch (err) {
-      // continue to fallback
-      console.warn('searchUsers: backend search failed, falling back to client-side filter', err);
-    }
-
-    // Fallback: fetch all users then filter locally
-    try {
-      const all = await this.getAllUsers();
-      const q = query.toLowerCase();
-      return (all || []).filter(
-        (u) =>
-          u &&
-          typeof u === 'object' &&
-          ((u.username && (u.username || '').toLowerCase().includes(q)) ||
-            (u.email && (u.email || '').toLowerCase().includes(q)) ||
-            (u.fullname && (u.fullname || '').toLowerCase().includes(q)))
-      );
-    } catch (err) {
-      console.warn('searchUsers fallback: no users to filter, attempting local DB', err);
-    }
-
-    // No client-side database fallback — search offline will return empty list
-    return [];
-  }
-
-  async getInvitations(userId) {
-    try {
-      return await this.request(`${DJANGO_API_BASE}/invitations/${userId}/`);
-    } catch (err) {
-      console.warn('getInvitations: no invitations endpoint', err);
-      return [];
-    }
-  }
-
-  async sendInvitation(fromId, fromName, toId, toName) {
-    try {
-      return await this.request(`${DJANGO_USER_BASE}/friendships/`, {
+      return await this.request('/auth/register/', {
         method: 'POST',
-        body: JSON.stringify({ to_user: toId, to_name: toName }),
+        body: JSON.stringify({ username, email, password }),
       });
     } catch (err) {
-      console.warn('sendInvitation: friendships endpoint not available', err);
+      // Fallback to alternate endpoint
+      if (err?.status === HTTP_STATUS.NOT_FOUND) {
+        return this.request('/users/register/', {
+          method: 'POST',
+          body: JSON.stringify({ username, email, password }),
+        });
+      }
       throw err;
     }
   }
 
-  async updateInvitation(id, status) {
-    return this.request(`${DJANGO_API_BASE}/invitations/${id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
+  async login(username, password) {
+    try {
+      return await this.request('/auth/login/', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      });
+    } catch (err) {
+      // Fallback to alternate endpoint
+      if (err?.status === HTTP_STATUS.NOT_FOUND) {
+        return this.request('/users/login/', {
+          method: 'POST',
+          body: JSON.stringify({ username, password }),
+        });
+      }
+      throw err;
+    }
+  }
+
+  async logout() {
+    return this.request('/auth/logout/', { method: 'POST' });
+  }
+
+  async logout() {
+    return this.request('/auth/logout/', { method: 'POST' });
+  }
+
+  // Search
+  async searchUsers(query) {
+    if (!query || !query.toString().trim()) return [];
+    
+    try {
+      const results = await this.request(
+        `${DJANGO_USER_BASE}/users/?search=${encodeURIComponent(query)}`
+      );
+      
+      if (Array.isArray(results) && results.length > 0) {
+        const badPattern = /https?:\/\/|www\.|\/.+|=|\?|&|om\/api|\bapi\b/i;
+        const maxUsernameLength = 50;
+        const maxEmailLength = 120;
+        
+        return results
+          .filter(u => u && typeof u === 'object')
+          .filter(u => (u.username?.trim() || u.email?.trim()))
+          .filter(u => {
+            const username = (u.username || '').toString();
+            const email = (u.email || '').toString();
+            
+            if (!username && !email) return false;
+            if (username.length > maxUsernameLength || email.length > maxEmailLength) return false;
+            if (badPattern.test(username) || badPattern.test(email)) return false;
+            
+            return true;
+          });
+      }
+    } catch (err) {
+      logger.debug('searchUsers: backend search failed, falling back to client-side filter');
+    }
+
+    // Fallback: fetch all users then filter locally
+    const all = await this.getAllUsers();
+    const q = query.toLowerCase();
+    return (all || []).filter(u =>
+      u &&
+      typeof u === 'object' &&
+      ((u.username && u.username.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.fullname && u.fullname.toLowerCase().includes(q)))
+    );
+  }
+
+  // Tournaments
+  async getTournaments() {
+    return this._safeRequest('/game/tournaments/', {}, []);
+  }
+
+  async getTournamentById(id) {
+    return this.request(`/game/tournaments/${id}/`);
+  }
+
+  async createTournament(data) {
+    return this.request('/game/tournaments/', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
+  async joinTournament(tournamentId) {
+    return this.request(`/game/tournaments/${tournamentId}/join/`, {
+      method: 'POST',
+    });
+  }
+
+  async leaveTournament(tournamentId) {
+    return this.request(`/game/tournaments/${tournamentId}/leave/`, {
+      method: 'POST',
+    });
+  }
+
+  async getActiveTournaments() {
+    return this._safeRequest('/game/tournaments/active/', {}, []);
+  }
+
+  async getMyTournaments() {
+    return this._safeRequest('/game/tournaments/my_tournaments/', {}, []);
+  }
+
+  // Friends & Invitations
+  async getInvitations() {
+    return this._safeRequest('/game/invitations/', {}, []);
+  }
+
   async getFriendRequests() {
-    try {
-      return await this.request(`${DJANGO_USER_BASE}/friendships/`);
-    } catch (err) {
-      console.warn('getFriendRequests: no endpoint available', err);
-      return [];
-    }
+    return this._safeRequest(`${DJANGO_USER_BASE}/friendships/`, {}, []);
   }
 
   async sendFriendRequest(fromId, fromName, toId, toName) {
@@ -296,78 +342,160 @@ class ApiClient {
     });
   }
 
-  async updateFriendRequest(id, status) {
-    return this.request(`${DJANGO_USER_BASE}/friendships/${id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
+  async acceptFriendRequest(friendshipId) {
+    return this.request(`/friendships/${friendshipId}/accept/`, {
+      method: 'POST',
+      body: JSON.stringify({}),
     });
+  }
+
+  async rejectFriendRequest(friendshipId) {
+    return this.request(`/friendships/${friendshipId}/reject/`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async getMyFriends() {
+    return this._safeRequest('/friendships/my_friends/', {}, []);
+  }
+
+  async getMyFriends() {
+    return this._safeRequest('/friendships/my_friends/', {}, []);
+  }
+
+  // Chat & Messages
+  async getConversations() {
+    return this._safeRequest('/chat/conversations/', {}, []);
+  }
+
+  async getConversationMessages(conversationId) {
+    return this._safeRequest(`/chat/conversations/${conversationId}/messages/`, {}, []);
   }
 
   async getMessages(userId1, userId2) {
     try {
-      return await this.request(`${DJANGO_API_BASE}/messages/${userId1}/${userId2}/`);
-    } catch (err) {
-      console.warn('getMessages: messages endpoint not available', err);
+      const conversation = await this.getOrCreateConversation(userId1, userId2);
+      if (!conversation?.id) return [];
+      
+      return await this.request(`/chat/conversations/${conversation.id}/messages/`);
+    } catch {
       return [];
     }
   }
 
-  async getLeaderboard() {
+  async getOrCreateConversation(userId1, userId2) {
     try {
-      return await this.request(`${DJANGO_API_BASE}/leaderboard/`);
-    } catch (err) {
-      console.warn('getLeaderboard: not found, returning empty list', err);
-      return [];
+      const conversations = await this.request('/chat/conversations/');
+      
+      const existingConv = (conversations || []).find(conv => {
+        const participantIds = conv.participants?.map(p => p.id) || [];
+        return participantIds.includes(userId2) && participantIds.length === 2;
+      });
+      
+      if (existingConv) return existingConv;
+      
+      return await this.request('/chat/conversations/', {
+        method: 'POST',
+        body: JSON.stringify({ participant_ids: [userId1, userId2] }),
+      });
+    } catch {
+      return null;
     }
   }
 
   async sendMessage(fromId, toId, message) {
-    return this.request(`${DJANGO_API_BASE}/messages/`, {
+    return this.request('/chat/conversations/', {
       method: 'POST',
-      body: JSON.stringify({ fromId, toId, message }),
+      body: JSON.stringify({ participant_id: toId, message }),
     });
   }
 
-  async markMessagesAsRead(userId, friendId) {
-    return this.request(`${DJANGO_API_BASE}/messages/read/`, {
-      method: 'PATCH',
-      body: JSON.stringify({ userId, friendId }),
+  async markMessagesAsRead(userId, conversationId) {
+    return this.request(`/chat/conversations/${conversationId}/mark_as_read/`, {
+      method: 'POST',
+      body: JSON.stringify({}),
     });
   }
 
-  async getMatchesForUser(userId) {
+  // Game & Matches
+  async getMatchesForUser() {
+    return this._safeRequest('/game/matches/my_matches/', {}, []);
+  }
+
+  async getMyMatches() {
+    return this._safeRequest('/game/matches/my_matches/', {}, []);
+  }
+
+  async createMatch(matchData) {
+    return this.request('/game/matches/', {
+      method: 'POST',
+      body: JSON.stringify(matchData),
+    });
+  }
+
+  // Leaderboard
+  async getLeaderboard() {
+    return this._safeRequest(`${DJANGO_API_BASE}/leaderboard/`, {}, []);
+  }
+
+  async getLeaderboardAllTime() {
+    return this._safeRequest('/game/leaderboard/all_time/', {}, []);
+  }
+
+  async getLeaderboardThisWeek() {
+    return this._safeRequest('/game/leaderboard/this_week/', {}, []);
+  }
+
+  async getLeaderboardThisMonth() {
+    return this._safeRequest('/game/leaderboard/this_month/', {}, []);
+  }
+
+  // API Key Management
+  getActiveApiKey() {
+    return this._getActiveApiKey();
+  }
+
+  setActiveApiKey(key) {
     try {
-      return await this.request(`${DJANGO_API_BASE}/matches/${userId}/`);
-    } catch (err) {
-      console.warn('getMatchesForUser: not found', err);
-      return [];
+      if (key === null) {
+        localStorage.removeItem('active_api_key');
+      } else {
+        localStorage.setItem('active_api_key', key);
+      }
+    } catch {
+      // ignore
     }
   }
 
-  async uploadAvatar(userId, file) {
+  clearActiveApiKey() {
     try {
-      const url = `${DJANGO_USER_BASE}/users/${userId}/`;
-      const form = new FormData();
-      form.append('avatar', file);
-
-      const response = await fetch(url, {
-        method: 'PATCH',
-        body: form,
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || 'Upload failed');
-      return data;
-    } catch (error) {
-      console.error('Upload avatar error:', error);
-      throw error;
+      localStorage.removeItem('active_api_key');
+    } catch {
+      // ignore
     }
   }
 
-  async updateUser(userId, data) {
-    return this.request(`${DJANGO_USER_BASE}/users/${userId}/`, {
+  async getApiKeys() {
+    return this._safeRequest('/api/keys/', {}, []);
+  }
+
+  async createApiKey(name, scopes = []) {
+    return this.request('/api/keys/create_key/', {
+      method: 'POST',
+      body: JSON.stringify({ name, scopes }),
+    });
+  }
+
+  async revokeApiKey(keyId) {
+    return this.request(`/api/keys/${keyId}/revoke/`, {
+      method: 'DELETE',
+    });
+  }
+
+  async toggleApiKey(keyId) {
+    return this.request(`/api/keys/${keyId}/toggle/`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
     });
   }
 }
