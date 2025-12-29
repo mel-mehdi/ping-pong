@@ -2,7 +2,7 @@ import { API_ENDPOINTS, HTTP_STATUS } from './constants';
 import logger from './logger';
 
 const { DJANGO_USER_BASE, DJANGO_API_BASE } = API_ENDPOINTS;
-const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL ?? '';
+const BACKEND_BASE = 'http://localhost';
 
 class ApiClient {
   // Helper methods
