@@ -64,3 +64,4 @@ __pycache__/
 # SSL Certificates
 *.crt
 *.key
+backend/media/

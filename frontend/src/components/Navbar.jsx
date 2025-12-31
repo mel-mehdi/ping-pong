@@ -27,14 +27,25 @@ const Navbar = () => {
     }, []);
 
     const loadNotifications = useCallback(async () => {
+        if (!userData?.userId || !isBackendAuthenticated) {
+            setNotifications([]);
+            return;
+        }
+        
         try {
-            const requests = await apiClient.getFriendRequests(userData.userId);
-            setNotifications((requests || []).filter((req) => req.status === 'pending').map(r => ({ id: r.id, fromName: r.fromName || r.from_user?.username || r.from_user || 'Unknown' })));
-        } catch (error) {
-            console.error('Error loading notifications:', error);
+            // Get pending friend request invitations
+            const friendRequests = await apiClient.getPendingFriendRequests();
+            setNotifications((friendRequests || []).map(inv => ({ 
+                id: inv.id,
+                senderId: inv.sender?.id,
+                fromName: inv.sender?.username || inv.sender?.fullname || 'Unknown',
+                type: 'friend_request'
+            })));
+        } catch (err) {
+            console.error('Error loading notifications:', err);
             setNotifications([]);
         }
-    }, [userData]);
+    }, [userData, isBackendAuthenticated]);
 
     useEffect(() => {
         if (!isAuthenticated || !userData?.userId) return;
@@ -72,14 +83,18 @@ const Navbar = () => {
         }
 
         if (!isBackendAuthenticated) {
+            console.warn('Search blocked: user not backend authenticated');
+            console.log('isAuthenticated:', isAuthenticated, 'isBackendAuthenticated:', isBackendAuthenticated);
             setSearchResults([]);
             setSearchSource('none');
             return;
         }
 
+        console.log('Starting search for:', query);
         setIsSearching(true);
         try {
             const results = await apiClient.searchUsers(query);
+            console.log('Search returned:', results);
             const uid = userData?.userId || userData?.id;
             const filtered = (results || [])
                 .filter(u => u && (u.username || u.email))
@@ -87,6 +102,7 @@ const Navbar = () => {
                 .filter(isValidUser)
                 .filter(u => u.id !== uid && u.userId !== uid);
 
+            console.log('Filtered results:', filtered);
             setSearchResults(filtered);
             setSearchSource('backend');
             setShowSearchResults(true);
@@ -103,10 +119,12 @@ const Navbar = () => {
         if (!userData || !isBackendAuthenticated) return;
         
         try {
-            await apiClient.sendInvitation(userData.userId, userData.username, userId, username);
+            await apiClient.sendFriendRequest(userData.userId, userData.username, userId, username);
             setPendingInvites([...pendingInvites, userId]);
         } catch (error) {
-            console.error('Error sending invite:', error);
+            console.error('Error sending friend request:', error);
+            // Still mark as pending locally to prevent repeated attempts
+            setPendingInvites([...pendingInvites, userId]);
         }
     };
 
@@ -114,7 +132,8 @@ const Navbar = () => {
         if (!isBackendAuthenticated) return;
         
         try {
-            await apiClient.updateFriendRequest(id, 'accepted');
+            // Accept the invitation
+            await apiClient.respondToInvitation(id, 'accepted');
             loadNotifications();
         } catch (err) {
             console.error('Error accepting friend request:', err);
@@ -125,7 +144,8 @@ const Navbar = () => {
         if (!isBackendAuthenticated) return;
         
         try {
-            await apiClient.updateFriendRequest(id, 'rejected');
+            // Decline the invitation
+            await apiClient.respondToInvitation(id, 'declined');
             loadNotifications();
         } catch (err) {
             console.error('Error declining friend request:', err);

@@ -344,6 +344,13 @@ const ProfilePage = () => {
         return;
       }
 
+      // Check file size (max 1MB)
+      if (file.size > 1024 * 1024) {
+        setApiMessage('File too large. Maximum size is 1MB');
+        setTimeout(() => setApiMessage(null), 3000);
+        return;
+      }
+
       setSelectedFile(file);
 
       // Create preview URL
@@ -405,17 +412,25 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await apiClient.uploadAvatar(userIdForCalls, selectedFile);
+      const response = await apiClient.uploadAvatar(userData?.userId || userData?.id, selectedFile);
       if (response) {
         // Re-fetch full user record to get latest fields
-        const fresh = await apiClient.getUserById(response.id || response.userId || userIdForCalls);
+        const fresh = await apiClient.getUserById(response.id || response.userId || userData?.userId || userData?.id);
         if (fresh) {
           if (updateUser) updateUser(fresh);
           else login(fresh);
+          
+          // Also update profile state if we're viewing our own profile
+          if (profile?.user?.id === fresh.id) {
+            setProfile(prev => ({
+              ...prev,
+              user: fresh
+            }));
+          }
         }
         // clear any local avatar cache now that server has it
         try {
-          const id = userIdForCalls || userData?.userId || userData?.id;
+          const id = userData?.userId || userData?.id;
           if (id) clearLocalAvatarForUser(id);
         } catch (e) {
           /* ignore */

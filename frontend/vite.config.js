@@ -13,6 +13,9 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    hmr: {
+      clientPort: 8000,
+    },
     // Dev proxy: forward /api requests to the backend container on localhost:8001
     proxy: {
       '/api': {
