@@ -365,11 +365,11 @@ const TournamentPage = () => {
                 {myTournaments.map((tournament) => (
                   <div key={tournament.id} className="history-card">
                     <div className="history-card-icon">
-                      {tournament.placement.includes('1st')
+                      {tournament.placement?.includes('1st')
                         ? '🥇'
-                        : tournament.placement.includes('2nd')
+                        : tournament.placement?.includes('2nd')
                           ? '🥈'
-                          : tournament.placement.includes('3rd')
+                          : tournament.placement?.includes('3rd')
                             ? '🥉'
                             : '🏅'}
                     </div>

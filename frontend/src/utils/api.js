@@ -427,6 +427,11 @@ class ApiClient {
     return this._safeRequest('/game/matches/my_matches/', {}, []);
   }
 
+  // Alias for getMyMatches
+  async getMatchesForUser(userId) {
+    return this.getMyMatches();
+  }
+
   async createMatch(matchData) {
     return this.request('/game/matches/', {
       method: 'POST',
