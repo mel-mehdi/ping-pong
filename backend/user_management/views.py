@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.shortcuts import get_object_or_404
 from .google_auth import verify_google_token
@@ -57,6 +58,7 @@ class AuthViewSet(viewsets.ViewSet):
 		try:
 			user = User.objects.get(username=username)
 			if user.check_password(password):
+				django_login(request, user)
 				user.online_status = True
 				user.save()
 				serializer = UserSerializer(user)
@@ -135,6 +137,8 @@ class AuthViewSet(viewsets.ViewSet):
 				)
 				user.set_unusable_password()
 				user.save()
+
+		django_login(request, user)
 
 		serializer = UserSerializer(user)
 		return Response(serializer.data, status=status.HTTP_200_OK)
