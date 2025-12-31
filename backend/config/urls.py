@@ -31,6 +31,8 @@ class CustomSchemaGenerator(OpenAPISchemaGenerator):
             {'name': 'Users', 'description': 'User management endpoints'},
             {'name': 'User Profiles', 'description': 'User profile management'},
             {'name': 'Friendships', 'description': 'Friend management endpoints'},
+            {'name': 'Notifications', 'description': 'User notifications'},
+            {'name': 'Achievements', 'description': 'User achievements'},
             {'name': 'Tournaments', 'description': 'Tournament management'},
             {'name': 'Invitations', 'description': 'Invitation system'},
             {'name': 'Matches', 'description': 'Match tracking'},

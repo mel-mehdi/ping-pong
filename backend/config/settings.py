@@ -109,6 +109,10 @@ CACHES = {
 	}
 }
 
+PASSWORD_HASHERS = [
+	'user_management.hashers.CustomPBKDF2PasswordHasher',
+]
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -118,6 +122,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+		'OPTIONS': {
+			'min_length': 8,
+		}
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -162,15 +169,15 @@ AUTH_USER_MODEL = 'user_management.User'
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
-    "http://127.0.0.1:8000",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
-    'http://127.0.0.1:8000',
 ]
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
@@ -182,6 +189,9 @@ REST_FRAMEWORK = {
     ],
 }
 
+GOOGLE_OAUTH2_CLIENT_ID = env('GOOGLE_OAUTH2_CLIENT_ID')
+GOOGLE_OAUTH2_CLIENT_SECRET = env('GOOGLE_OAUTH2_CLIENT_SECRET')
+GOOGLE_OAUTH2_REDIRECT_URI = env('GOOGLE_OAUTH2_REDIRECT_URI')
 
 SUPERUSER_USERNAME = env('DJANGO_SUPERUSER_USERNAME')
 SUPERUSER_EMAIL = env('DJANGO_SUPERUSER_EMAIL')

@@ -44,23 +44,27 @@ export const AuthProvider = ({ children }) => {
       if (storedUserData) {
         setUserData(storedUserData);
         setIsAuthenticated(true);
+        // Optimistically set backend auth to true when we have stored data
+        // Session cookies persist across page refreshes
+        setIsBackendAuthenticated(true);
 
-        const parsed = parseStoredData(storedUserData);
-        const hasToken = parsed && (parsed.token || parsed.access);
-        
-        if (hasToken) {
-          try {
-            const me = await apiClient.getMe();
-            if (me) {
-              setIsBackendAuthenticated(true);
-              const normalized = normalizeUserData(me);
-              setUserData(normalized);
-              setIsAuthenticated(true);
-              setItem(STORAGE_KEYS.USER_DATA, normalized);
-            }
-          } catch {
+        // Verify backend auth with session cookie in background
+        try {
+          const me = await apiClient.getMe();
+          if (me) {
+            const normalized = normalizeUserData(me);
+            setUserData(normalized);
+            setItem(STORAGE_KEYS.USER_DATA, normalized);
+          } else {
+            // Only set to false if verification actually fails
             setIsBackendAuthenticated(false);
           }
+        } catch {
+          // Session expired, clear auth state
+          setIsBackendAuthenticated(false);
+          setIsAuthenticated(false);
+          setUserData(null);
+          removeItem(STORAGE_KEYS.USER_DATA);
         }
       }
       
@@ -70,11 +74,18 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = (data) => {
+  const login = async (data) => {
     const normalized = normalizeUserData(data);
     setUserData(normalized);
     setIsAuthenticated(true);
     setItem(STORAGE_KEYS.USER_DATA, normalized);
+    
+    // Since the backend uses session authentication, a successful login
+    // means the session cookie was set, so we're backend authenticated
+    setIsBackendAuthenticated(true);
+    
+    // Verify backend auth in background to update user data
+    checkBackendAuth().catch(() => {});
   };
 
   const updateUser = (data) => {
