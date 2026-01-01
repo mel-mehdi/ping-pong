@@ -132,6 +132,7 @@ class Notification(models.Model):
 		('friend_request_received', 'Friend Request Received'),
 		('friend_request_accepted', 'Friend Request Accepted'),
 		('achievement_unlocked', 'Achievement Unlocked'),
+		('game_invite', 'Game Invitation Received'),
 	]
 
 	user = models.ForeignKey(
@@ -156,6 +157,13 @@ class Notification(models.Model):
 		on_delete=models.CASCADE, 
 		null=True, 
 		blank=True, 
+		related_name='notifications'
+	)
+	game_invitation = models.ForeignKey(
+		'game.Invitation',
+		on_delete=models.CASCADE,
+		null=True,
+		blank=True,
 		related_name='notifications'
 	)
 	achievement = models.ForeignKey(

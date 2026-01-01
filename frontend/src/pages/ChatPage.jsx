@@ -42,7 +42,6 @@ const ChatPage = () => {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('WebSocket connected to conversation:', currentConversationId);
     };
 
     ws.onmessage = (event) => {
@@ -76,16 +75,15 @@ const ChatPage = () => {
           });
         }
       } catch (err) {
-        console.error('Error parsing WebSocket message:', err);
+        // Error parsing WebSocket message
       }
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      // WebSocket error
     };
 
     ws.onclose = () => {
-      console.log('WebSocket disconnected');
     };
 
     return () => {

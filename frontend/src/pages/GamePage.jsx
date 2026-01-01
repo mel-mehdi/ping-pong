@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import '../styles/game.css';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +11,8 @@ class PongGame {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.options = options;
+    this.socket = options.socket;
+    this.isOnline = options.isOnline || false;
 
     // setup initial canvas dimensions and sizes
     this.isFullscreen = false;
@@ -114,22 +116,24 @@ class PongGame {
   }
 
   handleResize() {
-    // Recalculate sizes and center paddles/ball so layout looks correct after resize/fullscreen
     try {
       this.setupCanvasDimensions(this.isFullscreen);
-      this.resetPositions();
+      if (!this.isOnline) {
+        this.resetPositions();
+      }
     } catch (err) {
       // ignore
     }
   }
 
   handleFullscreenChange() {
-    // small delay to allow browser to settle fullscreen layout
     setTimeout(() => {
       try {
         this.isFullscreen = !!document.fullscreenElement;
         this.setupCanvasDimensions(this.isFullscreen);
-        this.resetPositions();
+        if (!this.isOnline) {
+          this.resetPositions();
+        }
       } catch (err) {
         // ignore
       }
@@ -141,6 +145,17 @@ class PongGame {
       e.preventDefault();
     }
     this.keys[e.code] = true;
+
+    if (this.isOnline && this.socket && this.socket.readyState === WebSocket.OPEN) {
+      if (e.code === 'KeyW' || e.code === 'KeyS' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        this.socket.send(JSON.stringify({
+          action: 'input',
+          up: this.keys['KeyW'] || this.keys['ArrowUp'],
+          down: this.keys['KeyS'] || this.keys['ArrowDown']
+        }));
+      }
+      return;
+    }
 
     if (e.code === 'Space') {
       if (!this.isRunning && !this.gameOver) {
@@ -157,6 +172,16 @@ class PongGame {
 
   handleKeyUp(e) {
     this.keys[e.code] = false;
+    
+    if (this.isOnline && this.socket && this.socket.readyState === WebSocket.OPEN) {
+      if (e.code === 'KeyW' || e.code === 'KeyS' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        this.socket.send(JSON.stringify({
+          action: 'input',
+          up: this.keys['KeyW'] || this.keys['ArrowUp'],
+          down: this.keys['KeyS'] || this.keys['ArrowDown']
+        }));
+      }
+    }
   }
 
   toggleFullscreen() {
@@ -185,7 +210,29 @@ class PongGame {
     this.notifyStatusChange(this.isPaused ? pausedMsg : null);
   }
 
+  updateState(state) {
+    if (!this.isRunning) {
+      this.isRunning = true;
+      this.notifyStatusChange(null);
+    }
+
+    // Map server coordinates (800x600) to local canvas dimensions
+    const scaleX = this.CANVAS_WIDTH / 800;
+    const scaleY = this.CANVAS_HEIGHT / 600;
+
+    this.player1.y = state.p1_y * scaleY;
+    this.player2.y = state.p2_y * scaleY;
+    this.ball.x = state.bx * scaleX;
+    this.ball.y = state.by * scaleY;
+    
+    this.player1Score = state.s1;
+    this.player2Score = state.s2;
+    this.notifyScoreUpdate();
+  }
+
   update() {
+    if (this.isOnline) return; // Server handles physics
+
     if (!this.isRunning || this.isPaused || this.gameOver) return;
 
     if (this.keys['KeyW'] && this.player1.y > 0) {
@@ -383,22 +430,100 @@ class PongGame {
 
 const GamePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode');
+  const matchId = searchParams.get('match'); // For tournament matches
   const { t } = useLanguage();
   const { userData, isBackendAuthenticated } = useAuth();
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
+  const socketRef = useRef(null);
   const [player1Score, setPlayer1Score] = useState(0);
   const [player2Score, setPlayer2Score] = useState(0);
   const [gameMessage, setGameMessage] = useState(t('game.press_space_start'));
   const [showMessage, setShowMessage] = useState(true);
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState('');
+  const [isMatchmaking, setIsMatchmaking] = useState(mode === 'online' && !matchId);
+  const [playerRole, setPlayerRole] = useState(null);
+  const [myName, setMyName] = useState('');
+  const [opponentName, setOpponentName] = useState('');
+  const [didIWin, setDidIWin] = useState(false);
+
+  // WebSocket Connection Logic
+  useEffect(() => {
+    if ((mode !== 'online' && mode !== 'tournament') || !isBackendAuthenticated) return;
+
+    const connectToGame = (roomName) => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws/game/${roomName}/`;
+      
+      const socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        // Connected to game server
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'match_found') {
+          // Store player info
+          setPlayerRole(data.player_role);
+          setMyName(data.my_name);
+          setOpponentName(data.opponent_name);
+          
+          // Reconnect to specific room
+          socket.close();
+          connectToGame(data.room_id);
+          setIsMatchmaking(false);
+          setGameMessage(t('game.opponent_found') || 'Opponent Found! Starting...');
+        } else if (data.type === 'update') {
+          if (gameRef.current) {
+            gameRef.current.updateState(data.state);
+          }
+        } else if (data.type === 'game_over') {
+          if (gameRef.current) {
+            const iAmWinner = data.winner === playerRole;
+            setDidIWin(iAmWinner);
+            gameRef.current.endGame(data.winner_name);
+          }
+        }
+      };
+
+      socket.onclose = () => {
+        // Disconnected from game server
+      };
+    };
+
+    // For tournament matches, connect directly to the match room
+    if (mode === 'tournament' && matchId) {
+      connectToGame(`tournament_${matchId}`);
+      setIsMatchmaking(false);
+    } else {
+      // Start with matchmaking for regular online mode
+      connectToGame('matchmaking');
+    }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+    };
+  }, [mode, matchId, isBackendAuthenticated, t, playerRole]);
 
   // Save match result to backend
   const saveMatchResult = async (winnerName, p1Score, p2Score) => {
     if (!isBackendAuthenticated || !userData?.userId) return;
     
     try {
+      // Tournament matches are automatically saved by the backend WebSocket consumer
+      if (mode === 'tournament' && matchId) {
+        return;
+      }
+
+      // For regular matches
       const matchData = {
         player1_id: userData.userId,
         player2_id: null, // Local game, no second player
@@ -408,17 +533,28 @@ const GamePage = () => {
         match_type: 'local',
         duration: 0, // Could track actual duration if needed
       };
-      await apiClient.createMatch(matchData);
+      
+      // Only save match if it's not a local game, as the backend requires two registered users
+      if (matchData.match_type !== 'local') {
+        await apiClient.createMatch(matchData);
+      }
     } catch (err) {
       console.warn('Failed to save match result:', err);
     }
   };
 
   useEffect(() => {
+    if (isMatchmaking) return;
+
     if (canvasRef.current && !gameRef.current) {
+      const p1Name = (mode === 'online' || mode === 'tournament') ? (myName || t('game.player1')) : t('game.player1');
+      const p2Name = (mode === 'online' || mode === 'tournament') ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2');
+
       gameRef.current = new PongGame(canvasRef.current, {
-        player1Name: t('game.player1'),
-        player2Name: t('game.player2'),
+        player1Name: p1Name,
+        player2Name: p2Name,
+        socket: socketRef.current,
+        isOnline: mode === 'online' || mode === 'tournament',
         strings: {
           start: t('game.press_space_start'),
           paused: t('game.paused_resume'),
@@ -452,7 +588,7 @@ const GamePage = () => {
         gameRef.current = null;
       }
     };
-  }, [t]);
+  }, [t, isMatchmaking, mode, myName, opponentName]);
 
   const handlePlayAgain = () => {
     if (gameRef.current) {
@@ -476,7 +612,7 @@ const GamePage = () => {
             <div className="player-card-pro">
               <div className="player-avatar-pro">P1</div>
               <div className="player-info-pro">
-                <div className="player-name-pro">{t('game.player1')}</div>
+                <div className="player-name-pro">{mode === 'online' ? (myName || t('game.player1')) : t('game.player1')}</div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
               <div className="player-score-pro">{player1Score}</div>
@@ -490,7 +626,7 @@ const GamePage = () => {
             <div className="player-card-pro">
               <div className="player-score-pro">{player2Score}</div>
               <div className="player-info-pro">
-                <div className="player-name-pro">{t('game.player2')}</div>
+                <div className="player-name-pro">{mode === 'online' ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2')}</div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
               <div className="player-avatar-pro">P2</div>
@@ -499,17 +635,38 @@ const GamePage = () => {
 
           <div className="game-arena-pro">
             <canvas ref={canvasRef}></canvas>
-            {showMessage && (
+            {isMatchmaking ? (
+              <div className="game-overlay-pro">
+                <div className="game-start-pro">
+                  <div className="start-icon-pro" style={{ animation: 'spin 2s linear infinite' }}>🔄</div>
+                  <p className="start-message-pro">{t('game.searching_opponent') || 'Searching for opponent...'}</p>
+                </div>
+              </div>
+            ) : showMessage && (
               <div className="game-overlay-pro">
                 {gameOver ? (
                   <div className="game-result-pro">
-                    <div className="winner-trophy-pro">🏆</div>
-                    <h2 className="winner-title-pro">
-                      {t('game.winner_wins').replace('{winner}', winner)}
-                    </h2>
-                    <div className="winner-score-pro">
-                      {player1Score} - {player2Score}
-                    </div>
+                    {mode === 'online' ? (
+                      <>
+                        <div className="winner-trophy-pro">{didIWin ? '🏆' : '💔'}</div>
+                        <h2 className="winner-title-pro">
+                          {didIWin ? 'You Won!' : 'You Lost'}
+                        </h2>
+                        <div className="winner-score-pro">
+                          {player1Score} - {player2Score}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="winner-trophy-pro">🏆</div>
+                        <h2 className="winner-title-pro">
+                          {t('game.winner_wins').replace('{winner}', winner)}
+                        </h2>
+                        <div className="winner-score-pro">
+                          {player1Score} - {player2Score}
+                        </div>
+                      </>
+                    )}
                     <div className="result-actions-pro">
                       <button onClick={handlePlayAgain} className="btn-result-pro btn-primary-pro">
                         <svg
@@ -555,7 +712,7 @@ const GamePage = () => {
               <h4 className="controls-title-pro">{t('game.controls')}</h4>
               <div className="controls-grid-pro">
                 <div className="control-group-pro">
-                  <div className="control-label-pro">{t('game.player1')}</div>
+                  <div className="control-label-pro">{mode === 'online' ? 'Controls' : t('game.player1')}</div>
                   <div className="control-keys-pro">
                     {(t('game.keys.player1') || []).map((k, i) => (
                       <span key={`p1-${i}`} className="key-badge-pro">
@@ -564,29 +721,41 @@ const GamePage = () => {
                     ))}
                   </div>
                 </div>
-                <div className="control-group-pro">
-                  <div className="control-label-pro">{t('game.player2')}</div>
-                  <div className="control-keys-pro">
-                    {(t('game.keys.player2') || []).map((k, i) => (
-                      <span key={`p2-${i}`} className="key-badge-pro">
-                        {k}
-                      </span>
-                    ))}
+                {mode === 'online' && (
+                  <div className="control-group-pro">
+                    <div className="control-label-pro">Fullscreen</div>
+                    <div className="control-keys-pro">
+                      <span className="key-badge-pro">F</span>
+                    </div>
                   </div>
-                </div>
-                <div className="control-group-pro">
-                  <div className="control-label-pro">{t('game.label') || 'Game'}</div>
-                  <div className="control-keys-pro">
-                    {(t('game.keys.game') || []).map((k, i) => (
-                      <span
-                        key={`g-${i}`}
-                        className={`key-badge-pro ${k.length > 6 ? 'wide-pro' : ''}`}
-                      >
-                        {k}
-                      </span>
-                    ))}
+                )}
+                {mode !== 'online' && (
+                  <div className="control-group-pro">
+                    <div className="control-label-pro">{t('game.player2')}</div>
+                    <div className="control-keys-pro">
+                      {(t('game.keys.player2') || []).map((k, i) => (
+                        <span key={`p2-${i}`} className="key-badge-pro">
+                          {k}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+                {mode !== 'online' && (
+                  <div className="control-group-pro">
+                    <div className="control-label-pro">{t('game.label') || 'Game'}</div>
+                    <div className="control-keys-pro">
+                      {(t('game.keys.game') || []).map((k, i) => (
+                        <span
+                          key={`g-${i}`}
+                          className={`key-badge-pro ${k.length > 6 ? 'wide-pro' : ''}`}
+                        >
+                          {k}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -457,13 +457,17 @@ const ProfilePage = () => {
 
   const [recentMatches, setRecentMatches] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const userIdForCalls = profile?.user?.id || userData?.userId || userData?.id;
 
-  useEffect(() => {
-    const loadProfileAndMatches = async () => {
-      const id = userData?.userId || userData?.id;
-      if (!id) return;
+  const loadProfileAndMatches = async () => {
+    const id = userData?.userId || userData?.id;
+    if (!id) return;
+    
+    setIsRefreshing(true);
+
+    try {
 
       // Load any active API key stored for this user
       loadActiveKeyForUser(id);
@@ -502,7 +506,23 @@ const ProfilePage = () => {
 
       try {
         const matches = await apiClient.getMatchesForUser(id);
-        setRecentMatches(matches || []);
+        // Transform matches data to match the expected format
+        const transformedMatches = (matches || []).map((match) => {
+          const isPlayer1 = match.player1.id === id;
+          const opponent = isPlayer1 ? match.player2 : match.player1;
+          const myScore = isPlayer1 ? match.player1_score : match.player2_score;
+          const opponentScore = isPlayer1 ? match.player2_score : match.player1_score;
+          const didWin = match.winner && match.winner.id === id;
+          
+          return {
+            id: match.id,
+            opponent: opponent.username || opponent.fullname || 'Unknown',
+            score: `${myScore} - ${opponentScore}`,
+            result: didWin ? 'win' : 'loss',
+            date: new Date(match.completed_at || match.created_at).toLocaleDateString(),
+          };
+        });
+        setRecentMatches(transformedMatches);
       } catch (err) {
         console.error('Error loading matches for profile:', err);
       }
@@ -513,28 +533,43 @@ const ProfilePage = () => {
       } catch (err) {
         console.error('Error loading profile data:', err);
       }
-    };
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     loadProfileAndMatches();
   }, [userData, isBackendAuthenticated]);
 
+  // Auto-refresh when switching to overview tab
+  useEffect(() => {
+    if (activeTab === 'overview' && isBackendAuthenticated) {
+      loadProfileAndMatches();
+    }
+  }, [activeTab]);
+
   const stats = {
-    gamesPlayed: profile?.total_games || profile?.wins + profile?.losses || 0,
+    gamesPlayed: profile?.total_games || (profile?.wins || 0) + (profile?.losses || 0),
     wins: profile?.wins || 0,
     losses: profile?.losses || 0,
     winRate: profile?.win_rate || 0,
-    rank: profile?.rank ? `#${profile.rank}` : '—',
+    rank: profile?.rank ? `#${profile.rank}` : '#1000',
     level: profile?.level || 1,
   };
 
   const rawAchievements = profile?.achievements || userData?.achievements || [];
-  const earnedAchievementIds = new Set(
+  // Extract achievement types from backend response
+  const earnedAchievementTypes = new Set(
     (Array.isArray(rawAchievements) ? rawAchievements : [])
-      .map((a) => (typeof a === 'object' ? a.id : typeof a === 'string' ? parseInt(a, 10) : a))
+      .map((userAch) => userAch?.achievement?.achievement_type)
       .filter(Boolean)
   );
+  
+  // Map achievements from constants and mark as earned if user has them
   const achievementsList = ACHIEVEMENTS.map((a) => ({
     ...a,
-    earned: earnedAchievementIds.has(a.id),
+    earned: earnedAchievementTypes.has(a.type),
   }));
 
   return (
@@ -651,8 +686,33 @@ const ProfilePage = () => {
           </div>
 
           {activeTab === 'overview' && (
-            <div className="profile-content">
-              <div className="achievements-grid">
+            <div className="profile-content">              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0 }}>Statistics</h3>
+                <button
+                  onClick={loadProfileAndMatches}
+                  disabled={isRefreshing}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: isRefreshing ? '#6b7280' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }}>
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>              <div className="achievements-grid">
                 <div className="achievement-card">
                   <div className="achievement-icon" style={{ color: '#667eea' }}>
                     <svg

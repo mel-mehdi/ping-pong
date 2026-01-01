@@ -28,7 +28,7 @@ class AuthViewSet(viewsets.ViewSet):
 		"""
 		Allow anyone to register or login, require auth for logout
 		"""
-		if self.action in ['register', 'login']:
+		if self.action in ['register', 'login', 'google_login']:
 			return [AllowAny()]
 		return [IsAuthenticated()]
 
@@ -42,7 +42,7 @@ class AuthViewSet(viewsets.ViewSet):
 		serializer = UserSerializer(data=request.data)
 		if not serializer.is_valid():
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-		serializer.save()
+		serializer.save(online_status=True)
 		return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 	@action(detail=False, methods=['post'])
@@ -82,7 +82,7 @@ class AuthViewSet(viewsets.ViewSet):
 		"""
 		user = request.user
 		user.online_status = False
-		user.save()
+		user.save(update_fields=['online_status'])
 		django_logout(request)
 		return Response({'success': 'Logged out successfully'})
 	
@@ -189,6 +189,16 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 		"""
 		user = self.request.user
 		return UserProfile.objects.filter(user=user)
+	
+	@action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+	def leaderboard(self, request):
+		"""
+		Get all profiles for leaderboard
+		GET /profiles/leaderboard/
+		"""
+		profiles = UserProfile.objects.select_related('user').all().order_by('-wins', 'losses')
+		serializer = self.get_serializer(profiles, many=True)
+		return Response(serializer.data)
 
 	@action(detail=True, methods=['post'])
 	def update_stats(self, request, pk=None):

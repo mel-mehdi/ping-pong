@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -12,6 +12,8 @@ import {
 import apiClient from '../utils/api';
 import '../styles/auth.css';
 import SplashCursor from '../components/SplashCursor';
+
+const GOOGLE_CLIENT_ID = '726422486704-f02t4gf3nvs5jo8c2lda00klda9p80mb.apps.googleusercontent.com';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -28,6 +30,53 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    // Initialize Google Sign-In
+    if (window.google && GOOGLE_CLIENT_ID) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+      });
+
+      window.google.accounts.id.renderButton(
+        document.getElementById('google-signup-button'),
+        { 
+          theme: 'outline', 
+          size: 'large', 
+          width: document.getElementById('google-signup-button')?.offsetWidth || 400,
+          text: 'signup_with',
+          shape: 'rectangular',
+          logo_alignment: 'left'
+        }
+      );
+    }
+  }, []);
+
+  const handleGoogleResponse = async (response) => {
+    try {
+      setLoading(true);
+      const result = await apiClient.googleLogin(response.credential);
+      const userPayload = result?.user || result || {};
+
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
+        username: userPayload.username,
+        token: result?.token || result?.access,
+        loggedIn: true,
+        loginTime: new Date().toISOString(),
+      });
+
+      checkBackendAuth().catch(() => {});
+      navigate('/');
+    } catch (error) {
+      setLoading(false);
+      setErrors({
+        general: 'Google Sign-In failed. Please try again.',
+      });
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -222,10 +271,15 @@ const RegisterPage = () => {
               <span>{t('auth.or')}</span>
             </div>
 
+            <div
+              id="google-signup-button"
+              className="google-signin-container"
+            ></div>
             <button
               className="gsi-material-button"
               type="button"
-              onClick={() => {/* Google sign-up not implemented */}}
+              id="manual-google-signup-button"
+              style={{ display: 'none' }}
             >
               <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">

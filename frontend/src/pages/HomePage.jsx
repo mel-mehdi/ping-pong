@@ -14,12 +14,15 @@ const HomePage = () => {
   const [userStats, setUserStats] = useState(null);
   const [recentMatches, setRecentMatches] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showFriendModal, setShowFriendModal] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [inviting, setInviting] = useState(null);
+  const [inviteSearchQuery, setInviteSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const achievementsCount = Array.isArray(userData?.achievements)
-    ? userData.achievements.length
-    : typeof userData?.achievements === 'number'
-      ? userData.achievements
-      : 0;
+  const achievementsCount = userStats?.achievements || 0;
 
   // Fetch user stats from API
   useEffect(() => {
@@ -39,6 +42,7 @@ const HomePage = () => {
               : 0,
             rank: profile.rank || 0,
             level: profile.level || 1,
+            achievements: Array.isArray(profile.achievements) ? profile.achievements.length : 0,
           });
         }
 
@@ -58,11 +62,84 @@ const HomePage = () => {
   }, [isAuthenticated, isBackendAuthenticated, userData]);
 
   const handleQuickPlay = () => {
-    navigate('/game');
+    navigate('/game?mode=online');
+  };
+
+  const handleOnlineGame = () => {
+    navigate('/game?mode=online');
   };
 
   const handleTournament = () => {
     navigate('/tournament');
+  };
+
+  const handlePlayWithFriend = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setShowFriendModal(true);
+    // Try to fetch friends, but don't block if it fails or is empty
+    try {
+      const myFriends = await apiClient.getMyFriends();
+      if (myFriends && myFriends.length > 0) {
+        setFriends(myFriends);
+        setSuggestedUsers([]);
+      } else {
+        setFriends([]);
+        // If no friends, fetch suggested users (all users)
+        try {
+          const allUsers = await apiClient.getAllUsers();
+          // Filter out self
+          const others = (allUsers || []).filter(u => u.id !== userData?.userId).slice(0, 10);
+          setSuggestedUsers(others);
+        } catch (e) {
+          console.warn('Failed to fetch suggested users', e);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch friends:', err);
+      setFriends([]);
+    }
+  };
+
+  const handleInviteSearch = async (e) => {
+    const query = e.target.value;
+    setInviteSearchQuery(query);
+    
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await apiClient.searchUsers(query);
+      // Filter out self
+      const filtered = results.filter(u => u.id !== userData?.userId);
+      setSearchResults(filtered);
+    } catch (err) {
+      console.error('Search failed:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const sendGameInvite = async (friendId) => {
+    setInviting(friendId);
+    try {
+      await apiClient.sendGameInvitation(friendId, 'match', 'Game Invite');
+      // Show success feedback or close modal
+      alert(t('home.invite_sent') || 'Invitation sent!');
+      setShowFriendModal(false);
+      setInviteSearchQuery('');
+      setSearchResults([]);
+    } catch (err) {
+      console.error('Failed to send invite:', err);
+      alert(t('home.invite_failed') || 'Failed to send invitation');
+    } finally {
+      setInviting(null);
+    }
   };
 
   return (
@@ -494,7 +571,7 @@ const HomePage = () => {
 
             <div>
               <button
-                onClick={handleQuickPlay}
+                onClick={handleOnlineGame}
                 className="modern-card hover-lift text-center w-100"
                 style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer' }}
               >
@@ -567,6 +644,44 @@ const HomePage = () => {
                   {t('home.ai_desc')}
                 </p>
                 <span className="card-badge">{t('home.start_now')}</span>
+              </button>
+            </div>
+
+            <div>
+              <button
+                onClick={handlePlayWithFriend}
+                className="modern-card hover-lift text-center w-100"
+                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer' }}
+              >
+                <div className="play-icon mb-3" style={{ color: '#ec4899' }}>
+                  <svg
+                    width="64"
+                    height="64"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <h5
+                  style={{
+                    fontSize: '1.5rem',
+                    fontWeight: '600',
+                    marginBottom: '1rem',
+                    color: 'var(--text)',
+                  }}
+                >
+                  {t('home.play_friend_title') || 'Play with Friend'}
+                </h5>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                  {t('home.play_friend_desc') || 'Invite a friend to a match'}
+                </p>
+                <span className="card-badge">{t('home.invite') || 'Invite'}</span>
               </button>
             </div>
 
@@ -712,6 +827,120 @@ const HomePage = () => {
               </div>
             </div>
           </section>
+        )}
+        {/* Friend Selection Modal */}
+        {showFriendModal && (
+          <div className="modal-overlay" onClick={() => setShowFriendModal(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+              <div className="modal-header">
+                <h3>{t('home.select_friend') || 'Invite a Player'}</h3>
+                <button className="close-btn" onClick={() => setShowFriendModal(false)}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder={t('home.search_placeholder') || "Search by username..."}
+                    value={inviteSearchQuery}
+                    onChange={handleInviteSearch}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text)' }}
+                  />
+                </div>
+
+                {inviteSearchQuery.length > 0 ? (
+                  <div className="search-results">
+                    {isSearching ? (
+                      <p className="text-center text-muted">{t('common.loading') || 'Searching...'}</p>
+                    ) : searchResults.length === 0 ? (
+                      <p className="text-center text-muted">{t('home.no_results') || 'No users found'}</p>
+                    ) : (
+                      <div className="friend-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '300px', overflowY: 'auto' }}>
+                        {searchResults.map(user => (
+                          <div key={user.id} className="friend-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div className={`avatar-circle ${user.online_status ? 'online' : 'offline'}`} style={{ width: '40px', height: '40px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '1.2rem' }}>
+                                {user.username?.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: '600' }}>{user.username}</div>
+                              </div>
+                            </div>
+                            <button 
+                              className="btn btn-sm btn-primary"
+                              onClick={() => sendGameInvite(user.id)}
+                              disabled={inviting === user.id}
+                            >
+                              {inviting === user.id ? (t('home.sending') || 'Sending...') : (t('home.invite') || 'Invite')}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <h4 className="mb-3" style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>{t('home.your_friends') || 'Your Friends'}</h4>
+                    {friends.length === 0 ? (
+                      suggestedUsers.length > 0 ? (
+                        <>
+                          <p className="text-muted mb-3" style={{ fontSize: '0.9rem' }}>{t('home.no_friends_suggestion') || 'You have no friends yet. Here are some suggested players:'}</p>
+                          <div className="friend-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '300px', overflowY: 'auto' }}>
+                            {suggestedUsers.map(user => (
+                              <div key={user.id} className="friend-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                  <div className={`avatar-circle ${user.online_status ? 'online' : 'offline'}`} style={{ width: '40px', height: '40px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '1.2rem' }}>
+                                    {user.username?.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div style={{ fontWeight: '600' }}>{user.username}</div>
+                                  </div>
+                                </div>
+                                <button 
+                                  className="btn btn-sm btn-primary"
+                                  onClick={() => sendGameInvite(user.id)}
+                                  disabled={inviting === user.id}
+                                >
+                                  {inviting === user.id ? (t('home.sending') || 'Sending...') : (t('home.invite') || 'Invite')}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-center text-muted">{t('home.no_friends') || 'No friends found. Search above to invite anyone!'}</p>
+                      )
+                    ) : (
+                      <div className="friend-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '300px', overflowY: 'auto' }}>
+                        {friends.map(friend => (
+                          <div key={friend.id} className="friend-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div className={`avatar-circle ${friend.online_status ? 'online' : 'offline'}`} style={{ width: '40px', height: '40px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '1.2rem' }}>
+                                {friend.username?.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: '600' }}>{friend.username}</div>
+                                <div style={{ fontSize: '0.8rem', color: friend.online_status ? 'var(--success)' : 'var(--text-muted)' }}>
+                                  {friend.online_status ? t('status.online') : t('status.offline')}
+                                </div>
+                              </div>
+                            </div>
+                            <button 
+                              className="btn btn-sm btn-primary"
+                              onClick={() => sendGameInvite(friend.id)}
+                              disabled={inviting === friend.id}
+                            >
+                              {inviting === friend.id ? (t('home.sending') || 'Sending...') : (t('home.invite') || 'Invite')}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </main>
       <Footer />

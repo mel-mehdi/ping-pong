@@ -60,6 +60,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 	user = UserSerializer(read_only=True)
 	total_games = serializers.ReadOnlyField()
 	win_rate = serializers.ReadOnlyField()
+	achievements = serializers.SerializerMethodField()
 
 	class Meta:
 		model = UserProfile
@@ -73,9 +74,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
 			'xp',
 			'total_games',
 			'win_rate',
+			'achievements',
 			'created_at'
 		]
 		read_only_fields = ['created_at']
+	
+	def get_achievements(self, obj):
+		"""Get user's unlocked achievements"""
+		user_achievements = UserAchievement.objects.filter(user=obj.user).select_related('achievement')
+		return UserAchievementSerializer(user_achievements, many=True).data
 
 
 class FriendshipSerializer(serializers.ModelSerializer):

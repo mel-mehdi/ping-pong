@@ -20,78 +20,26 @@ const LeaderboardPage = () => {
         let players = [];
 
         if (isBackendAuthenticated) {
-          // Use time-filtered leaderboard endpoints based on selected filter
-          let leaderboardData = [];
-          try {
-            switch (timeFilter) {
-              case 'this-week':
-                leaderboardData = await apiClient.getLeaderboardThisWeek();
-                break;
-              case 'this-month':
-                leaderboardData = await apiClient.getLeaderboardThisMonth();
-                break;
-              case 'all-time':
-              default:
-                leaderboardData = await apiClient.getLeaderboardAllTime();
-                break;
-            }
-          } catch (err) {
-            console.warn('Time-filtered leaderboard not available, falling back to profiles');
-          }
-
-          // If time-filtered endpoint returned data, use it
-          if (Array.isArray(leaderboardData) && leaderboardData.length > 0) {
-            players = leaderboardData.map((p) => {
+          // Get profiles from leaderboard endpoint
+          const profiles = await apiClient.getProfiles();
+          
+          if (Array.isArray(profiles) && profiles.length > 0) {
+            players = profiles.map((p) => {
               const user = p.user || {};
               const wins = p.wins || 0;
               const losses = p.losses || 0;
               const total = wins + losses || 0;
               const winRate = total ? Math.round((wins / total) * 100) : 0;
               return {
-                username: user.username || p.username || user.email || 'Unknown',
-                level: p.level || user.level || 1,
+                username: user.username || user.email || 'Unknown',
+                level: p.level || 1,
                 wins,
                 losses,
                 winRate,
-                points: p.points || p.rank || wins * 10,
+                points: wins * 10,
                 rank: p.rank || null,
               };
             });
-          } else {
-            // Fallback: Prefer profiles endpoint (includes wins/losses/rank/level)
-            const profiles = await apiClient.getProfiles();
-            if (Array.isArray(profiles) && profiles.length > 0) {
-              players = profiles.map((p) => {
-                const user = p.user || {};
-                const wins = p.wins || 0;
-                const losses = p.losses || 0;
-                const total = wins + losses || 0;
-                const winRate = total ? Math.round((wins / total) * 100) : 0;
-                return {
-                  username: user.username || user.email || 'Unknown',
-                  level: p.level || user.level || 1,
-                  wins,
-                  losses,
-                  winRate,
-                  points: p.rank || p.points || wins * 10,
-                  rank: p.rank || null,
-                };
-              });
-            } else {
-              // Fallback to users list
-              const users = await apiClient.getAllUsers();
-              if (Array.isArray(users) && users.length > 0) {
-                players = users.map((u, idx) => ({
-                  username: u.username || u.email || 'Unknown',
-                  level: u.level || 1,
-                  wins: u.wins || 0,
-                  losses: u.losses || 0,
-                  winRate: u.win_rate || 0,
-                  points: (u.wins || 0) * 10,
-                  rank: idx + 1,
-                }));
-              }
-            }
           }
         } else {
           // Not authenticated: prefer public /users/ list (doesn't require API key) and fall back
@@ -167,10 +115,13 @@ const LeaderboardPage = () => {
           }
         }
 
-        // Ensure ranks are present and sort by points descending
-        players = players.map((p, idx) => ({ ...p, rank: p.rank || idx + 1 }));
-        players.sort((a, b) => (b.points || 0) - (a.points || 0));
-        players = players.map((p, idx) => ({ ...p, rank: idx + 1 }));
+        // Sort by rank (ascending) if available, otherwise by points descending
+        if (players.length > 0 && players[0].rank) {
+          players.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+        } else {
+          players.sort((a, b) => (b.points || 0) - (a.points || 0));
+          players = players.map((p, idx) => ({ ...p, rank: idx + 1 }));
+        }
 
         setLeaderboardData(players);
       } catch (err) {

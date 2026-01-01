@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -8,6 +8,7 @@ import apiClient from '../utils/api';
 const Navbar = () => {
     const { isAuthenticated, isBackendAuthenticated, userData, logout } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const [theme, setTheme] = useState('dark');
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
@@ -35,12 +36,24 @@ const Navbar = () => {
         try {
             // Get pending friend request invitations
             const friendRequests = await apiClient.getPendingFriendRequests();
-            setNotifications((friendRequests || []).map(inv => ({ 
-                id: inv.id,
-                senderId: inv.sender?.id,
-                fromName: inv.sender?.username || inv.sender?.fullname || 'Unknown',
-                type: 'friend_request'
-            })));
+            const gameInvites = await apiClient.getPendingGameInvitations();
+            
+            const allNotifications = [
+                ...(friendRequests || []).map(inv => ({ 
+                    id: inv.id,
+                    senderId: inv.sender?.id,
+                    fromName: inv.sender?.username || inv.sender?.fullname || 'Unknown',
+                    type: 'friend_request'
+                })),
+                ...(gameInvites || []).map(inv => ({
+                    id: inv.id,
+                    senderId: inv.sender?.id,
+                    fromName: inv.sender?.username || inv.sender?.fullname || 'Unknown',
+                    type: 'game_invite'
+                }))
+            ];
+            
+            setNotifications(allNotifications);
         } catch (err) {
             console.error('Error loading notifications:', err);
             setNotifications([]);
@@ -56,6 +69,92 @@ const Navbar = () => {
         }
         loadNotifications();
     }, [isAuthenticated, userData, isBackendAuthenticated, loadNotifications]);
+
+    useEffect(() => {
+        if (!isAuthenticated || !userData?.userId || !isBackendAuthenticated) return;
+
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications/`;
+        
+        let ws = null;
+        let isClosed = false;
+
+        try {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                // WebSocket connected
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'game_invite_accepted') {
+                        navigate('/game?mode=online');
+                        return;
+                    }
+
+                    if (data.type === 'new_notification') {
+                        const notif = data.notification;
+                        
+                        let newNotif = null;
+                        
+                        if (notif.game_invitation) {
+                            newNotif = {
+                                id: notif.game_invitation.id,
+                                senderId: notif.related_user?.id,
+                                fromName: notif.related_user?.username || 'Unknown',
+                                type: 'game_invite'
+                            };
+                        } else if (notif.friend_request_id) {
+                            newNotif = {
+                                id: notif.friend_request_id,
+                                senderId: notif.related_user?.id,
+                                fromName: notif.related_user?.username || 'Unknown',
+                                type: 'friend_request'
+                            };
+                        }
+
+                        if (newNotif) {
+                            setNotifications(prev => {
+                                if (prev.some(n => n.id === newNotif.id && n.type === newNotif.type)) return prev;
+                                return [newNotif, ...prev];
+                            });
+                        }
+                    }
+                } catch (err) {
+                    // Error processing notification
+                }
+            };
+
+            ws.onerror = () => {
+                // Silently handle connection errors
+            };
+
+            ws.onclose = () => {
+                isClosed = true;
+            };
+        } catch (err) {
+            // Silently handle WebSocket creation errors
+        }
+
+        return () => {
+            isClosed = true;
+            if (ws) {
+                try {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.close();
+                    } else if (ws.readyState === WebSocket.CONNECTING) {
+                        // Wait for connection to open before closing
+                        ws.onopen = () => ws.close();
+                    }
+                } catch (err) {
+                    // Silently handle close errors
+                }
+            }
+        };
+    }, [isAuthenticated, userData, isBackendAuthenticated, navigate]);
 
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -90,11 +189,9 @@ const Navbar = () => {
             return;
         }
 
-        console.log('Starting search for:', query);
         setIsSearching(true);
         try {
             const results = await apiClient.searchUsers(query);
-            console.log('Search returned:', results);
             const uid = userData?.userId || userData?.id;
             const filtered = (results || [])
                 .filter(u => u && (u.username || u.email))
@@ -102,12 +199,10 @@ const Navbar = () => {
                 .filter(isValidUser)
                 .filter(u => u.id !== uid && u.userId !== uid);
 
-            console.log('Filtered results:', filtered);
             setSearchResults(filtered);
             setSearchSource('backend');
             setShowSearchResults(true);
         } catch (error) {
-            console.error('Search error:', error);
             setSearchResults([]);
             setSearchSource('none');
         } finally {
@@ -128,27 +223,36 @@ const Navbar = () => {
         }
     };
 
-    const handleAcceptRequest = async (id) => {
+    const handleAcceptRequest = async (notification) => {
         if (!isBackendAuthenticated) return;
         
         try {
-            // Accept the invitation
-            await apiClient.respondToInvitation(id, 'accepted');
+            if (notification.type === 'game_invite') {
+                await apiClient.respondToInvitation(notification.id, 'accepted');
+                setShowNotifications(false);
+                navigate('/game?mode=online');
+            } else if (notification.type === 'friend_request') {
+                await apiClient.acceptFriendRequest(notification.id);
+            }
+            
             loadNotifications();
         } catch (err) {
-            console.error('Error accepting friend request:', err);
+            console.error('Error accepting request:', err);
         }
     };
 
-    const handleDeclineRequest = async (id) => {
+    const handleDeclineRequest = async (notification) => {
         if (!isBackendAuthenticated) return;
         
         try {
-            // Decline the invitation
-            await apiClient.respondToInvitation(id, 'declined');
+            if (notification.type === 'game_invite') {
+                await apiClient.respondToInvitation(notification.id, 'declined');
+            } else if (notification.type === 'friend_request') {
+                await apiClient.rejectFriendRequest(notification.id);
+            }
             loadNotifications();
         } catch (err) {
-            console.error('Error declining friend request:', err);
+            console.error('Error declining request:', err);
         }
     };
 
@@ -331,11 +435,15 @@ const Navbar = () => {
                             <p className="text-center">{t('notifications.no_notifications')}</p>
                         ) : (
                             notifications.map((notif) => (
-                                <div key={notif.id} className="notification-item">
-                                    <div className="notification-text">{t('notifications.message').replace('{from}', notif.fromName)}</div>
+                                <div key={`${notif.type}-${notif.id}`} className="notification-item">
+                                    <div className="notification-text">
+                                        {notif.type === 'game_invite' 
+                                            ? `${notif.fromName} invited you to play!` 
+                                            : t('notifications.message').replace('{from}', notif.fromName)}
+                                    </div>
                                     <div className="notification-actions">
-                                        <button className="btn btn-sm btn-success" onClick={() => handleAcceptRequest(notif.id)}>{t('notifications.accept')}</button>
-                                        <button className="btn btn-sm btn-secondary" onClick={() => handleDeclineRequest(notif.id)} style={{ marginLeft: '0.5rem' }}>{t('notifications.decline')}</button>
+                                        <button className="btn btn-sm btn-success" onClick={() => handleAcceptRequest(notif)}>{t('notifications.accept')}</button>
+                                        <button className="btn btn-sm btn-secondary" onClick={() => handleDeclineRequest(notif)} style={{ marginLeft: '0.5rem' }}>{t('notifications.decline')}</button>
                                     </div>
                                 </div>
                             ))
