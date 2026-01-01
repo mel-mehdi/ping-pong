@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status - ft_transcendence</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .status-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2em;
+    }
+    
+    .header-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #eee;
+    }
+    
+    .last-update {
+      color: #666;
+      font-size: 0.9em;
+    }
+    
+    .refresh-btn {
+      padding: 10px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: all 0.3s ease;
+    }
+    
+    .refresh-btn:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .service-card {
+      border: 2px solid #ddd;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .service-card:hover {
+      transform: translateX(5px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    /* green for up */
+    .status-up {
+      background-color: #d4edda;
+      border-left: 5px solid #28a745;
+    }
+    
+    /* red for down */
+    .status-down {
+      background-color: #f8d7da;
+      border-left: 5px solid #dc3545;
+    }
+    
+    /* yellow for issues */
+    .status-degraded {
+      background-color: #fff3cd;
+      border-left: 5px solid #ffc107;
+    }
+    
+    .service-card h3 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 1.3em;
+    }
+    
+    .service-card p {
+      color: #555;
+      margin: 5px 0;
+    }
+    
+    .service-card strong {
+      color: #222;
+    }
+    
+    .metrics-section {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 2px solid #eee;
+    }
+    
+    .metrics-section h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .metric-card {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .metric-card h4 {
+      color: #666;
+      font-size: 0.85em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    
+    .metric-card .value {
+      color: #333;
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+    
+    .loading {
+      text-align: center;
+      color: #667eea;
+      font-size: 1.2em;
+      padding: 20px;
+    }
+    
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="status-container">
+    <div class="header-info">
+      <div>
+        <h1>🟢 System Status</h1>
+        <p class="last-update">Last updated: <span id="last-update">Never</span></p>
+      </div>
+      <button class="refresh-btn" onclick="checkStatus()">🔄 Refresh</button>
+    </div>
+    
+    <div id="services"></div>
+    
+    <div class="metrics-section">
+      <h2>📊 System Metrics</h2>
+      <div id="metrics" class="metric-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    const serviceConfig = [
+      { name: 'Backend API', url: '/api/health', type: 'backend' },
+      { name: 'Database', url: '/api/health/db', type: 'database' },
+      { name: 'Frontend', url: '/health', type: 'frontend' }
+    ];
+
+    async function checkStatus() {
+      const servicesContainer = document.getElementById('services');
+      servicesContainer.innerHTML = '<div class="loading">🔄 Checking services...</div>';
+
+      const results = [];
+      
+      for (const service of serviceConfig) {
+        const card = document.createElement('div');
+        card.className = 'service-card';
+
+        try {
+          const startTime = performance.now();
+          const response = await fetch(service.url);
+          const endTime = performance.now();
+          const responseTime = (endTime - startTime).toFixed(2);
+          
+          const data = await response.json();
+          const isUp = response.ok && (data.status === 'OK' || data.status === 'UP');
+          
+          card.classList.add(isUp ? 'status-up' : 'status-down');
+          card.innerHTML = `
+            <h3>${service.name}</h3>
+            <p>Status: <strong>${isUp ? '🟢 UP' : '🔴 DOWN'}</strong></p>
+            <p>Response time: <strong>${responseTime}ms</strong></p>
+            ${data.uptime ? `<p>Uptime: <strong>${formatUptime(data.uptime)}</strong></p>` : ''}
+            ${data.timestamp ? `<p>Server time: <strong>${new Date(data.timestamp).toLocaleString()}</strong></p>` : ''}
+          `;
+          
+          results.push({
+            name: service.name,
+            status: isUp,
+            responseTime: responseTime,
+            uptime: data.uptime
+          });
+        } catch (error) {
+          card.classList.add('status-down');
+          card.innerHTML = `
+            <h3>${service.name}</h3>
+            <p>Status: <strong>🔴 DOWN</strong></p>
+            <p class="error-message">Error: ${error.message}</p>
+          `;
+          
+          results.push({
+            name: service.name,
+            status: false,
+            error: error.message
+          });
+        }
+
+        servicesContainer.appendChild(card);
+      }
+
+      updateMetrics(results);
+      document.getElementById('last-update').textContent = new Date().toLocaleString();
+    }
+
+    function updateMetrics(results) {
+      const metricsContainer = document.getElementById('metrics');
+      
+      const upServices = results.filter(r => r.status).length;
+      const totalServices = results.length;
+      const avgResponseTime = results
+        .filter(r => r.responseTime)
+        .reduce((sum, r) => sum + parseFloat(r.responseTime), 0) / totalServices;
+      
+      metricsContainer.innerHTML = `
+        <div class="metric-card">
+          <h4>Services Online</h4>
+          <div class="value">${upServices} / ${totalServices}</div>
+        </div>
+        <div class="metric-card">
+          <h4>Availability</h4>
+          <div class="value">${((upServices / totalServices) * 100).toFixed(1)}%</div>
+        </div>
+        <div class="metric-card">
+          <h4>Avg Response Time</h4>
+          <div class="value">${avgResponseTime.toFixed(2)}ms</div>
+        </div>
+        <div class="metric-card">
+          <h4>Status</h4>
+          <div class="value">${upServices === totalServices ? '✅ Healthy' : '⚠️ Issues'}</div>
+        </div>
+      `;
+    }
+
+    function formatUptime(seconds) {
+      const days = Math.floor(seconds / 86400);
+      const hours = Math.floor((seconds % 86400) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      
+      if (days > 0) return `${days}d ${hours}h`;
+      if (hours > 0) return `${hours}h ${minutes}m`;
+      return `${minutes}m`;
+    }
+
+    // Auto-refresh every 30 seconds
+    setInterval(checkStatus, 30000);
+    
+    // Initial check
+    checkStatus();
+  </script>
+</body>
+</html>
