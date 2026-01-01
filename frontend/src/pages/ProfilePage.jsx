@@ -48,7 +48,7 @@ const ProfilePage = () => {
         apiClient.clearActiveApiKey();
       }
     } catch (e) {
-      console.warn('loadActiveKeyForUser error', e);
+      // Error loading active key
     }
   };
 
@@ -72,7 +72,6 @@ const ProfilePage = () => {
         setTimeout(() => setApiKeyMessage(null), 2000);
       }
     } catch (e) {
-      console.warn('saveActiveKeyForUser error', e);
       setApiKeyMessage('Save failed');
       setTimeout(() => setApiKeyMessage(null), 2000);
     }
@@ -117,7 +116,7 @@ const ProfilePage = () => {
         }
       }
     } catch (e) {
-      console.warn('loadApiInfoForUser error', e);
+      // Error loading API info
     }
   };
 
@@ -146,7 +145,7 @@ const ProfilePage = () => {
         }
       }
     } catch (e) {
-      console.warn('saveApiInfoForUser error', e);
+      // Error saving API info
     }
   };
 
@@ -156,7 +155,7 @@ const ProfilePage = () => {
     try {
       localStorage.setItem(`local_avatar_${id}`, dataUrl);
     } catch (e) {
-      console.warn('saveLocalAvatarForUser error', e);
+      // Error saving local avatar
     }
   };
 
@@ -165,7 +164,7 @@ const ProfilePage = () => {
     try {
       return localStorage.getItem(`local_avatar_${id}`);
     } catch (e) {
-      console.warn('loadLocalAvatarForUser error', e);
+      // Error loading local avatar
       return null;
     }
   };
@@ -289,7 +288,7 @@ const ProfilePage = () => {
         try {
           await apiClient.updateProfile(profile.id, { bio: editForm.bio });
         } catch (e) {
-          console.warn('Failed to update profile bio:', e);
+          // Error updating profile bio
         }
       }
 
@@ -321,7 +320,7 @@ const ProfilePage = () => {
       }
       setShowEditModal(false);
     } catch (error) {
-      console.error('Error saving profile:', error);
+      // Error saving profile
     } finally {
       setSaving(false);
     }
@@ -400,7 +399,6 @@ const ProfilePage = () => {
             setTimeout(() => setApiMessage(null), 3000);
           }
         } catch (e) {
-          console.error('Local avatar save failed:', e);
           setApiMessage('Local avatar save failed');
           setTimeout(() => setApiMessage(null), 3000);
         } finally {
@@ -441,7 +439,6 @@ const ProfilePage = () => {
       setSelectedFile(null);
       setPreviewUrl(null);
     } catch (error) {
-      console.error('Error uploading avatar:', error);
       setApiMessage('Error uploading avatar');
       setTimeout(() => setApiMessage(null), 3000);
     } finally {
@@ -524,14 +521,14 @@ const ProfilePage = () => {
         });
         setRecentMatches(transformedMatches);
       } catch (err) {
-        console.error('Error loading matches for profile:', err);
+        // Error loading matches for profile
       }
 
       try {
         const profileData = await apiClient.getUserProfile(id);
         setProfile(profileData);
       } catch (err) {
-        console.error('Error loading profile data:', err);
+        // Error loading profile data
       }
     } finally {
       setIsRefreshing(false);
@@ -548,6 +545,21 @@ const ProfilePage = () => {
       loadProfileAndMatches();
     }
   }, [activeTab]);
+
+  // Listen for achievement unlock events to auto-refresh profile
+  useEffect(() => {
+    const handleAchievementUnlock = () => {
+      if (isBackendAuthenticated) {
+        loadProfileAndMatches();
+      }
+    };
+
+    window.addEventListener('achievementUnlocked', handleAchievementUnlock);
+    
+    return () => {
+      window.removeEventListener('achievementUnlocked', handleAchievementUnlock);
+    };
+  }, [isBackendAuthenticated]);
 
   const stats = {
     gamesPlayed: profile?.total_games || (profile?.wins || 0) + (profile?.losses || 0),

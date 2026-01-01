@@ -434,6 +434,72 @@
 .start-icon-pro {
   font-size: 4rem;
   margin-bottom: 1rem;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.start-icon-pro svg {
+  animation: 
+    orbit 4s ease-in-out infinite,
+    pulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.6));
+}
+
+@keyframes orbit {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(30px, -30px) rotate(90deg);
+  }
+  50% {
+    transform: translate(0, -60px) rotate(180deg);
+  }
+  75% {
+    transform: translate(-30px, -30px) rotate(270deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.start-icon-pro::before {
+  content: '';
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border: 3px dashed rgba(99, 102, 241, 0.3);
+  border-radius: 50%;
+  animation: rotate 8s linear infinite;
+}
+
+.start-icon-pro::after {
+  content: '';
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border: 2px solid rgba(99, 102, 241, 0.1);
+  border-radius: 50%;
+  animation: rotate 12s linear infinite reverse;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .start-message-pro {

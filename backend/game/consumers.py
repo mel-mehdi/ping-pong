@@ -105,9 +105,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                         'p2_username': match.player2.username,
                         'task': None
                     }
-                    print(f"Initialized tournament match {match_id}: {match.player1.username} vs {match.player2.username}")
             except Match.DoesNotExist:
-                print(f"Tournament match {match_id} not found or not in 'ongoing' status")
                 await self.close()
                 return
         
@@ -128,25 +126,20 @@ class GameConsumer(AsyncWebsocketConsumer):
         if game['p1_uid'] == self.user.id:
             game['p1'] = self.channel_name
             player_role = 1
-            print(f"Player 1 ({self.user.username}) connected to room {room_id}")
         elif game['p2_uid'] == self.user.id:
             game['p2'] = self.channel_name
             player_role = 2
-            print(f"Player 2 ({self.user.username}) connected to room {room_id}")
         # First time connection (if not set by matchmaking)
         elif game['p1_uid'] is None:
             game['p1'] = self.channel_name
             game['p1_uid'] = self.user.id
             player_role = 1
-            print(f"Player 1 ({self.user.username}) connected to room {room_id}")
         elif game['p2_uid'] is None:
             game['p2'] = self.channel_name
             game['p2_uid'] = self.user.id
             player_role = 2
-            print(f"Player 2 ({self.user.username}) connected to room {room_id}")
         else:
             player_role = None
-            print(f"User {self.user.username} tried to join full room {room_id}")
 
         # Send player info for tournament matches and online matches
         if player_role and 'p1_username' in game:
@@ -162,11 +155,9 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         # Start game loop if both players are present (or at least slots filled)
         if game['p1'] and game['p2'] and not game['task']:
-            print(f"Both players connected to {room_id}, starting game loop")
             game['task'] = asyncio.create_task(self.game_loop(room_id))
 
     async def game_loop(self, room_id):
-        print(f"Starting game loop for room {room_id}")
         try:
             game = active_games[room_id]
             engine = game['engine']
@@ -209,7 +200,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                 await asyncio.sleep(1/60)
                 
             # Game Over
-            print(f"Game loop ended for room {room_id}. Winner: {engine.winner}")
             if game['p1_uid'] and game['p2_uid']:
                 await self.save_match_result(
                     room_id,
@@ -232,8 +222,8 @@ class GameConsumer(AsyncWebsocketConsumer):
                     'p2_name': game.get('p2_username', 'Player 2')
                 }
             )
-        except Exception as e:
-            print(f"Game loop error: {e}")
+        except Exception:
+            pass
         finally:
             if room_id in active_games:
                 del active_games[room_id]
@@ -257,7 +247,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                     match.status = 'completed'
                     match.completed_at = timezone.now()
                     match.save()
-                    print(f"Tournament match {match_id} updated: {p1.username} vs {p2.username}, Winner: {winner.username}")
                     
                     # Check if we need to advance tournament
                     tournament = match.tournament
@@ -265,7 +254,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                         self.advance_tournament(tournament)
                     return
                 except Match.DoesNotExist:
-                    print(f"Tournament match {match_id} not found, creating new match")
+                    pass
             
             # Regular online match - create new
             Match.objects.create(
@@ -277,9 +266,8 @@ class GameConsumer(AsyncWebsocketConsumer):
                 status='completed',
                 completed_at=timezone.now()
             )
-            print(f"Match saved: {p1.username} vs {p2.username}, Winner: {winner.username}")
-        except Exception as e:
-            print(f"Error saving match: {e}")
+        except Exception:
+            pass
 
     def advance_tournament(self, tournament):
         """Check if round is complete and create next round matches"""
@@ -313,8 +301,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                     next_round_players.append(winner_id)
             
             if len(next_round_players) >= 2:
-                print(f"Creating next round for tournament {tournament.id} with {len(next_round_players)} players")
-                
                 # Create matches for next round
                 import random
                 random.shuffle(next_round_players)
@@ -326,14 +312,12 @@ class GameConsumer(AsyncWebsocketConsumer):
                         player2_id=next_round_players[i + 1],
                         status='ongoing'
                     )
-                    print(f"Created match: Player {next_round_players[i]} vs Player {next_round_players[i + 1]}")
             
             elif len(next_round_players) == 1:
                 # Tournament winner!
                 tournament.status = 'completed'
                 tournament.end_date = timezone.now()
                 tournament.save()
-                print(f"Tournament {tournament.id} completed! Winner: Player {next_round_players[0]}")
 
 
     async def game_update(self, event):

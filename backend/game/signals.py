@@ -8,10 +8,7 @@ from user_management.models import User, Achievement, UserAchievement
 @receiver(post_save, sender=Match)
 def check_achievements(sender, instance, created, **kwargs):
     """Check and award achievements when a match is completed"""
-    print(f"🔔 Signal triggered for match: {instance.id}, created={created}, status={instance.status}, winner={instance.winner}")
-    
     if not instance.winner or instance.status != 'completed':
-        print(f"⚠️ Skipping achievement check - no winner or not completed")
         return
     
     winner = instance.winner
@@ -23,18 +20,14 @@ def check_achievements(sender, instance, created, **kwargs):
     winner_profile, _ = UserProfile.objects.get_or_create(user=winner)
     winner_profile.wins += 1
     winner_profile.add_xp(100)  # Award 100 XP for winning
-    print(f"📊 Updated {winner.username} profile: {winner_profile.wins} wins, {winner_profile.xp} XP, Level {winner_profile.level}")
     
     loser_profile, _ = UserProfile.objects.get_or_create(user=loser)
     loser_profile.losses += 1
     loser_profile.add_xp(25)  # Award 25 XP for participating
-    print(f"📊 Updated {loser.username} profile: {loser_profile.losses} losses, {loser_profile.xp} XP, Level {loser_profile.level}")
     
-    print(f"🏆 Checking achievements for winner: {winner.username}")
     # Check achievements for winner
     check_user_achievements(winner)
     
-    print(f"💔 Checking achievements for loser: {loser.username}")
     # Check achievements for loser too (some achievements might apply)
     check_user_achievements(loser)
     
@@ -68,7 +61,6 @@ def recalculate_ranks():
         if profile.rank != rank:
             profile.rank = rank
             profile.save(update_fields=['rank'])
-            print(f"🏅 Updated rank: {profile.user.username} is now #{rank}")
 
 
 def check_user_achievements(user):
@@ -204,15 +196,47 @@ def award_achievement(user, achievement_type):
         )
         
         if created:
-            print(f"✅ Awarded '{achievement.name}' to {user.username}")
             # Award XP to user profile
             if hasattr(user, 'profile'):
                 user.profile.add_xp(achievement.xp_reward)
+            
+            # Create notification for achievement unlock
+            from user_management.models import Notification
+            notification = Notification.objects.create(
+                user=user,
+                notification_type='achievement_unlocked',
+                message=f'🏆 Achievement Unlocked: {achievement.name}',
+                achievement=achievement
+            )
+            
+            # Send WebSocket notification
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'notifications_{user.id}',
+                {
+                    'type': 'send_notification',
+                    'notification': {
+                        'id': notification.id,
+                        'type': notification.notification_type,
+                        'message': notification.message,
+                        'is_read': notification.is_read,
+                        'created_at': notification.created_at.isoformat(),
+                        'achievement': {
+                            'id': achievement.id,
+                            'name': achievement.name,
+                            'description': achievement.description,
+                            'icon': achievement.icon,
+                            'xp_reward': achievement.xp_reward
+                        }
+                    }
+                }
+            )
         
         return created
     except Achievement.DoesNotExist:
-        print(f"⚠️ Achievement {achievement_type} does not exist in database")
         return False
-    except Exception as e:
-        print(f"❌ Error awarding achievement: {e}")
+    except Exception:
         return False

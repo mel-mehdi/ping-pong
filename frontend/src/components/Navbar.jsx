@@ -55,7 +55,7 @@ const Navbar = () => {
             
             setNotifications(allNotifications);
         } catch (err) {
-            console.error('Error loading notifications:', err);
+            // Error loading notifications
             setNotifications([]);
         }
     }, [userData, isBackendAuthenticated]);
@@ -114,6 +114,22 @@ const Navbar = () => {
                                 fromName: notif.related_user?.username || notif.from_user || 'Unknown',
                                 type: 'friend_request'
                             };
+                        } else if (notif.type === 'achievement_unlocked' && notif.achievement) {
+                            newNotif = {
+                                id: notif.id,
+                                achievementName: notif.achievement.name,
+                                achievementDesc: notif.achievement.description,
+                                achievementIcon: notif.achievement.icon,
+                                xpReward: notif.achievement.xp_reward,
+                                type: 'achievement_unlocked',
+                                timestamp: Date.now()
+                            };
+                            // Trigger profile refresh event
+                            window.dispatchEvent(new Event('achievementUnlocked'));
+                            // Auto-dismiss achievement notifications after 5 seconds
+                            setTimeout(() => {
+                                setNotifications(prev => prev.filter(n => n.id !== notif.id));
+                            }, 5000);
                         }
 
                         if (newNotif) {
@@ -182,8 +198,6 @@ const Navbar = () => {
         }
 
         if (!isBackendAuthenticated) {
-            console.warn('Search blocked: user not backend authenticated');
-            console.log('isAuthenticated:', isAuthenticated, 'isBackendAuthenticated:', isBackendAuthenticated);
             setSearchResults([]);
             setSearchSource('none');
             return;
@@ -217,8 +231,7 @@ const Navbar = () => {
             await apiClient.sendFriendRequest(userData.userId, userData.username, userId, username);
             setPendingInvites([...pendingInvites, userId]);
         } catch (error) {
-            console.error('Error sending friend request:', error);
-            // Still mark as pending locally to prevent repeated attempts
+            // Error sending friend request - still mark as pending locally
             setPendingInvites([...pendingInvites, userId]);
         }
     };
@@ -239,7 +252,7 @@ const Navbar = () => {
             
             loadNotifications();
         } catch (err) {
-            console.error('Error accepting request:', err);
+            // Error accepting request
         }
     };
 
@@ -254,7 +267,7 @@ const Navbar = () => {
             }
             loadNotifications();
         } catch (err) {
-            console.error('Error declining request:', err);
+            // Error declining request
         }
     };
 
@@ -437,16 +450,30 @@ const Navbar = () => {
                             <p className="text-center">{t('notifications.no_notifications')}</p>
                         ) : (
                             notifications.map((notif) => (
-                                <div key={`${notif.type}-${notif.id}`} className="notification-item">
+                                <div key={`${notif.type}-${notif.id}`} className={`notification-item ${notif.type === 'achievement_unlocked' ? 'achievement-notification' : ''}`}>
                                     <div className="notification-text">
-                                        {notif.type === 'game_invite' 
-                                            ? `${notif.fromName} invited you to play!` 
-                                            : t('notifications.message').replace('{from}', notif.fromName)}
+                                        {notif.type === 'achievement_unlocked' ? (
+                                            <div className="achievement-content">
+                                                <span className="achievement-icon">{notif.achievementIcon || '🏆'}</span>
+                                                <div className="achievement-details">
+                                                    <strong>Achievement Unlocked!</strong>
+                                                    <div className="achievement-name">{notif.achievementName}</div>
+                                                    <div className="achievement-desc">{notif.achievementDesc}</div>
+                                                    <div className="achievement-xp">+{notif.xpReward} XP</div>
+                                                </div>
+                                            </div>
+                                        ) : notif.type === 'game_invite' ? (
+                                            `${notif.fromName} invited you to play!`
+                                        ) : (
+                                            t('notifications.message').replace('{from}', notif.fromName)
+                                        )}
                                     </div>
-                                    <div className="notification-actions">
-                                        <button className="btn btn-sm btn-success" onClick={() => handleAcceptRequest(notif)}>{t('notifications.accept')}</button>
-                                        <button className="btn btn-sm btn-secondary" onClick={() => handleDeclineRequest(notif)} style={{ marginLeft: '0.5rem' }}>{t('notifications.decline')}</button>
-                                    </div>
+                                    {notif.type !== 'achievement_unlocked' && (
+                                        <div className="notification-actions">
+                                            <button className="btn btn-sm btn-success" onClick={() => handleAcceptRequest(notif)}>{t('notifications.accept')}</button>
+                                            <button className="btn btn-sm btn-secondary" onClick={() => handleDeclineRequest(notif)} style={{ marginLeft: '0.5rem' }}>{t('notifications.decline')}</button>
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         )}

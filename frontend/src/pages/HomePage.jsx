@@ -52,7 +52,7 @@ const HomePage = () => {
           setRecentMatches(matches.slice(0, 5)); // Get last 5 matches
         }
       } catch (err) {
-        console.warn('Failed to fetch user data:', err);
+        // Failed to fetch user data
       } finally {
         setLoading(false);
       }

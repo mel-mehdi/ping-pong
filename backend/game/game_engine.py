@@ -80,22 +80,18 @@ class PongEngine:
         # Scoring
         if self.ball_x < 0:
             self.score2 += 1
-            print(f"Score Update: P1={self.score1} P2={self.score2}")
             self.reset_ball()
         elif self.ball_x > self.width:
             self.score1 += 1
-            print(f"Score Update: P1={self.score1} P2={self.score2}")
             self.reset_ball()
 
         # Win Condition
         if self.score1 >= 5:
             self.game_over = True
             self.winner = 1
-            print(f"Game Over: Winner is P1")
         elif self.score2 >= 5:
             self.game_over = True
             self.winner = 2
-            print(f"Game Over: Winner is P2")
 
     def reset_ball(self):
         self.ball_x = self.width / 2 - self.ball_size / 2

@@ -74,7 +74,6 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 		}))
 
 	async def game_invite_accepted(self, event):
-		print(f"NotificationConsumer: Sending game_invite_accepted to user {self.user.id}")
 		await self.send(text_data=json.dumps({
 			'type': 'game_invite_accepted',
 			'invitation_id': event['invitation_id'],

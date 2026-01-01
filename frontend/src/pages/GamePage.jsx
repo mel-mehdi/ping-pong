@@ -578,7 +578,7 @@ const GamePage = () => {
         await apiClient.createMatch(matchData);
       }
     } catch (err) {
-      console.warn('Failed to save match result:', err);
+      // Failed to save match result
     }
   };
 
@@ -705,7 +705,12 @@ const GamePage = () => {
             {isMatchmaking ? (
               <div className="game-overlay-pro">
                 <div className="game-start-pro">
-                  <div className="start-icon-pro" style={{ animation: 'spin 2s linear infinite' }}>🔄</div>
+                  <div className="start-icon-pro">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                  </div>
                   <p className="start-message-pro">{t('game.searching_opponent') || 'Searching for opponent...'}</p>
                 </div>
               </div>

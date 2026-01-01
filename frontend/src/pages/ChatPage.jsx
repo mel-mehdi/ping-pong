@@ -75,15 +75,16 @@ const ChatPage = () => {
           });
         }
       } catch (err) {
-        // Error parsing WebSocket message
+        // Failed to parse WebSocket message
       }
     };
 
-    ws.onerror = (error) => {
-      // WebSocket error
+    ws.onerror = () => {
+      // WebSocket connection error
     };
 
     ws.onclose = () => {
+      // WebSocket closed
     };
 
     return () => {
@@ -253,19 +254,31 @@ const ChatPage = () => {
     })();
   }, [selectedChat, userData, isBackendAuthenticated]);
 
-  const sendGameInvite = () => {
-    if (!selectedChat) return;
-    setMessages([
-      ...messages,
-      {
-        id: messages.length + 1,
-        sender: 'You',
-        text: `🎮 Game invitation sent to ${selectedChat.name}`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isOwn: true,
-        isNotification: true,
-      },
-    ]);
+  const sendGameInvite = async () => {
+    if (!selectedChat || !isBackendAuthenticated) return;
+    
+    try {
+      await apiClient.sendGameInvitation(
+        selectedChat.id, 
+        'match', 
+        `${userData.username || 'A player'} invited you to play Pong!`
+      );
+      
+      setMessages([
+        ...messages,
+        {
+          id: messages.length + 1,
+          sender: 'You',
+          text: `🎮 Game invitation sent to ${selectedChat.name}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isOwn: true,
+          isNotification: true,
+        },
+      ]);
+    } catch (err) {
+      // Error sending game invitation
+      alert(t('chat.inviteFailed') || 'Failed to send game invitation');
+    }
     setShowMenu(false);
   };
 

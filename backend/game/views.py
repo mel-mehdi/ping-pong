@@ -335,7 +335,6 @@ class InvitationViewSet(viewsets.ModelViewSet):
 		if new_status == 'accepted':
 			# Notify the sender that the invitation was accepted
 			channel_layer = get_channel_layer()
-			print(f"Sending game_invite_accepted to notifications_{invitation.sender.id}")
 			async_to_sync(channel_layer.group_send)(
 				f'notifications_{invitation.sender.id}',
 				{
