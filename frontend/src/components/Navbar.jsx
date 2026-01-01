@@ -34,15 +34,15 @@ const Navbar = () => {
         }
         
         try {
-            // Get pending friend request invitations
+            // Get pending friend requests and game invitations
             const friendRequests = await apiClient.getPendingFriendRequests();
             const gameInvites = await apiClient.getPendingGameInvitations();
             
             const allNotifications = [
-                ...(friendRequests || []).map(inv => ({ 
-                    id: inv.id,
-                    senderId: inv.sender?.id,
-                    fromName: inv.sender?.username || inv.sender?.fullname || 'Unknown',
+                ...(friendRequests || []).map(req => ({ 
+                    id: req.id,
+                    senderId: req.from_user?.id,
+                    fromName: req.from_user?.username || req.from_user?.fullname || 'Unknown',
                     type: 'friend_request'
                 })),
                 ...(gameInvites || []).map(inv => ({
@@ -107,11 +107,11 @@ const Navbar = () => {
                                 fromName: notif.related_user?.username || 'Unknown',
                                 type: 'game_invite'
                             };
-                        } else if (notif.friend_request_id) {
+                        } else if (notif.friend_request_id || notif.type === 'friend_request_received') {
                             newNotif = {
-                                id: notif.friend_request_id,
+                                id: notif.friend_request_id || notif.id,
                                 senderId: notif.related_user?.id,
-                                fromName: notif.related_user?.username || 'Unknown',
+                                fromName: notif.related_user?.username || notif.from_user || 'Unknown',
                                 type: 'friend_request'
                             };
                         }
@@ -233,6 +233,8 @@ const Navbar = () => {
                 navigate('/game?mode=online');
             } else if (notification.type === 'friend_request') {
                 await apiClient.acceptFriendRequest(notification.id);
+                // Trigger event to refresh friends list in chat
+                window.dispatchEvent(new Event('friendAccepted'));
             }
             
             loadNotifications();

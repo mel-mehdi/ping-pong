@@ -22,7 +22,8 @@ const TournamentPage = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [pendingInvites, setPendingInvites] = useState([]);
   const [activeTournaments, setActiveTournaments] = useState([]);
-  const [brackets, setBrackets] = useState({ round: '', matches: [] });
+  const [completedTournaments, setCompletedTournaments] = useState([]);
+  const [brackets, setBrackets] = useState({ name: '', rounds: [] });
   const [myTournaments, setMyTournaments] = useState([]);
   const [tournamentMatches, setTournamentMatches] = useState([]);
   const [apiMessage, setApiMessage] = useState(null);
@@ -35,7 +36,12 @@ const TournamentPage = () => {
       try {
         const fetched = await apiClient.getTournaments();
         if (fetched && Array.isArray(fetched)) {
-          setActiveTournaments(fetched);
+          // Filter active (pending/ongoing) vs completed tournaments
+          const active = fetched.filter(t => t.status !== 'completed');
+          const completed = fetched.filter(t => t.status === 'completed');
+          
+          setActiveTournaments(active);
+          setCompletedTournaments(completed);
 
           const my = fetched.filter((t) => {
             const creatorId = t.creator?.id;
@@ -43,10 +49,7 @@ const TournamentPage = () => {
           });
           setMyTournaments(my);
 
-          if (fetched.length > 0) {
-            const first = fetched[0];
-            setBrackets({ name: first.name, round: 'Quarterfinals', matches: first.matches || [] });
-          }
+          // Don't auto-load brackets, let user select
         }
 
         // Load tournament matches
@@ -85,7 +88,10 @@ const TournamentPage = () => {
           setApiMessage('Tournament created successfully!');
           
           const all = await apiClient.getTournaments();
-          setActiveTournaments(all || []);
+          const active = (all || []).filter(t => t.status !== 'completed');
+          const completed = (all || []).filter(t => t.status === 'completed');
+          setActiveTournaments(active);
+          setCompletedTournaments(completed);
           setMyTournaments((all || []).filter((t) => t.creator?.id === userData?.userId));
         }
       } catch (err) {
@@ -166,7 +172,10 @@ const TournamentPage = () => {
       // Refresh tournaments list
       const all = await apiClient.getTournaments();
       if (all && Array.isArray(all)) {
-        setActiveTournaments([...all]);
+        const active = all.filter(t => t.status !== 'completed');
+        const completed = all.filter(t => t.status === 'completed');
+        setActiveTournaments([...active]);
+        setCompletedTournaments([...completed]);
         const my = all.filter((t) => t.creator?.id === userData?.userId);
         setMyTournaments([...my]);
       }
@@ -191,8 +200,26 @@ const TournamentPage = () => {
 
       // Refresh tournaments list so UI reflects updated participant counts/status
       const all = await apiClient.getTournaments();
-      setActiveTournaments(all || []);
+      const active = (all || []).filter(t => t.status !== 'completed');
+      const completed = (all || []).filter(t => t.status === 'completed');
+      setActiveTournaments(active);
+      setCompletedTournaments(completed);
       setMyTournaments((all || []).filter((t) => (t.creator && t.creator.id === userData?.userId) || t.ownerId === userData?.userId));
+
+      // Refresh matches in case the tournament started
+      const matches = await apiClient.getTournamentMatches();
+      if (matches && Array.isArray(matches)) {
+        setTournamentMatches(matches);
+        
+        // Check if we have a match in this tournament and redirect
+        const myMatch = matches.find(m => m.tournament === tournament.id);
+        if (myMatch) {
+          setApiMessage('Tournament started! Redirecting to match...');
+          setTimeout(() => {
+            navigate(`/game?mode=tournament&match=${myMatch.id}`);
+          }, 1500);
+        }
+      }
     } catch (err) {
       setApiMessage(err?.message || 'Unable to join tournament');
     } finally {
@@ -371,71 +398,260 @@ const TournamentPage = () => {
           {activeTab === 'brackets' && (
             <div className="tournament-content">
               <div className="bracket-header">
-                <h2>{brackets.name || t('tournaments.tabs.brackets')}</h2>
-                <p className="bracket-round">{brackets.round}</p>
+                <h2>{t('tournaments.brackets') || 'Tournament Brackets'}</h2>
+                <p className="text-muted">{t('tournaments.view_progress') || 'View tournament progress and matches'}</p>
               </div>
-              <div className="bracket-container">
-                {(brackets.matches || []).map((match) => (
-                  <div key={match.id} className="bracket-match">
-                    <div
-                      className={`bracket-player ${match.winner === 'player1' ? 'winner' : match.winner === 'player2' ? 'loser' : ''}`}
-                    >
-                      <span className="player-name">{match.player1}</span>
-                      <span className="player-score">
-                        {match.score1 !== null ? match.score1 : '-'}
-                      </span>
-                    </div>
-                    <div className="bracket-vs">{t('tournaments.vs')}</div>
-                    <div
-                      className={`bracket-player ${match.winner === 'player2' ? 'winner' : match.winner === 'player1' ? 'loser' : ''}`}
-                    >
-                      <span className="player-name">{match.player2}</span>
-                      <span className="player-score">
-                        {match.score2 !== null ? match.score2 : '-'}
-                      </span>
-                    </div>
-                    {match.winner === null && (
-                      <div className="match-status">{t('tournaments.upcoming')}</div>
-                    )}
-                  </div>
-                ))}
+              
+              {/* Tournament Selector */}
+              <div style={{ marginBottom: '2rem' }}>
+                <select 
+                  className="form-control" 
+                  style={{ maxWidth: '400px', margin: '0 auto' }}
+                  onChange={async (e) => {
+                    const tournamentId = parseInt(e.target.value);
+                    if (!tournamentId) {
+                      setBrackets({ name: '', rounds: [] });
+                      return;
+                    }
+                    
+                    try {
+                      // Fetch full tournament data with matches
+                      const response = await apiClient.getTournamentById(tournamentId);
+                      if (response && response.matches && response.matches.length > 0) {
+                        const allMatches = response.matches;
+                        
+                        // Group matches by determining their round based on creation order
+                        // First half are round 1, next quarter are round 2 (semis), last is final
+                        const totalPlayers = response.max_players;
+                        const rounds = [];
+                        
+                        if (totalPlayers === 4) {
+                          // 4 players: 2 semis, 1 final
+                          if (allMatches.length >= 2) rounds.push(allMatches.slice(0, 2)); // Semis
+                          if (allMatches.length >= 3) rounds.push([allMatches[2]]); // Final
+                        } else if (totalPlayers === 8) {
+                          // 8 players: 4 quarters, 2 semis, 1 final
+                          if (allMatches.length >= 4) rounds.push(allMatches.slice(0, 4)); // Quarters
+                          if (allMatches.length >= 6) rounds.push(allMatches.slice(4, 6)); // Semis
+                          if (allMatches.length >= 7) rounds.push([allMatches[6]]); // Final
+                        } else {
+                          // Generic: split evenly
+                          const matchesPerRound = Math.ceil(totalPlayers / 2);
+                          let idx = 0;
+                          while (idx < allMatches.length) {
+                            const roundSize = Math.max(1, Math.floor((allMatches.length - idx) / 2));
+                            rounds.push(allMatches.slice(idx, idx + roundSize));
+                            idx += roundSize;
+                          }
+                        }
+                        
+                        setBrackets({ 
+                          name: response.name, 
+                          rounds: rounds 
+                        });
+                      } else {
+                        setBrackets({ name: response.name, rounds: [] });
+                      }
+                    } catch (err) {
+                      console.error('Error loading tournament:', err);
+                      setBrackets({ name: '', rounds: [] });
+                    }
+                  }}
+                >
+                  <option value="">{t('tournaments.select') || 'Select Tournament'}</option>
+                  {[...activeTournaments, ...completedTournaments].map(tournament => (
+                    <option key={tournament.id} value={tournament.id}>
+                      {tournament.name} ({tournament.status === 'completed' ? (t('tournaments.completed') || 'Completed') : tournament.status === 'ongoing' ? (t('tournaments.in_progress') || 'In Progress') : (t('tournaments.pending') || 'Pending')})
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              {/* Bracket Visualization */}
+              {brackets.rounds && brackets.rounds.length > 0 ? (
+                <div className="bracket-tree" style={{ 
+                  display: 'flex', 
+                  gap: '3rem', 
+                  justifyContent: 'center', 
+                  alignItems: 'center',
+                  padding: '2rem',
+                  overflowX: 'auto'
+                }}>
+                  {brackets.rounds.map((round, roundIndex) => (
+                    <div key={roundIndex} className="bracket-round-column" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: `${Math.pow(2, roundIndex) * 1.5}rem`,
+                      justifyContent: 'center'
+                    }}>
+                      <div style={{ textAlign: 'center', marginBottom: '1rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                        {roundIndex === brackets.rounds.length - 1 
+                          ? (t('tournaments.final') || 'Final')
+                          : roundIndex === brackets.rounds.length - 2
+                            ? (t('tournaments.semi_final') || 'Semi-Final')
+                            : `${t('tournaments.round') || 'Round'} ${roundIndex + 1}`}
+                      </div>
+                      {round.map((match) => (
+                        <div key={match.id} className="bracket-match-card" style={{
+                          background: 'var(--card-bg)',
+                          border: '2px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '0.75rem',
+                          minWidth: '200px',
+                          boxShadow: match.status === 'ongoing' ? '0 0 10px rgba(102, 126, 234, 0.5)' : 'none'
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.5rem',
+                            background: match.winner?.id === match.player1?.id ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                            borderRadius: '4px',
+                            marginBottom: '0.25rem',
+                            fontWeight: match.winner?.id === match.player1?.id ? '600' : '400'
+                          }}>
+                            <span>{match.player1?.username || 'TBD'}</span>
+                            <span style={{ 
+                              fontWeight: 'bold',
+                              color: match.winner?.id === match.player1?.id ? '#22c55e' : 'inherit'
+                            }}>
+                              {match.player1_score !== null && match.player1_score !== undefined ? match.player1_score : '-'}
+                            </span>
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.5rem',
+                            background: match.winner?.id === match.player2?.id ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                            borderRadius: '4px',
+                            fontWeight: match.winner?.id === match.player2?.id ? '600' : '400'
+                          }}>
+                            <span>{match.player2?.username || 'TBD'}</span>
+                            <span style={{ 
+                              fontWeight: 'bold',
+                              color: match.winner?.id === match.player2?.id ? '#22c55e' : 'inherit'
+                            }}>
+                              {match.player2_score !== null && match.player2_score !== undefined ? match.player2_score : '-'}
+                            </span>
+                          </div>
+                          {match.status === 'ongoing' && (
+                            <div style={{ 
+                              textAlign: 'center', 
+                              marginTop: '0.5rem', 
+                              fontSize: '0.75rem',
+                              color: '#667eea',
+                              fontWeight: 'bold'
+                            }}>
+                              {t('tournaments.live') || 'LIVE'}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : brackets.name ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <p>{t('tournaments.no_matches') || 'No matches have been created yet for this tournament.'}</p>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <p>{t('tournaments.select_above') || 'Please select a tournament from the dropdown above.'}</p>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'history' && (
             <div className="tournament-content">
               <div className="tournament-history">
-                {myTournaments.map((tournament) => (
+                {completedTournaments.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    <p>{t('tournaments.no_history') || 'No completed tournaments yet'}</p>
+                  </div>
+                )}
+                {completedTournaments.map((tournament) => {
+                  // Calculate user's placement in the tournament
+                  let userPlacement = null;
+                  let placementIcon = '🏅';
+                  
+                  if (tournament.matches && tournament.matches.length > 0 && userData?.userId) {
+                    const finalMatch = tournament.matches.find(m => 
+                      m.status === 'completed' && 
+                      tournament.matches.filter(match => match.status === 'completed').length === tournament.matches.length - 1 || 
+                      (tournament.matches.every(match => match.status === 'completed') && 
+                       !tournament.matches.some(later => 
+                         (later.player1?.id === m.winner?.id || later.player2?.id === m.winner?.id) && later.id > m.id
+                       ))
+                    );
+                    
+                    const userMatches = tournament.matches.filter(m => 
+                      m.player1?.id === userData.userId || m.player2?.id === userData.userId
+                    );
+                    
+                    if (finalMatch && (finalMatch.player1?.id === userData.userId || finalMatch.player2?.id === userData.userId)) {
+                      // User was in the final
+                      if (finalMatch.winner?.id === userData.userId) {
+                        userPlacement = '1st';
+                        placementIcon = '🥇';
+                      } else {
+                        userPlacement = '2nd';
+                        placementIcon = '🥈';
+                      }
+                    } else if (userMatches.length > 0) {
+                      // Check if user lost in semi-final (2nd to last round)
+                      const lastMatch = userMatches[userMatches.length - 1];
+                      if (lastMatch.status === 'completed' && lastMatch.winner?.id !== userData.userId) {
+                        // User lost - check which round
+                        const completedBeforeUser = tournament.matches.filter(m => 
+                          m.status === 'completed' && m.created_at < lastMatch.created_at
+                        ).length;
+                        
+                        if (tournament.max_players === 4 && userMatches.length === 1) {
+                          userPlacement = '3rd';
+                          placementIcon = '🥉';
+                        } else if (tournament.max_players === 8 && completedBeforeUser >= 4) {
+                          userPlacement = '3rd';
+                          placementIcon = '🥉';
+                        } else {
+                          userPlacement = `${Math.ceil(tournament.max_players / Math.pow(2, userMatches.length))}th`;
+                          placementIcon = '🏅';
+                        }
+                      }
+                    }
+                  }
+                  
+                  return (
                   <div key={tournament.id} className="history-card">
                     <div className="history-card-icon">
-                      {tournament.placement?.includes('1st')
-                        ? '🥇'
-                        : tournament.placement?.includes('2nd')
-                          ? '🥈'
-                          : tournament.placement?.includes('3rd')
-                            ? '🥉'
-                            : '🏅'}
+                      {placementIcon}
                     </div>
                     <div className="history-card-info">
                       <h3>{tournament.name}</h3>
                       <div className="history-details">
                         <span>
-                          {tournament.placement ||
-                            (tournament.participants && tournament.participants.length > 0
-                              ? t('tournaments.participant')
-                              : t('tournaments.no_placement'))}
+                          {userPlacement || t('tournaments.participant') || 'Participant'}
                         </span>
                         <span>•</span>
-                        <span>{tournament.date}</span>
+                        <span>
+                          {tournament.end_date 
+                            ? new Date(tournament.end_date).toLocaleDateString()
+                            : tournament.created_at 
+                              ? new Date(tournament.created_at).toLocaleDateString()
+                              : 'N/A'}
+                        </span>
                       </div>
                     </div>
-                    <div className="history-card-prize">
-                      <div className="prize-label">Prize</div>
-                      <div className="prize-value">{tournament.prize}</div>
-                    </div>
+                    {userPlacement === '1st' && (
+                      <div className="history-card-prize">
+                        <div className="prize-label">Prize</div>
+                        <div className="prize-value">{tournament.prize_pool || tournament.prize || 'N/A'}</div>
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

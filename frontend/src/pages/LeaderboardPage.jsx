@@ -36,7 +36,7 @@ const LeaderboardPage = () => {
                 wins,
                 losses,
                 winRate,
-                points: wins * 10,
+                points: p.xp || 0,
                 rank: p.rank || null,
               };
             });
@@ -115,13 +115,13 @@ const LeaderboardPage = () => {
           }
         }
 
-        // Sort by rank (ascending) if available, otherwise by points descending
-        if (players.length > 0 && players[0].rank) {
-          players.sort((a, b) => (a.rank || 999) - (b.rank || 999));
-        } else {
-          players.sort((a, b) => (b.points || 0) - (a.points || 0));
-          players = players.map((p, idx) => ({ ...p, rank: idx + 1 }));
-        }
+        // Sort by level (descending), then XP (descending), then wins (descending)
+        players.sort((a, b) => {
+          if (b.level !== a.level) return b.level - a.level;
+          if (b.points !== a.points) return b.points - a.points;
+          return b.wins - a.wins;
+        });
+        players = players.map((p, idx) => ({ ...p, rank: idx + 1 }));
 
         setLeaderboardData(players);
       } catch (err) {

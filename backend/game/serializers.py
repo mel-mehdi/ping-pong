@@ -15,34 +15,46 @@ class TournamentSerializer(serializers.ModelSerializer):
 	creator = UserSerializer(read_only=True)
 	participants = TournamentParticipantSerializer(many=True, read_only=True)
 	participant_count = serializers.SerializerMethodField()
+	matches = serializers.SerializerMethodField()
 
 	class Meta:
 		model = Tournament
 		fields = [
 			'id', 'name', 'max_players', 'prize_pool', 'creator', 'status',
 			'start_date', 'end_date', 'created_at', 'updated_at',
-			'participants', 'participant_count'
+			'participants', 'participant_count', 'matches'
 		]
 		read_only_fields = ['creator', 'created_at', 'updated_at']
 
 	def get_participant_count(self, obj):
 		return obj.participants.count()
 
+	def get_matches(self, obj):
+		from .models import Match
+		matches = Match.objects.filter(tournament=obj).order_by('created_at')
+		return MatchSerializer(matches, many=True).data
+
 
 class TournamentListSerializer(serializers.ModelSerializer):
 	creator = UserSerializer(read_only=True)
 	participant_count = serializers.SerializerMethodField()
+	matches = serializers.SerializerMethodField()
 
 	class Meta:
 		model = Tournament
 		fields = [
 			'id', 'name', 'max_players', 'prize_pool', 'creator', 'status',
 			'start_date', 'end_date', 'created_at',
-			'participant_count'
+			'participant_count', 'matches'
 		]
 
 	def get_participant_count(self, obj):
 		return obj.participants.count()
+
+	def get_matches(self, obj):
+		from .models import Match
+		matches = Match.objects.filter(tournament=obj).order_by('created_at')
+		return MatchSerializer(matches, many=True).data
 
 
 class InvitationSerializer(serializers.ModelSerializer):

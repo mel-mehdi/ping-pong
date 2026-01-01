@@ -153,7 +153,30 @@ class TournamentViewSet(viewsets.ModelViewSet):
 			tournament.status = 'ongoing'
 			tournament.start_date = timezone.now()
 			tournament.save()
-			return Response({'detail': 'Tournament is now full and has started!'}, status=status.HTTP_201_CREATED)
+
+			# Create first round matches
+			participants = list(tournament.participants.all())
+			import random
+			random.shuffle(participants)
+			
+			# Create matches for pairs of participants
+			matches_created = []
+			for i in range(0, len(participants) - 1, 2):
+				match = Match.objects.create(
+					tournament=tournament,
+					player1=participants[i].user,
+					player2=participants[i + 1].user,
+					status='ongoing'
+				)
+				matches_created.append({
+					'player1': participants[i].user.username,
+					'player2': participants[i + 1].user.username
+				})
+
+			return Response({
+				'detail': 'Tournament is now full and has started!',
+				'matches': matches_created
+			}, status=status.HTTP_201_CREATED)
 
 		return Response({'detail': 'Successfully joined the tournament.'}, status=status.HTTP_201_CREATED)
 

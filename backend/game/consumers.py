@@ -105,7 +105,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                         'p2_username': match.player2.username,
                         'task': None
                     }
+                    print(f"Initialized tournament match {match_id}: {match.player1.username} vs {match.player2.username}")
             except Match.DoesNotExist:
+                print(f"Tournament match {match_id} not found or not in 'ongoing' status")
                 await self.close()
                 return
         
@@ -126,23 +128,28 @@ class GameConsumer(AsyncWebsocketConsumer):
         if game['p1_uid'] == self.user.id:
             game['p1'] = self.channel_name
             player_role = 1
+            print(f"Player 1 ({self.user.username}) connected to room {room_id}")
         elif game['p2_uid'] == self.user.id:
             game['p2'] = self.channel_name
             player_role = 2
+            print(f"Player 2 ({self.user.username}) connected to room {room_id}")
         # First time connection (if not set by matchmaking)
         elif game['p1_uid'] is None:
             game['p1'] = self.channel_name
             game['p1_uid'] = self.user.id
             player_role = 1
+            print(f"Player 1 ({self.user.username}) connected to room {room_id}")
         elif game['p2_uid'] is None:
             game['p2'] = self.channel_name
             game['p2_uid'] = self.user.id
             player_role = 2
+            print(f"Player 2 ({self.user.username}) connected to room {room_id}")
         else:
             player_role = None
+            print(f"User {self.user.username} tried to join full room {room_id}")
 
-        # Send player info for tournament matches
-        if room_id.startswith('tournament_') and player_role and 'p1_username' in game:
+        # Send player info for tournament matches and online matches
+        if player_role and 'p1_username' in game:
             my_name = game['p1_username'] if player_role == 1 else game['p2_username']
             opponent_name = game['p2_username'] if player_role == 1 else game['p1_username']
             await self.send(text_data=json.dumps({
@@ -155,6 +162,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         # Start game loop if both players are present (or at least slots filled)
         if game['p1'] and game['p2'] and not game['task']:
+            print(f"Both players connected to {room_id}, starting game loop")
             game['task'] = asyncio.create_task(self.game_loop(room_id))
 
     async def game_loop(self, room_id):
@@ -162,6 +170,30 @@ class GameConsumer(AsyncWebsocketConsumer):
         try:
             game = active_games[room_id]
             engine = game['engine']
+            
+            # Determine countdown duration
+            start_count = 10 if room_id.startswith('tournament_') else 3
+
+            # Countdown before start
+            for i in range(start_count, 0, -1):
+                await self.channel_layer.group_send(
+                    f'game_{room_id}',
+                    {
+                        'type': 'game_countdown',
+                        'count': i
+                    }
+                )
+                await asyncio.sleep(1)
+            
+            # Send GO! (0)
+            await self.channel_layer.group_send(
+                f'game_{room_id}',
+                {
+                    'type': 'game_countdown',
+                    'count': 0
+                }
+            )
+            await asyncio.sleep(1) # Allow "GO!" to be seen before ball moves
             
             while not engine.game_over:
                 engine.update()
@@ -226,6 +258,11 @@ class GameConsumer(AsyncWebsocketConsumer):
                     match.completed_at = timezone.now()
                     match.save()
                     print(f"Tournament match {match_id} updated: {p1.username} vs {p2.username}, Winner: {winner.username}")
+                    
+                    # Check if we need to advance tournament
+                    tournament = match.tournament
+                    if tournament:
+                        self.advance_tournament(tournament)
                     return
                 except Match.DoesNotExist:
                     print(f"Tournament match {match_id} not found, creating new match")
@@ -244,10 +281,71 @@ class GameConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"Error saving match: {e}")
 
+    def advance_tournament(self, tournament):
+        """Check if round is complete and create next round matches"""
+        from django.db.models import Q
+        
+        # Get all matches for this tournament
+        ongoing_matches = Match.objects.filter(tournament=tournament, status='ongoing')
+        
+        if ongoing_matches.count() == 0:
+            # All current matches completed, check if we need next round
+            completed_matches = Match.objects.filter(tournament=tournament, status='completed')
+            total_matches = completed_matches.count()
+            
+            # Get all winners who haven't played again yet
+            winners = list(completed_matches.values_list('winner', flat=True))
+            
+            # Count how many times each winner appears in completed matches (as winner)
+            from collections import Counter
+            winner_counts = Counter(winners)
+            
+            # Get winners who should play in next round (those who won once)
+            next_round_players = []
+            for winner_id in set(winners):
+                # Check if this winner has another ongoing or future match
+                has_next_match = Match.objects.filter(
+                    Q(player1_id=winner_id) | Q(player2_id=winner_id),
+                    tournament=tournament
+                ).count() > winner_counts[winner_id]
+                
+                if not has_next_match:
+                    next_round_players.append(winner_id)
+            
+            if len(next_round_players) >= 2:
+                print(f"Creating next round for tournament {tournament.id} with {len(next_round_players)} players")
+                
+                # Create matches for next round
+                import random
+                random.shuffle(next_round_players)
+                
+                for i in range(0, len(next_round_players) - 1, 2):
+                    Match.objects.create(
+                        tournament=tournament,
+                        player1_id=next_round_players[i],
+                        player2_id=next_round_players[i + 1],
+                        status='ongoing'
+                    )
+                    print(f"Created match: Player {next_round_players[i]} vs Player {next_round_players[i + 1]}")
+            
+            elif len(next_round_players) == 1:
+                # Tournament winner!
+                tournament.status = 'completed'
+                tournament.end_date = timezone.now()
+                tournament.save()
+                print(f"Tournament {tournament.id} completed! Winner: Player {next_round_players[0]}")
+
+
     async def game_update(self, event):
         await self.send(text_data=json.dumps({
             'type': 'update',
             'state': event['state']
+        }))
+
+    async def game_countdown(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'countdown',
+            'count': event['count']
         }))
 
     async def game_over(self, event):

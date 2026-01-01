@@ -393,18 +393,14 @@ class ApiClient {
   }
 
   async sendFriendRequest(fromId, fromName, toId, toName) {
-    // Create friendship directly via admin or use game invitation
-    // Since Friendship serializer has read-only fields, we need a workaround
     try {
       const payload = { 
-        receiver_id: toId,
-        invitation_type: 'match',
-        message: `Friend request from ${fromName}`
+        to_user_id: toId
       };
       
-      logger.debug('Sending friend request via invitation:', payload);
+      logger.debug('Sending friend request:', payload);
       
-      const result = await this.request('/game/invitations/', {
+      const result = await this.request('/friendships/send_request/', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -418,15 +414,10 @@ class ApiClient {
   }
 
   async getPendingFriendRequests() {
-    // Get pending friend request invitations received by current user
+    // Get pending friend requests received by current user
     try {
-      const invitations = await this.request('/game/invitations/');
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-      return (invitations || []).filter(inv => 
-        inv.status === 'pending' && 
-        inv.receiver?.id === userData.userId &&
-        inv.message?.toLowerCase().includes('friend request')
-      );
+      const friendships = await this.request('/friendships/pending_requests/');
+      return friendships || [];
     } catch {
       return [];
     }

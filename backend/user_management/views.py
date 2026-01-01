@@ -196,7 +196,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 		Get all profiles for leaderboard
 		GET /profiles/leaderboard/
 		"""
-		profiles = UserProfile.objects.select_related('user').all().order_by('-wins', 'losses')
+		profiles = UserProfile.objects.select_related('user').all().order_by('-level', '-xp', '-wins')
 		serializer = self.get_serializer(profiles, many=True)
 		return Response(serializer.data)
 
@@ -257,6 +257,69 @@ class FriendshipViewSet(viewsets.ModelViewSet):
 		
 		serializer = self.get_serializer(friendships, many=True)
 		return Response(serializer.data)
+
+	@action(detail=False, methods=['get'])
+	def pending_requests(self, request):
+		"""
+		Get pending friend requests received by current user
+		GET /friendships/pending_requests/
+		"""
+		user = request.user
+		friendships = Friendship.objects.filter(
+			to_user=user,
+			status='pending'
+		)
+		
+		serializer = self.get_serializer(friendships, many=True)
+		return Response(serializer.data)
+
+	@action(detail=False, methods=['post'])
+	def send_request(self, request):
+		"""
+		Send a friend request to another user
+		POST /friendships/send_request/
+		Body: {"to_user_id": <user_id>}
+		"""
+		to_user_id = request.data.get('to_user_id')
+		
+		if not to_user_id:
+			return Response(
+				{'error': 'to_user_id is required'},
+				status=status.HTTP_400_BAD_REQUEST
+			)
+		
+		try:
+			to_user = User.objects.get(id=to_user_id)
+		except User.DoesNotExist:
+			return Response(
+				{'error': 'User not found'},
+				status=status.HTTP_404_NOT_FOUND
+			)
+		
+		# Check if already friends or request exists
+		existing = Friendship.objects.filter(
+			from_user=request.user,
+			to_user=to_user
+		) | Friendship.objects.filter(
+			from_user=to_user,
+			to_user=request.user
+		)
+		
+		if existing.exists():
+			return Response(
+				{'error': 'Friend request already exists or you are already friends'},
+				status=status.HTTP_400_BAD_REQUEST
+			)
+		
+		# Create friendship
+		friendship = Friendship.objects.create(
+			from_user=request.user,
+			to_user=to_user,
+			status='pending'
+		)
+		
+		serializer = self.get_serializer(friendship)
+		return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 	@action(detail=True, methods=['post'])
 	def accept(self, request, pk=None):

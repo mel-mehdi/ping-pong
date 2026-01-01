@@ -49,6 +49,10 @@ class PongGame {
     this.render();
   }
 
+  updateSocket(newSocket) {
+    this.socket = newSocket;
+  }
+
   resetPositions() {
     this.player1 = {
       x: 20,
@@ -154,14 +158,20 @@ class PongGame {
           down: this.keys['KeyS'] || this.keys['ArrowDown']
         }));
       }
+      // For online games, don't allow manual start/pause with SPACE
+      if (e.code === 'KeyF') {
+        this.toggleFullscreen();
+      }
       return;
     }
 
+    // Local game controls
     if (e.code === 'Space') {
-      if (!this.isRunning && !this.gameOver) {
-        this.start();
-      } else if (this.isRunning) {
+      // Only allow pause/resume, not initial start (handled by countdown)
+      if (this.isRunning) {
         this.pause();
+      } else if (this.isPaused) {
+        this.start();
       }
     }
 
@@ -211,8 +221,10 @@ class PongGame {
   }
 
   updateState(state) {
+    // Auto-start game when receiving updates from server
     if (!this.isRunning) {
       this.isRunning = true;
+      this.isPaused = false;
       this.notifyStatusChange(null);
     }
 
@@ -438,6 +450,7 @@ const GamePage = () => {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
   const socketRef = useRef(null);
+  const currentRoomRef = useRef(null);
   const [player1Score, setPlayer1Score] = useState(0);
   const [player2Score, setPlayer2Score] = useState(0);
   const [gameMessage, setGameMessage] = useState(t('game.press_space_start'));
@@ -449,12 +462,14 @@ const GamePage = () => {
   const [myName, setMyName] = useState('');
   const [opponentName, setOpponentName] = useState('');
   const [didIWin, setDidIWin] = useState(false);
+  const [countdown, setCountdown] = useState(null);
 
   // WebSocket Connection Logic
   useEffect(() => {
     if ((mode !== 'online' && mode !== 'tournament') || !isBackendAuthenticated) return;
 
     const connectToGame = (roomName) => {
+      currentRoomRef.current = roomName;
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws/game/${roomName}/`;
       
@@ -474,14 +489,38 @@ const GamePage = () => {
           setMyName(data.my_name);
           setOpponentName(data.opponent_name);
           
-          // Reconnect to specific room
-          socket.close();
-          connectToGame(data.room_id);
+          // For matchmaking, reconnect to specific room
+          if (mode === 'online' && !matchId) {
+            if (data.room_id !== currentRoomRef.current) {
+              socket.close();
+              connectToGame(data.room_id);
+              // Update socket reference in existing game if it exists
+              setTimeout(() => {
+                if (gameRef.current && socketRef.current) {
+                  gameRef.current.updateSocket(socketRef.current);
+                }
+              }, 500);
+            }
+          }
           setIsMatchmaking(false);
           setGameMessage(t('game.opponent_found') || 'Opponent Found! Starting...');
+          
+          // Game start is now handled by server countdown
         } else if (data.type === 'update') {
           if (gameRef.current) {
             gameRef.current.updateState(data.state);
+          }
+        } else if (data.type === 'countdown') {
+          setCountdown(data.count);
+          if (data.count > 0) {
+             setGameMessage(`Starting in ${data.count}...`);
+             setShowMessage(true);
+          } else {
+             setGameMessage('GO!');
+             setTimeout(() => {
+               setCountdown(null);
+               setShowMessage(false);
+             }, 1000);
           }
         } else if (data.type === 'game_over') {
           if (gameRef.current) {
@@ -543,6 +582,25 @@ const GamePage = () => {
     }
   };
 
+  const startLocalCountdown = () => {
+    let count = 3;
+    setCountdown(count);
+    setShowMessage(true);
+    
+    const timer = setInterval(() => {
+      count--;
+      setCountdown(count);
+      if (count === 0) {
+        clearInterval(timer);
+        setTimeout(() => {
+          setCountdown(null);
+          setShowMessage(false);
+          if (gameRef.current) gameRef.current.start();
+        }, 1000);
+      }
+    }, 1000);
+  };
+
   useEffect(() => {
     if (isMatchmaking) return;
 
@@ -556,7 +614,7 @@ const GamePage = () => {
         socket: socketRef.current,
         isOnline: mode === 'online' || mode === 'tournament',
         strings: {
-          start: t('game.press_space_start'),
+          start: (mode === 'online' || mode === 'tournament') ? t('game.waiting_for_players') || 'Waiting for both players...' : '',
           paused: t('game.paused_resume'),
           press_space: t('game.press_space'),
         },
@@ -580,6 +638,11 @@ const GamePage = () => {
           }
         },
       });
+
+      // Auto-start local game
+      if (mode !== 'online' && mode !== 'tournament') {
+        startLocalCountdown();
+      }
     }
 
     return () => {
@@ -591,11 +654,15 @@ const GamePage = () => {
   }, [t, isMatchmaking, mode, myName, opponentName]);
 
   const handlePlayAgain = () => {
+    if (mode === 'online') {
+      window.location.reload();
+      return;
+    }
+
     if (gameRef.current) {
       gameRef.current.reset();
       setGameOver(false);
-      setShowMessage(true);
-      setGameMessage(t('game.press_space_start'));
+      startLocalCountdown();
     }
   };
 
@@ -612,21 +679,21 @@ const GamePage = () => {
             <div className="player-card-pro">
               <div className="player-avatar-pro">P1</div>
               <div className="player-info-pro">
-                <div className="player-name-pro">{mode === 'online' ? (myName || t('game.player1')) : t('game.player1')}</div>
+                <div className="player-name-pro">{(mode === 'online' || mode === 'tournament') ? (myName || t('game.player1')) : t('game.player1')}</div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
               <div className="player-score-pro">{player1Score}</div>
             </div>
 
             <div className="match-info-pro">
-              <div className="match-title-pro">{t('game.quick_match')}</div>
+              <div className="match-title-pro">{mode === 'tournament' ? (t('game.tournament_match') || 'Tournament Match') : t('game.quick_match')}</div>
               <div className="match-status-pro">{t('game.first_to').replace('{n}', '5')}</div>
             </div>
 
             <div className="player-card-pro">
               <div className="player-score-pro">{player2Score}</div>
               <div className="player-info-pro">
-                <div className="player-name-pro">{mode === 'online' ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2')}</div>
+                <div className="player-name-pro">{(mode === 'online' || mode === 'tournament') ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2')}</div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
               <div className="player-avatar-pro">P2</div>
@@ -646,11 +713,11 @@ const GamePage = () => {
               <div className="game-overlay-pro">
                 {gameOver ? (
                   <div className="game-result-pro">
-                    {mode === 'online' ? (
+                    {(mode === 'online' || mode === 'tournament') ? (
                       <>
                         <div className="winner-trophy-pro">{didIWin ? '🏆' : '💔'}</div>
                         <h2 className="winner-title-pro">
-                          {didIWin ? 'You Won!' : 'You Lost'}
+                          {didIWin ? t('game.you_won') || 'You Won!' : t('game.you_lost') || 'You Lost'}
                         </h2>
                         <div className="winner-score-pro">
                           {player1Score} - {player2Score}
@@ -668,34 +735,60 @@ const GamePage = () => {
                       </>
                     )}
                     <div className="result-actions-pro">
-                      <button onClick={handlePlayAgain} className="btn-result-pro btn-primary-pro">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-                        </svg>
-                        {t('game.play_again')}
-                      </button>
-                      <button onClick={handleHome} className="btn-result-pro">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                          <polyline points="9 22 9 12 15 12 15 22" />
-                        </svg>
-                        {t('game.main_menu')}
-                      </button>
+                      {mode === 'tournament' ? (
+                        <button onClick={handleHome} className="btn-result-pro btn-primary-pro">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                          </svg>
+                          {t('game.back_to_tournament') || t('game.main_menu')}
+                        </button>
+                      ) : (
+                        <>
+                          <button onClick={handlePlayAgain} className="btn-result-pro btn-primary-pro">
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+                            </svg>
+                            {t('game.play_again')}
+                          </button>
+                          <button onClick={handleHome} className="btn-result-pro">
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                              <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                            {t('game.main_menu')}
+                          </button>
+                        </>
+                      )}
                     </div>
+                  </div>
+                ) : countdown !== null ? (
+                  <div className="game-start-pro">
+                    <div className="start-icon-pro" style={{ fontSize: '6rem', animation: 'pulse 0.5s infinite alternate' }}>
+                      {countdown > 0 ? countdown : 'GO!'}
+                    </div>
+                    <p className="start-message-pro">{countdown > 0 ? 'Get Ready!' : 'Game On!'}</p>
                   </div>
                 ) : (
                   <div className="game-start-pro">

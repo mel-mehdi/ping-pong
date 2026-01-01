@@ -56,4 +56,12 @@ status:
 	@echo "📊 Service status:"
 	docker compose ps
 
-.PHONY: all ssl build up down clean fclean re logs restart status
+users:
+	@echo "👥 Creating test users..."
+	@NUM=$${NUM:-4}; \
+	PASS=$${PASS:-testpass123}; \
+	echo "   Number of users: $$NUM"; \
+	echo "   Password: $$PASS"; \
+	docker compose exec backend python create_test_users.py $$NUM $$PASS
+
+.PHONY: all ssl build up down clean fclean re logs restart status users

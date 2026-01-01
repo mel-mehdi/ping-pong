@@ -165,34 +165,19 @@ const ChatPage = () => {
 
     const loadFriends = async () => {
       try {
-        // Get accepted friend request invitations
-        const invitations = await apiClient.getInvitations();
-        const acceptedInvites = (invitations || [])
-          .filter(inv => 
-            inv.status === 'accepted' && 
-            inv.message?.toLowerCase().includes('friend request')
-          );
+        // Get friends from friendships endpoint
+        const friendsList = await apiClient.getMyFriends();
         
-        // Map invitations to friend list
-        const friendIds = new Set();
-        const friends = [];
-        
-        acceptedInvites.forEach(inv => {
-          // Determine which user is the friend
-          const friend = inv.sender?.id === userData.userId ? inv.receiver : inv.sender;
-          
-          if (friend?.id && !friendIds.has(friend.id)) {
-            friendIds.add(friend.id);
-            friends.push({
-              id: friend.id,
-              name: friend.username || 'Unknown',
-              lastMessage: '',
-              time: '',
-              unread: 0,
-              online: friend.online_status || false
-            });
-          }
-        });
+        // Map friends to conversation list
+        const friends = (friendsList || []).map(friend => ({
+          id: friend.id || friend.userId,
+          name: friend.username || 'Unknown',
+          lastMessage: '',
+          time: '',
+          unread: 0,
+          online: friend.online_status || false,
+          avatar: friend.avatar
+        }));
         
         setConversations(friends);
         if (!selectedChat && friends.length) setSelectedChat(friends[0]);
@@ -204,10 +189,19 @@ const ChatPage = () => {
 
     loadFriends();
     
-    // Refresh friends list every 10 seconds to catch newly accepted friendships
-    const interval = setInterval(loadFriends, 10000);
+    // Refresh friends list every 5 seconds to catch newly accepted friendships
+    const interval = setInterval(loadFriends, 5000);
     
-    return () => clearInterval(interval);
+    // Listen for custom friend refresh event
+    const handleFriendRefresh = () => {
+      loadFriends();
+    };
+    window.addEventListener('friendAccepted', handleFriendRefresh);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('friendAccepted', handleFriendRefresh);
+    };
   }, [userData, isBackendAuthenticated]);
 
   useEffect(() => {
