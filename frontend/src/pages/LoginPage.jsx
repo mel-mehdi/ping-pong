@@ -115,7 +115,6 @@ const LoginPage = () => {
       checkBackendAuth().catch(() => {});
       navigate('/');
     } catch (error) {
-      // console.error('Login error:', error);
       setLoading(false);
       
       if (error.message === 'Invalid credentials' || error.status === 401) {

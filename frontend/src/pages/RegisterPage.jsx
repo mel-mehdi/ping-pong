@@ -136,7 +136,6 @@ const RegisterPage = () => {
       checkBackendAuth().catch(() => {});
       setTimeout(() => navigate('/'), 500);
     } catch (error) {
-      console.error('Registration error:', error);
       setLoading(false);
     }
   };

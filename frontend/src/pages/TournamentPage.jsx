@@ -453,7 +453,6 @@ const TournamentPage = () => {
                         setBrackets({ name: response.name, rounds: [] });
                       }
                     } catch (err) {
-                      console.error('Error loading tournament:', err);
                       setBrackets({ name: '', rounds: [] });
                     }
                   }}

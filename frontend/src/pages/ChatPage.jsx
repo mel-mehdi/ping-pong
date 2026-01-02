@@ -134,7 +134,6 @@ const ChatPage = () => {
           }));
         } else {
           // Fallback: show message locally if WebSocket not connected
-          console.warn('WebSocket not connected, showing message locally only');
           setMessages([...messages, {
             id: Date.now(),
             sender: userData.username || 'You',
@@ -145,7 +144,6 @@ const ChatPage = () => {
         }
       }
     } catch (err) {
-      console.error('Error sending message:', err);
       // Show message locally on error
       setMessages([...messages, {
         id: Date.now(),
@@ -183,7 +181,6 @@ const ChatPage = () => {
         setConversations(friends);
         if (!selectedChat && friends.length) setSelectedChat(friends[0]);
       } catch (err) {
-        console.error('Error loading friends for conversations:', err);
         setConversations([]);
       }
     };
@@ -247,7 +244,6 @@ const ChatPage = () => {
           setCurrentConversationId(null);
         }
       } catch (err) {
-        console.error('Error loading messages for conversation:', err);
         setMessages([]);
         setCurrentConversationId(null);
       }

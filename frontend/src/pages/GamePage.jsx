@@ -197,9 +197,7 @@ class PongGame {
   toggleFullscreen() {
     const arenaElement = this.canvas.parentElement;
     if (!document.fullscreenElement) {
-      arenaElement.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
+      arenaElement.requestFullscreen().catch(() => {});
     } else {
       document.exitFullscreen();
     }

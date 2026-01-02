@@ -62,7 +62,7 @@ const HomePage = () => {
   }, [isAuthenticated, isBackendAuthenticated, userData]);
 
   const handleQuickPlay = () => {
-    navigate('/game?mode=online');
+    navigate('/game');
   };
 
   const handleOnlineGame = () => {
@@ -94,11 +94,10 @@ const HomePage = () => {
           const others = (allUsers || []).filter(u => u.id !== userData?.userId).slice(0, 10);
           setSuggestedUsers(others);
         } catch (e) {
-          console.warn('Failed to fetch suggested users', e);
+          // Failed to fetch suggested users
         }
       }
     } catch (err) {
-      console.error('Failed to fetch friends:', err);
       setFriends([]);
     }
   };
@@ -119,7 +118,7 @@ const HomePage = () => {
       const filtered = results.filter(u => u.id !== userData?.userId);
       setSearchResults(filtered);
     } catch (err) {
-      console.error('Search failed:', err);
+      // Search failed
     } finally {
       setIsSearching(false);
     }
@@ -135,7 +134,6 @@ const HomePage = () => {
       setInviteSearchQuery('');
       setSearchResults([]);
     } catch (err) {
-      console.error('Failed to send invite:', err);
       alert(t('home.invite_failed') || 'Failed to send invitation');
     } finally {
       setInviting(null);
@@ -529,16 +527,19 @@ const HomePage = () => {
           </div>
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '1.5rem',
+              display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'nowrap',
+              gap: '1rem',
+              alignItems: 'stretch',
+              width: '100%',
             }}
           >
-            <div>
+            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
               <button
                 onClick={handleQuickPlay}
                 className="modern-card hover-lift text-center w-100"
-                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >
                 <div className="play-icon text-primary mb-3">
                   <svg
@@ -569,11 +570,11 @@ const HomePage = () => {
               </button>
             </div>
 
-            <div>
+            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
               <button
                 onClick={handleOnlineGame}
                 className="modern-card hover-lift text-center w-100"
-                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >
                 <div className="play-icon mb-3" style={{ color: '#10b981' }}>
                   <svg
@@ -611,11 +612,11 @@ const HomePage = () => {
               </button>
             </div>
 
-            <div>
+            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
               <button
                 onClick={() => navigate('/game?ai=normal')}
                 className="modern-card hover-lift text-center w-100"
-                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >
                 <div className="play-icon mb-3" style={{ color: '#6366f1' }}>
                   <svg
@@ -647,11 +648,11 @@ const HomePage = () => {
               </button>
             </div>
 
-            <div>
+            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
               <button
                 onClick={handlePlayWithFriend}
                 className="modern-card hover-lift text-center w-100"
-                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >
                 <div className="play-icon mb-3" style={{ color: '#ec4899' }}>
                   <svg
@@ -674,6 +675,7 @@ const HomePage = () => {
                     fontWeight: '600',
                     marginBottom: '1rem',
                     color: 'var(--text)',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {t('home.play_friend_title') || 'Play with Friend'}
@@ -685,11 +687,11 @@ const HomePage = () => {
               </button>
             </div>
 
-            <div>
+            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
               <button
                 onClick={handleTournament}
                 className="modern-card hover-lift text-center w-100"
-                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >
                 <div className="play-icon mb-3" style={{ color: '#f59e0b' }}>
                   <svg

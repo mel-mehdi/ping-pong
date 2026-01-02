@@ -75,7 +75,6 @@ const LeaderboardPage = () => {
                     }));
                   }
                 } catch (e) {
-                  console.warn('public leaderboard not available', e);
                   setMissingApiKey(true);
                   players = [];
                 }
@@ -85,7 +84,6 @@ const LeaderboardPage = () => {
               }
             }
           } catch (err) {
-            console.warn('getAllUsers failed or not available', err);
             // Try public leaderboard only if API key exists
             const activeKey = apiClient.getActiveApiKey();
             if (activeKey) {
@@ -104,7 +102,6 @@ const LeaderboardPage = () => {
                   }));
                 }
               } catch (e2) {
-                console.warn('public leaderboard not available', e2);
                 setMissingApiKey(true);
                 players = [];
               }
@@ -125,7 +122,7 @@ const LeaderboardPage = () => {
 
         setLeaderboardData(players);
       } catch (err) {
-        console.error('Error fetching leaderboard:', err);
+        // Error fetching leaderboard
       }
     };
     setMissingApiKey(false);
