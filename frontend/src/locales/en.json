@@ -87,7 +87,7 @@
     "win_rate": "Win Rate",
     "rank": "Rank",
     "click_upload": "Click to upload or drag and drop",
-    "file_types": "PNG, JPG or GIF (max. 2MB)",
+    "file_types": "PNG, JPG or GIF (max. 1MB)",
     "cancel": "Cancel",
     "upload": "Upload",
     "uploading": "Uploading...",

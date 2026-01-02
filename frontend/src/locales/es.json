@@ -104,7 +104,7 @@
     "win_rate": "Tasa de victorias",
     "rank": "Clasificación",
     "click_upload": "Haz clic para subir o arrastra y suelta",
-    "file_types": "PNG, JPG o GIF (máx. 2MB)",
+    "file_types": "PNG, JPG o GIF (máx. 1MB)",
     "cancel": "Cancelar",
     "upload": "Subir",
     "uploading": "Subiendo...",

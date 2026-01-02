@@ -41,6 +41,8 @@ fclean: clean
 	docker builder prune -f
 	@echo "🗑️  Removing SSL certificates..."
 	rm -rf nginx/ssl
+	@echo "🗑️  Removing media files..."
+	rm -rf backend/media/*
 
 re: clean all
 

@@ -1,400 +1,209 @@
-from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.contrib.auth import login as django_login
-from django.contrib.auth import logout as django_logout
+from django.contrib.auth import login as django_login, logout as django_logout
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+
 from .google_auth import verify_google_token
 from .models import User, UserProfile, Friendship, Notification, Achievement, UserAchievement
 from .serializers import (
-	UserSerializer,
-	UserProfileSerializer,
-	FriendshipSerializer,
-	NotificationSerializer,
-	AchievementSerializer,
-	UserAchievementSerializer
+	UserSerializer, UserProfileSerializer, FriendshipSerializer,
+	NotificationSerializer, AchievementSerializer, UserAchievementSerializer
 )
 
 
 class AuthViewSet(viewsets.ViewSet):
-	"""
-	ViewSet for authentication actions
-	"""
-	swagger_tags = ['Authentication']
 	permission_classes = [AllowAny]
 
 	def get_permissions(self):
-		"""
-		Allow anyone to register or login, require auth for logout
-		"""
-		if self.action in ['register', 'login', 'google_login']:
-			return [AllowAny()]
-		return [IsAuthenticated()]
+		return [AllowAny()] if self.action in ['register', 'login', 'google_login'] else [IsAuthenticated()]
 
 	@action(detail=False, methods=['post'])
 	def register(self, request):
-		"""
-		Register a new user
-		POST /auth/register/
-		Body: {"username": "", "email": "", "password": ""}
-		"""
 		serializer = UserSerializer(data=request.data)
-		if not serializer.is_valid():
-			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-		serializer.save(online_status=True)
-		return Response(serializer.data, status=status.HTTP_201_CREATED)
+		serializer.is_valid(raise_exception=True)
+		return Response(serializer.save(online_status=True), status=status.HTTP_201_CREATED)
 
 	@action(detail=False, methods=['post'])
 	def login(self, request):
-		"""
-		Login user
-		POST /auth/login/
-		Body: {"username": "", "password": ""}
-		"""
-		username = request.data.get('username')
-		password = request.data.get('password')
+		username, password = request.data.get('username'), request.data.get('password')
+		if not (username and password):
+			return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 		
 		try:
 			user = User.objects.get(username=username)
-			if user.check_password(password):
-				django_login(request, user)
-				user.online_status = True
-				user.save()
-				serializer = UserSerializer(user)
-				return Response(serializer.data)
-			else:
-				return Response(
-					{'error': 'Invalid credentials'},
-					status=status.HTTP_401_UNAUTHORIZED
-				)
+			if not user.check_password(password):
+				raise User.DoesNotExist
 		except User.DoesNotExist:
-			return Response(
-				{'error': 'User does not exist'},
-				status=status.HTTP_404_NOT_FOUND
-			)
+			return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+		
+		django_login(request, user)
+		user.online_status = True
+		user.save(update_fields=['online_status'])
+		return Response(UserSerializer(user).data)
 
 	@action(detail=False, methods=['post'])
 	def logout(self, request):
-		"""
-		Logout user
-		POST /auth/logout/
-		"""
-		user = request.user
-		user.online_status = False
-		user.save(update_fields=['online_status'])
+		request.user.online_status = False
+		request.user.save(update_fields=['online_status'])
 		django_logout(request)
-		return Response({'success': 'Logged out successfully'})
+		return Response({'message': 'Logged out successfully'})
 	
 	@action(detail=False, methods=['post'])
 	def google_login(self, request):
-		"""
-		Login/Register with Google OAuth
-		POST /auth/google_login/
-		Body: {"token": "google_oauth_token"}
-		"""
 		token = request.data.get('token')
-		
 		if not token:
-			return Response(
-				{'error': 'Token is required'}, 
-				status=status.HTTP_400_BAD_REQUEST
-			)
+			return Response({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
 		
 		user_info = verify_google_token(token)
-		
 		if not user_info:
-			return Response(
-				{'error': 'Invalid Google token'}, 
-				status=status.HTTP_401_UNAUTHORIZED
-			)
+			return Response({'error': 'Invalid Google token'}, status=status.HTTP_401_UNAUTHORIZED)
 
+		user = self._get_or_create_google_user(user_info)
+		user.online_status = True
+		user.save(update_fields=['online_status'])
+		django_login(request, user)
+		return Response(UserSerializer(user).data)
+	
+	def _get_or_create_google_user(self, user_info):
 		try:
-			user = User.objects.get(google_id=user_info['google_id'])
-			user.online_status = True
-			user.save()
+			return User.objects.get(google_id=user_info['google_id'])
 		except User.DoesNotExist:
 			try:
 				user = User.objects.get(email=user_info['email'])
 				user.google_id = user_info['google_id']
-				user.online_status = True
-				user.save()
-				
+				user.save(update_fields=['google_id'])
+				return user
 			except User.DoesNotExist:
-				username = user_info['email'].split('@')[0]
-				base_username = username
-				counter = 1
+				base_username = user_info['email'].split('@')[0]
+				username, counter = base_username, 1
 				while User.objects.filter(username=username).exists():
 					username = f"{base_username}{counter}"
 					counter += 1
 				
 				user = User.objects.create_user(
-					username=username,
-					email=user_info['email'],
-					fullname=user_info['full_name'],
-					google_id=user_info['google_id'],
-					online_status=True
+					username=username, email=user_info['email'],
+					fullname=user_info['full_name'], google_id=user_info['google_id']
 				)
 				user.set_unusable_password()
 				user.save()
-
-		django_login(request, user)
-
-		serializer = UserSerializer(user)
-		return Response(serializer.data, status=status.HTTP_200_OK)
+				return user
 
 
 class UserViewSet(viewsets.ModelViewSet):
-	"""
-	ViewSet for User CRUD operations
-	"""
-	swagger_tags = ['Users']
 	queryset = User.objects.all()
 	serializer_class = UserSerializer
 	permission_classes = [IsAuthenticated]
 
 	@action(detail=False, methods=['get'])
 	def me(self, request):
-		"""
-		Get current authenticated user
-		GET /users/me/
-		"""
-		serializer = self.get_serializer(request.user)
-		return Response(serializer.data)
+		return Response(self.get_serializer(request.user).data)
 
 	@action(detail=True, methods=['get'])
 	def profile(self, request, pk=None):
-		"""
-		Get user profile by user ID
-		GET /users/{id}/profile/
-		"""
-		user = self.get_object()
-		profile = UserProfile.objects.get(user=user)
-		profile_serializer = UserProfileSerializer(profile)
-		return Response(profile_serializer.data)
+		return Response(UserProfileSerializer(get_object_or_404(UserProfile, user=self.get_object())).data)
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
-	"""
-	ViewSet for UserProfile operations
-	"""
-	swagger_tags = ['User Profiles']
-	queryset = UserProfile.objects.all()
+	queryset = UserProfile.objects.select_related('user')
 	serializer_class = UserProfileSerializer
 	permission_classes = [IsAuthenticated]
 
 	def get_queryset(self):
-		"""
-		Filter profiles to only show current user's profile
-		"""
-		user = self.request.user
-		return UserProfile.objects.filter(user=user)
+		return UserProfile.objects.filter(user=self.request.user).select_related('user')
 	
-	@action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+	@action(detail=False, methods=['get'])
 	def leaderboard(self, request):
-		"""
-		Get all profiles for leaderboard
-		GET /profiles/leaderboard/
-		"""
-		profiles = UserProfile.objects.select_related('user').all().order_by('-level', '-xp', '-wins')
-		serializer = self.get_serializer(profiles, many=True)
-		return Response(serializer.data)
+		profiles = UserProfile.objects.select_related('user').order_by('-level', '-xp', '-wins')
+		return Response(self.get_serializer(profiles, many=True).data)
 
 	@action(detail=True, methods=['post'])
 	def update_stats(self, request, pk=None):
-		"""
-		Update user game statistics
-		POST /profiles/{id}/update_stats/
-		Body: {"win": true/false}
-		"""
 		profile = self.get_object()
-		
 		if request.data.get('win'):
 			profile.wins += 1
 		else:
 			profile.losses += 1
-		
-		profile.save()
-		
-		serializer = self.get_serializer(profile)
-		return Response(serializer.data)
+		profile.save(update_fields=['wins', 'losses'])
+		return Response(self.get_serializer(profile).data)
 
 
 class FriendshipViewSet(viewsets.ModelViewSet):
-	"""
-	ViewSet for Friendship operations
-	"""
-	swagger_tags = ['Friendships']
-	queryset = Friendship.objects.all()
+	queryset = Friendship.objects.select_related('from_user', 'to_user')
 	serializer_class = FriendshipSerializer
 	permission_classes = [IsAuthenticated]
 
 	def get_queryset(self):
-		"""
-		Filter friendships to only show current user's friendships
-		"""
-		user = self.request.user
 		return Friendship.objects.filter(
-			from_user=user
-		) | Friendship.objects.filter(
-			to_user=user
-		)
+			Q(from_user=self.request.user) | Q(to_user=self.request.user)
+		).select_related('from_user', 'to_user')
 
 	@action(detail=False, methods=['get'])
 	def my_friends(self, request):
-		"""
-		Get current user's accepted friends
-		GET /friendships/my_friends/
-		"""
-		user = request.user
-		friendships = Friendship.objects.filter(
-			from_user=user,
-			status='accepted'
-		) | Friendship.objects.filter(
-			to_user=user,
-			status='accepted'
-		)
-		
-		serializer = self.get_serializer(friendships, many=True)
-		return Response(serializer.data)
+		friendships = self.get_queryset().filter(status='accepted')
+		return Response(self.get_serializer(friendships, many=True).data)
 
 	@action(detail=False, methods=['get'])
 	def pending_requests(self, request):
-		"""
-		Get pending friend requests received by current user
-		GET /friendships/pending_requests/
-		"""
-		user = request.user
-		friendships = Friendship.objects.filter(
-			to_user=user,
-			status='pending'
-		)
-		
-		serializer = self.get_serializer(friendships, many=True)
-		return Response(serializer.data)
+		friendships = Friendship.objects.filter(to_user=request.user, status='pending').select_related('from_user', 'to_user')
+		return Response(self.get_serializer(friendships, many=True).data)
 
 	@action(detail=False, methods=['post'])
 	def send_request(self, request):
-		"""
-		Send a friend request to another user
-		POST /friendships/send_request/
-		Body: {"to_user_id": <user_id>}
-		"""
 		to_user_id = request.data.get('to_user_id')
-		
 		if not to_user_id:
-			return Response(
-				{'error': 'to_user_id is required'},
-				status=status.HTTP_400_BAD_REQUEST
-			)
+			return Response({'error': 'to_user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+		if int(to_user_id) == request.user.id:
+			return Response({'error': 'You cannot send a friend request to yourself'}, status=status.HTTP_400_BAD_REQUEST)
 		
-		try:
-			to_user = User.objects.get(id=to_user_id)
-		except User.DoesNotExist:
-			return Response(
-				{'error': 'User not found'},
-				status=status.HTTP_404_NOT_FOUND
-			)
+		to_user = get_object_or_404(User, id=to_user_id)
+		if Friendship.objects.filter(Q(from_user=request.user, to_user=to_user) | Q(from_user=to_user, to_user=request.user)).exists():
+			return Response({'error': 'Friend request already exists or you are already friends'}, status=status.HTTP_400_BAD_REQUEST)
 		
-		# Check if already friends or request exists
-		existing = Friendship.objects.filter(
-			from_user=request.user,
-			to_user=to_user
-		) | Friendship.objects.filter(
-			from_user=to_user,
-			to_user=request.user
-		)
-		
-		if existing.exists():
-			return Response(
-				{'error': 'Friend request already exists or you are already friends'},
-				status=status.HTTP_400_BAD_REQUEST
-			)
-		
-		# Create friendship
-		friendship = Friendship.objects.create(
-			from_user=request.user,
-			to_user=to_user,
-			status='pending'
-		)
-		
-		serializer = self.get_serializer(friendship)
-		return Response(serializer.data, status=status.HTTP_201_CREATED)
+		friendship = Friendship.objects.create(from_user=request.user, to_user=to_user, status='pending')
+		return Response(self.get_serializer(friendship).data, status=status.HTTP_201_CREATED)
 
 	@action(detail=True, methods=['post'])
 	def accept(self, request, pk=None):
-		"""
-		Accept a friend request
-		POST /friendships/{id}/accept/
-		"""
 		friendship = self.get_object()
-		
-		# Only the recipient can accept
 		if friendship.to_user != request.user:
-			return Response(
-				{'error': 'You cannot accept this request'},
-				status=status.HTTP_403_FORBIDDEN
-			)
-		
+			return Response({'error': 'You cannot accept this request'}, status=status.HTTP_403_FORBIDDEN)
 		friendship.status = 'accepted'
-		friendship.save()
-		
-		serializer = self.get_serializer(friendship)
-		return Response(serializer.data)
+		friendship.save(update_fields=['status'])
+		return Response(self.get_serializer(friendship).data)
 
 	@action(detail=True, methods=['post'])
 	def reject(self, request, pk=None):
-		"""
-		Reject a friend request
-		POST /friendships/{id}/reject/
-		"""
 		friendship = self.get_object()
-		
 		if friendship.to_user != request.user:
-			return Response(
-				{'error': 'You cannot reject this request'},
-				status=status.HTTP_403_FORBIDDEN
-			)
-		
+			return Response({'error': 'You cannot reject this request'}, status=status.HTTP_403_FORBIDDEN)
 		friendship.status = 'rejected'
-		friendship.save()
-		
-		serializer = self.get_serializer(friendship)
-		return Response(serializer.data)
+		friendship.save(update_fields=['status'])
+		return Response(self.get_serializer(friendship).data)
 
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
-	swagger_tags = ['Notifications']
 	serializer_class = NotificationSerializer
-	permission_classes = [permissions.IsAuthenticated]
+	permission_classes = [IsAuthenticated]
 
 	def get_queryset(self):
-		return Notification.objects.filter(
-			user=self.request.user
-		).select_related('related_user', 'friend_request', 'achievement')
+		return Notification.objects.filter(user=self.request.user).select_related('related_user', 'friend_request', 'achievement')
 
 	@action(detail=False, methods=['get'])
 	def unread(self, request):
-		notifications = self.get_queryset().filter(is_read=False)
-		serializer = self.get_serializer(notifications, many=True)
-		return Response(serializer.data)
+		return Response(self.get_serializer(self.get_queryset().filter(is_read=False), many=True).data)
 
 	@action(detail=False, methods=['get'])
 	def count_unread(self, request):
-		count = self.get_queryset().filter(is_read=False).count()
-		return Response({'count': count})
+		return Response({'count': self.get_queryset().filter(is_read=False).count()})
 
 	@action(detail=True, methods=['post'])
 	def mark_as_read(self, request, pk=None):
-		notification = get_object_or_404(
-			Notification,
-			id=pk,
-			user=request.user
-		)
-		
+		notification = get_object_or_404(Notification, id=pk, user=request.user)
 		notification.mark_as_read()
-		serializer = self.get_serializer(notification)
-		return Response(serializer.data)
+		return Response(self.get_serializer(notification).data)
 
 	@action(detail=False, methods=['post'])
 	def mark_all_as_read(self, request):
@@ -403,37 +212,22 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
 
 	@action(detail=True, methods=['delete'])
 	def delete_notification(self, request, pk=None):
-		notification = get_object_or_404(
-			Notification,
-			id=pk,
-			user=request.user
-		)
-		
-		notification.delete()
+		get_object_or_404(Notification, id=pk, user=request.user).delete()
 		return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AchievementViewSet(viewsets.ReadOnlyModelViewSet):
-	swagger_tags = ['Achievements']
 	serializer_class = AchievementSerializer
-	permission_classes = [permissions.IsAuthenticated]
+	permission_classes = [IsAuthenticated]
 	queryset = Achievement.objects.all()
 
 	@action(detail=False, methods=['get'])
 	def user_achievements(self, request):
-		user_achievements = UserAchievement.objects.filter(
-			user=request.user
-		).select_related('achievement')
-		
-		serializer = UserAchievementSerializer(user_achievements, many=True)
-		return Response(serializer.data)
+		user_achievements = UserAchievement.objects.filter(user=request.user).select_related('achievement')
+		return Response(UserAchievementSerializer(user_achievements, many=True).data)
 
 	@action(detail=False, methods=['get'])
 	def available(self, request):
-		unlocked_ids = UserAchievement.objects.filter(
-			user=request.user
-		).values_list('achievement_id', flat=True)
-		
+		unlocked_ids = UserAchievement.objects.filter(user=request.user).values_list('achievement_id', flat=True)
 		available = Achievement.objects.exclude(id__in=unlocked_ids)
-		serializer = self.get_serializer(available, many=True)
-		return Response(serializer.data)
+		return Response(self.get_serializer(available, many=True).data)

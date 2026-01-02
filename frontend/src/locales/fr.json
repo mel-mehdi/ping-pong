@@ -85,7 +85,7 @@
     "win_rate": "Taux de victoire",
     "rank": "Classement",
     "click_upload": "Cliquez pour télécharger ou glisser-déposer",
-    "file_types": "PNG, JPG ou GIF (max. 2 Mo)",
+    "file_types": "PNG, JPG ou GIF (max. 1Mo)",
     "cancel": "Annuler",
     "upload": "Téléverser",
     "uploading": "Téléversement...",
