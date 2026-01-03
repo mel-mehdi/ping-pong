@@ -13,11 +13,12 @@ const ChatPage = () => {
 
   const [selectedChat, setSelectedChat] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
-  const [blockedUsers, setBlockedUsers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const wsRef = useRef(null);
+  const [pageAlert, setPageAlert] = useState(null);
+  const [pageAlertType, setPageAlertType] = useState('danger');
 
   // WebSocket connection management
   useEffect(() => {
@@ -273,27 +274,14 @@ const ChatPage = () => {
       ]);
     } catch (err) {
       // Error sending game invitation
-      alert(t('chat.inviteFailed') || 'Failed to send game invitation');
+      setPageAlert(t('chat.inviteFailed') || 'Failed to send game invitation');
+      setPageAlertType('danger');
+      setTimeout(() => setPageAlert(null), 4000);
     }
     setShowMenu(false);
   };
 
-  const blockUser = () => {
-    if (!selectedChat) return;
-    if (!blockedUsers.includes(selectedChat.id)) {
-      setBlockedUsers([...blockedUsers, selectedChat.id]);
-    }
-    setShowMenu(false);
-  };
-
-  const unblockUser = () => {
-    if (!selectedChat) return;
-    setBlockedUsers(blockedUsers.filter((id) => id !== selectedChat.id));
-    setShowMenu(false);
-  };
-
-  const selectedChatId = selectedChat?.id;
-  const isBlocked = selectedChatId ? blockedUsers.includes(selectedChatId) : false;
+  // Block user functionality removed — using standard conversation flow without local blocking.
 
   return (
     <>
@@ -307,6 +295,9 @@ const ChatPage = () => {
                   <h5 className="mb-0">{t('chat.conversations')}</h5>
                 </div>
                 <div className="card-body">
+                  {pageAlert && (
+                    <div className={`alert alert-${pageAlertType} mt-2`} role="status">{pageAlert}</div>
+                  )}
                   <div className="chat-users-list-body">
                     {conversations.map((conv) => (
                       <div
@@ -347,12 +338,7 @@ const ChatPage = () => {
                         {selectedChat?.online && <span className="online-status"></span>}
                       </div>
                       <div>
-                        <h5 className="chat-header-title mb-0">
-                          {selectedChat?.name}
-                          {isBlocked && (
-                            <span className="blocked-badge">🚫 {t('chat.blocked')}</span>
-                          )}
-                        </h5>
+                        <h5 className="chat-header-title mb-0">{selectedChat?.name}</h5>
                         <span className="chat-header-status">
                           {selectedChat?.online ? t('status.online') : t('status.offline')}
                         </span>
@@ -367,15 +353,6 @@ const ChatPage = () => {
                           <button onClick={sendGameInvite} className="menu-item">
                             <i className="fas fa-gamepad"></i> {t('chat.send_game_invite')}
                           </button>
-                          {!isBlocked ? (
-                            <button onClick={blockUser} className="menu-item danger">
-                              <i className="fas fa-ban"></i> {t('chat.block_user')}
-                            </button>
-                          ) : (
-                            <button onClick={unblockUser} className="menu-item">
-                              <i className="fas fa-check"></i> {t('chat.unblock_user')}
-                            </button>
-                          )}
                         </div>
                       )}
                     </div>
@@ -394,11 +371,7 @@ const ChatPage = () => {
                         </div>
                       </div>
                     ))}
-                    {isBlocked && (
-                      <div className="chat-blocked-notice">
-                        <i className="fas fa-ban"></i> {t('chat.blocked_notice')}
-                      </div>
-                    )}
+
                   </div>
                 </div>
                 <div className="card-footer">
@@ -406,12 +379,11 @@ const ChatPage = () => {
                     <input
                       type="text"
                       className="chat-input"
-                      placeholder={isBlocked ? t('chat.user_blocked') : t('chat.type_message')}
+                      placeholder={t('chat.type_message')}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      disabled={isBlocked}
                     />
-                    <button type="submit" className="btn btn-primary" disabled={isBlocked}>
+                    <button type="submit" className="btn btn-primary">
                       <i className="fas fa-paper-plane"></i>
                     </button>
                   </form>

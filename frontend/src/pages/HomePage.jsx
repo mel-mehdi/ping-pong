@@ -21,6 +21,8 @@ const HomePage = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState(null);
+  const [inviteMessageType, setInviteMessageType] = useState('success');
 
   const achievementsCount = userStats?.achievements || 0;
 
@@ -129,12 +131,16 @@ const HomePage = () => {
     try {
       await apiClient.sendGameInvitation(friendId, 'match', 'Game Invite');
       // Show success feedback or close modal
-      alert(t('home.invite_sent') || 'Invitation sent!');
+      setInviteMessage(t('home.invite_sent') || 'Invitation sent!');
+      setInviteMessageType('success');
+      setTimeout(() => setInviteMessage(null), 4000);
       setShowFriendModal(false);
       setInviteSearchQuery('');
       setSearchResults([]);
     } catch (err) {
-      alert(t('home.invite_failed') || 'Failed to send invitation');
+      setInviteMessage(t('home.invite_failed') || 'Failed to send invitation');
+      setInviteMessageType('danger');
+      setTimeout(() => setInviteMessage(null), 4000);
     } finally {
       setInviting(null);
     }
@@ -147,6 +153,9 @@ const HomePage = () => {
         {/* Hero Section */}
         <section className="hero-banner">
           <div className="hero-content container">
+            {inviteMessage && (
+              <div className={`alert alert-${inviteMessageType} mt-2`} role="status">{inviteMessage}</div>
+            )}
             {isAuthenticated ? (
               <>
                 <h1 className="hero-title animate-fade-in-up">
