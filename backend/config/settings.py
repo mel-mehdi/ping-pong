@@ -162,15 +162,25 @@ AUTH_USER_MODEL = 'user_management.User'
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
-    "http://127.0.0.1:8000",
+    "https://accounts.google.com",
+    "https://oauth2.googleapis.com",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
-    'http://127.0.0.1:8000',
+    "https://accounts.google.com",
 ]
+
+# Security Headers Configuration
+# Allow window.postMessage for OAuth and cross-origin communication
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"  # Allow postMessage for OAuth
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# Additional security settings
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # REST Framework Configuration
 REST_FRAMEWORK = {

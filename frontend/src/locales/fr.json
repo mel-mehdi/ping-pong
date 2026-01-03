@@ -20,7 +20,7 @@
     "no_users": "Aucun joueur trouvé"
   },
   "notifications": {
-    "title": "Demandes d'amis",
+    "title": "Notifications",
     "no_notifications": "Aucune nouvelle notification",
     "message": "{from} vous a envoyé une demande d'ami",
     "accept": "Accepter",

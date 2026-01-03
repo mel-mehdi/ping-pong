@@ -145,10 +145,6 @@ class ApiClient {
     return this._safeRequest(`${DJANGO_USER_BASE}/users/`, {}, []);
   }
 
-  async getUserById(id) {
-    return this.request(`${DJANGO_USER_BASE}/users/${id}/`);
-  }
-
   async getMe() {
     return this._safeRequest(`${DJANGO_USER_BASE}/users/me/`, { quiet: true }, null);
   }
@@ -175,49 +171,12 @@ class ApiClient {
     });
   }
 
-  async uploadAvatar(userId, file) {
-    try {
-      const url = this._buildUrl(`/users/${userId}/`);
-      const form = new FormData();
-      form.append('avatar', file);
-
-      // Build headers without Content-Type (browser will set it with boundary for multipart)
-      const headers = {};
-      
-      // Add JWT Authorization token
-      const token = this._getAuthToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      // Add CSRF token for PATCH request
-      const csrfToken = this._getCSRFToken();
-      if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken;
-      }
-
-      const response = await fetch(url, {
-        method: 'PATCH',
-        body: form,
-        credentials: 'include',
-        headers,
-      });
-
-      const data = await this._parseResponse(response);
-      if (!response.ok) throw new Error(data?.error || 'Upload failed');
-      return data;
-    } catch (error) {
-      logger.error('Upload avatar error:', error);
-      throw error;
-    }
-  }
-
   // Authentication
-  async register(username, email, password) {
+  async register(username, email, password, fullname = '') {
     try {
       return await this.request('/auth/register/', {
         method: 'POST',
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, email, password, fullname }),
         quiet: true, // Suppress console warnings for registration failures
       });
     } catch (err) {
@@ -225,7 +184,7 @@ class ApiClient {
       if (err?.status === HTTP_STATUS.NOT_FOUND) {
         return this.request('/users/register/', {
           method: 'POST',
-          body: JSON.stringify({ username, email, password }),
+          body: JSON.stringify({ username, email, password, fullname }),
         });
       }
       throw err;
@@ -375,23 +334,8 @@ class ApiClient {
     });
   }
 
-  async getActiveTournaments() {
-    return this._safeRequest('/game/tournaments/active/', {}, []);
-  }
-
-  async getMyTournaments() {
-    return this._safeRequest('/game/tournaments/my_tournaments/', {}, []);
-  }
 
   // Friends & Invitations
-  async getInvitations() {
-    return this._safeRequest('/game/invitations/', {}, []);
-  }
-
-  async getFriendRequests() {
-    return this._safeRequest(`${DJANGO_USER_BASE}/friendships/`, {}, []);
-  }
-
   async sendFriendRequest(fromId, fromName, toId, toName) {
     try {
       const payload = { 
@@ -435,11 +379,6 @@ class ApiClient {
     } catch {
       return [];
     }
-  }
-
-  // Alias for sendFriendRequest
-  async sendInvitation(fromId, fromName, toId, toName) {
-    return this.sendFriendRequest(fromId, fromName, toId, toName);
   }
 
   async respondToInvitation(invitationId, response) {
@@ -502,17 +441,6 @@ class ApiClient {
     return this._safeRequest(`/chat/conversations/${conversationId}/messages/`, {}, []);
   }
 
-  async getMessages(userId1, userId2) {
-    try {
-      const conversation = await this.getOrCreateConversation(userId1, userId2);
-      if (!conversation?.id) return [];
-      
-      return await this.request(`/chat/conversations/${conversation.id}/messages/`);
-    } catch {
-      return [];
-    }
-  }
-
   async getOrCreateConversation(userId1, userId2) {
     try {
       const conversations = await this.request('/chat/conversations/');
@@ -531,26 +459,6 @@ class ApiClient {
     } catch {
       return null;
     }
-  }
-
-  async sendMessage(fromId, toId, message) {
-    // First, get or create the conversation
-    const conversation = await this.getOrCreateConversation(fromId, toId);
-    if (!conversation?.id) {
-      throw new Error('Failed to create or get conversation');
-    }
-    
-    // Then send the message to that conversation
-    // Note: The actual message sending might need to be done via WebSocket
-    // For now, we'll return the conversation
-    return conversation;
-  }
-
-  async markMessagesAsRead(userId, conversationId) {
-    return this.request(`/chat/conversations/${conversationId}/mark_as_read/`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
   }
 
   // Game & Matches
@@ -574,28 +482,9 @@ class ApiClient {
     });
   }
 
-  async updateTournamentMatch(matchId, matchData) {
-    return this.request(`/game/matches/${matchId}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(matchData),
-    });
-  }
-
   // Leaderboard
   async getLeaderboard() {
     return this._safeRequest('/game/leaderboard/all_time/', {}, []);
-  }
-
-  async getLeaderboardAllTime() {
-    return this._safeRequest('/game/leaderboard/all_time/', {}, []);
-  }
-
-  async getLeaderboardThisWeek() {
-    return this._safeRequest('/game/leaderboard/this_week/', {}, []);
-  }
-
-  async getLeaderboardThisMonth() {
-    return this._safeRequest('/game/leaderboard/this_month/', {}, []);
   }
 
   // API Key Management
@@ -623,75 +512,8 @@ class ApiClient {
     }
   }
 
-  async getApiKeys() {
-    return this._safeRequest('/api/keys/', {}, []);
-  }
-
-  async createApiKey(name, scopes = []) {
-    return this.request('/api/keys/create_key/', {
-      method: 'POST',
-      body: JSON.stringify({ name, scopes }),
-    });
-  }
-
-  async revokeApiKey(keyId) {
-    return this.request(`/api/keys/${keyId}/revoke/`, {
-      method: 'DELETE',
-    });
-  }
-
-  async toggleApiKey(keyId) {
-    return this.request(`/api/keys/${keyId}/toggle/`, {
-      method: 'PATCH',
-      body: JSON.stringify({}),
-    });
-  }
-
-  // Notifications
-  async getNotifications() {
-    return this._safeRequest('/notifications/', {}, []);
-  }
-
-  async getUnreadNotifications() {
-    return this._safeRequest('/notifications/unread/', {}, []);
-  }
-
-  async getUnreadNotificationCount() {
-    return this._safeRequest('/notifications/count_unread/', {}, { count: 0 });
-  }
-
-  async markNotificationAsRead(notificationId) {
-    return this.request(`/notifications/${notificationId}/mark_as_read/`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
-  }
-
-  async markAllNotificationsAsRead() {
-    return this.request('/notifications/mark_all_as_read/', {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
-  }
-
-  async deleteNotification(notificationId) {
-    return this.request(`/notifications/${notificationId}/delete_notification/`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Achievements
-  async getAchievements() {
-    return this._safeRequest('/achievements/', {}, []);
-  }
-
-  async getUserAchievements() {
-    return this._safeRequest('/achievements/user_achievements/', {}, []);
-  }
-
-  async getAvailableAchievements() {
-    return this._safeRequest('/achievements/available/', {}, []);
-  }
+  // Notifications (unused - reserved for future use) (unused - reserved for future use)
+  // Achievements (unused - reserved for future use)
 }
 
 const apiClient = new ApiClient();

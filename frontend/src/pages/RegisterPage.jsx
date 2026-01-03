@@ -118,7 +118,7 @@ const RegisterPage = () => {
     setLoading(true);
 
     try {
-      await apiClient.register(formData.username, formData.email, formData.password);
+      await apiClient.register(formData.username, formData.email, formData.password, formData.fullname);
       const loginResp = await apiClient.login(formData.username, formData.password);
       const userPayload = loginResp?.user || loginResp || {};
       
@@ -137,6 +137,29 @@ const RegisterPage = () => {
       setTimeout(() => navigate('/'), 500);
     } catch (error) {
       setLoading(false);
+      
+      // Handle backend validation errors
+      if (error?.data) {
+        const backendErrors = {};
+        if (error.data.username) {
+          backendErrors.username = Array.isArray(error.data.username) 
+            ? error.data.username[0] 
+            : error.data.username;
+        }
+        if (error.data.email) {
+          backendErrors.email = Array.isArray(error.data.email) 
+            ? error.data.email[0] 
+            : error.data.email;
+        }
+        if (error.data.password) {
+          backendErrors.password = Array.isArray(error.data.password) 
+            ? error.data.password[0] 
+            : error.data.password;
+        }
+        if (Object.keys(backendErrors).length > 0) {
+          setErrors(backendErrors);
+        }
+      }
     }
   };
 

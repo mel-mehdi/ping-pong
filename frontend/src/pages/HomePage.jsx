@@ -525,17 +525,8 @@ const HomePage = () => {
             <h2>{t('home.choose_mode_title')}</h2>
             <p>{t('home.choose_mode_subtitle')}</p>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              flexWrap: 'nowrap',
-              gap: '1rem',
-              alignItems: 'stretch',
-              width: '100%',
-            }}
-          >
-            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
+          <div className="play-options-grid">
+            <div style={{ display: 'flex' }}>
               <button
                 onClick={handleQuickPlay}
                 className="modern-card hover-lift text-center w-100"
@@ -570,7 +561,7 @@ const HomePage = () => {
               </button>
             </div>
 
-            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
+            <div style={{ display: 'flex' }}>
               <button
                 onClick={handleOnlineGame}
                 className="modern-card hover-lift text-center w-100"
@@ -612,7 +603,7 @@ const HomePage = () => {
               </button>
             </div>
 
-            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
+            <div style={{ display: 'flex' }}>
               <button
                 onClick={() => navigate('/game?ai=normal')}
                 className="modern-card hover-lift text-center w-100"
@@ -648,7 +639,7 @@ const HomePage = () => {
               </button>
             </div>
 
-            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
+            <div style={{ display: 'flex' }}>
               <button
                 onClick={handlePlayWithFriend}
                 className="modern-card hover-lift text-center w-100"
@@ -687,7 +678,7 @@ const HomePage = () => {
               </button>
             </div>
 
-            <div style={{ flex: '0 0 calc(20% - 0.8rem)', display: 'flex' }}>
+            <div style={{ display: 'flex' }}>
               <button
                 onClick={handleTournament}
                 className="modern-card hover-lift text-center w-100"

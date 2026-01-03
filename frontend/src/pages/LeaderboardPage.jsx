@@ -42,73 +42,33 @@ const LeaderboardPage = () => {
             });
           }
         } else {
-          // Not authenticated: prefer public /users/ list (doesn't require API key) and fall back
-          // to /api/leaderboard/ only if we have an active public API key.
+          // Not authenticated: try public profiles endpoint
           try {
-            const users = await apiClient.getAllUsers();
-            if (Array.isArray(users) && users.length > 0) {
-              players = users.map((u, idx) => ({
-                username: u.username || u.email || 'Unknown',
-                level: u.level || 1,
-                wins: u.wins || 0,
-                losses: u.losses || 0,
-                winRate: u.win_rate || 0,
-                points: (u.wins || 0) * 10,
-                rank: idx + 1,
-              }));
-            } else {
-              // No public users available; try public leaderboard if an API key is set
-              const activeKey = apiClient.getActiveApiKey();
-              if (activeKey) {
-                try {
-                  const res = await apiClient.getLeaderboard();
-                  const list = res?.leaderboard || res || [];
-                  if (Array.isArray(list)) {
-                    players = list.map((p, idx) => ({
-                      username: p.user?.username || p.username || 'Unknown',
-                      level: p.level || p.user?.level || 1,
-                      wins: p.wins || 0,
-                      losses: p.losses || 0,
-                      winRate: p.win_rate || 0,
-                      points: p.points || (p.wins || 0) * 10,
-                      rank: p.rank || idx + 1,
-                    }));
-                  }
-                } catch (e) {
-                  setMissingApiKey(true);
-                  players = [];
-                }
-              } else {
-                setMissingApiKey(true);
-                players = [];
-              }
-            }
-          } catch (err) {
-            // Try public leaderboard only if API key exists
-            const activeKey = apiClient.getActiveApiKey();
-            if (activeKey) {
-              try {
-                const res = await apiClient.getLeaderboard();
-                const list = res?.leaderboard || res || [];
-                if (Array.isArray(list)) {
-                  players = list.map((p, idx) => ({
-                    username: p.user?.username || p.username || 'Unknown',
-                    level: p.level || p.user?.level || 1,
-                    wins: p.wins || 0,
-                    losses: p.losses || 0,
-                    winRate: p.win_rate || 0,
-                    points: p.points || (p.wins || 0) * 10,
-                    rank: p.rank || idx + 1,
-                  }));
-                }
-              } catch (e2) {
-                setMissingApiKey(true);
-                players = [];
-              }
+            const profiles = await apiClient.getProfiles();
+            if (Array.isArray(profiles) && profiles.length > 0) {
+              players = profiles.map((p) => {
+                const user = p.user || {};
+                const wins = p.wins || 0;
+                const losses = p.losses || 0;
+                const total = wins + losses || 0;
+                const winRate = total ? Math.round((wins / total) * 100) : 0;
+                return {
+                  username: user.username || user.email || 'Unknown',
+                  level: p.level || 1,
+                  wins,
+                  losses,
+                  winRate,
+                  points: p.xp || 0,
+                  rank: null,
+                };
+              });
             } else {
               setMissingApiKey(true);
               players = [];
             }
+          } catch (err) {
+            setMissingApiKey(true);
+            players = [];
           }
         }
 

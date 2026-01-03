@@ -20,7 +20,7 @@
     "no_users": "No users found"
   },
   "notifications": {
-    "title": "Friend Requests",
+    "title": "Notifications",
     "no_notifications": "No new notifications",
     "message": "{from} sent you a friend request",
     "accept": "Accept",

@@ -124,7 +124,7 @@
     "no_users": "No se encontraron jugadores"
   },
   "notifications": {
-    "title": "Solicitudes de amistad",
+    "title": "Notificaciones",
     "no_notifications": "No hay nuevas notificaciones",
     "message": "{from} te ha enviado una solicitud de amistad",
     "accept": "Aceptar",

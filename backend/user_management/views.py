@@ -23,8 +23,12 @@ class AuthViewSet(viewsets.ViewSet):
 	@action(detail=False, methods=['post'])
 	def register(self, request):
 		serializer = UserSerializer(data=request.data)
-		serializer.is_valid(raise_exception=True)
-		return Response(serializer.save(online_status=True), status=status.HTTP_201_CREATED)
+		if not serializer.is_valid():
+			# Log the validation errors for debugging
+			print("Registration validation errors:", serializer.errors)
+			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+		user = serializer.save(online_status=True)
+		return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 	@action(detail=False, methods=['post'])
 	def login(self, request):
@@ -97,12 +101,19 @@ class UserViewSet(viewsets.ModelViewSet):
 	serializer_class = UserSerializer
 	permission_classes = [IsAuthenticated]
 
+	def get_permissions(self):
+		"""Allow public access to list and retrieve users"""
+		if self.action in ['list', 'retrieve', 'profile']:
+			return []
+		return [IsAuthenticated()]
+
 	@action(detail=False, methods=['get'])
 	def me(self, request):
 		return Response(self.get_serializer(request.user).data)
 
-	@action(detail=True, methods=['get'])
+	@action(detail=True, methods=['get'], permission_classes=[])
 	def profile(self, request, pk=None):
+		"""Public endpoint to view any user's profile"""
 		return Response(UserProfileSerializer(get_object_or_404(UserProfile, user=self.get_object())).data)
 
 
@@ -114,8 +125,9 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 	def get_queryset(self):
 		return UserProfile.objects.filter(user=self.request.user).select_related('user')
 	
-	@action(detail=False, methods=['get'])
+	@action(detail=False, methods=['get'], permission_classes=[])
 	def leaderboard(self, request):
+		"""Public leaderboard endpoint - no authentication required"""
 		profiles = UserProfile.objects.select_related('user').order_by('-level', '-xp', '-wins')
 		return Response(self.get_serializer(profiles, many=True).data)
 
