@@ -668,6 +668,10 @@ const GamePage = () => {
     navigate('/');
   };
 
+  const handleBackToTournament = () => {
+    navigate('/tournament');
+  };
+
   return (
     <>
       <Navbar />
@@ -739,7 +743,7 @@ const GamePage = () => {
                     )}
                     <div className="result-actions-pro">
                       {mode === 'tournament' ? (
-                        <button onClick={handleHome} className="btn-result-pro btn-primary-pro">
+                        <button onClick={handleBackToTournament} className="btn-result-pro btn-primary-pro">
                           <svg
                             width="20"
                             height="20"

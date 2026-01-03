@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -27,45 +27,105 @@ const TournamentPage = () => {
   const [myTournaments, setMyTournaments] = useState([]);
   const [tournamentMatches, setTournamentMatches] = useState([]);
   const [apiMessage, setApiMessage] = useState(null);
+  const [selectedTournamentId, setSelectedTournamentId] = useState(null);
   const { userData, isBackendAuthenticated } = useAuth();
 
-  useEffect(() => {
-    const loadTournaments = async () => {
-      if (!isBackendAuthenticated) return;
-      
-      try {
-        const fetched = await apiClient.getTournaments();
-        if (fetched && Array.isArray(fetched)) {
-          // Filter active (pending/ongoing) vs completed tournaments
-          const active = fetched.filter(t => t.status !== 'completed');
-          const completed = fetched.filter(t => t.status === 'completed');
-          
-          setActiveTournaments(active);
-          setCompletedTournaments(completed);
+  const loadTournaments = async () => {
+    if (!isBackendAuthenticated) return;
+    
+    try {
+      const fetched = await apiClient.getTournaments();
+      if (fetched && Array.isArray(fetched)) {
+        // Filter active (pending/ongoing) vs completed tournaments
+        const active = fetched.filter(t => t.status !== 'completed');
+        const completed = fetched.filter(t => t.status === 'completed');
+        
+        setActiveTournaments(active);
+        setCompletedTournaments(completed);
 
-          const my = fetched.filter((t) => {
-            const creatorId = t.creator?.id;
-            return creatorId && userData && creatorId === userData.userId;
-          });
-          setMyTournaments(my);
+        const my = fetched.filter((t) => {
+          const creatorId = t.creator?.id;
+          return creatorId && userData && creatorId === userData.userId;
+        });
+        setMyTournaments(my);
 
-          // Don't auto-load brackets, let user select
-        }
-
-        // Load tournament matches
-        const matches = await apiClient.getTournamentMatches();
-        if (matches && Array.isArray(matches)) {
-          setTournamentMatches(matches);
-        }
-      } catch (err) {
-        // Error loading tournaments
-        setActiveTournaments([]);
-        setMyTournaments([]);
+        // Don't auto-load brackets, let user select
       }
-    };
 
+      // Load tournament matches
+      const matches = await apiClient.getTournamentMatches();
+      if (matches && Array.isArray(matches)) {
+        setTournamentMatches(matches);
+      }
+    } catch (err) {
+      // Error loading tournaments
+      setActiveTournaments([]);
+      setMyTournaments([]);
+    }
+  };
+
+  // Function to load bracket for selected tournament
+  const loadBracketForTournament = useCallback(async (tournamentId) => {
+    if (!tournamentId) {
+      setBrackets({ name: '', rounds: [] });
+      return;
+    }
+    
+    try {
+      const response = await apiClient.getTournamentById(tournamentId);
+      if (response && response.matches && response.matches.length > 0) {
+        const allMatches = response.matches;
+        const totalPlayers = response.max_players;
+        const rounds = [];
+        
+        if (totalPlayers === 4) {
+          if (allMatches.length >= 2) rounds.push(allMatches.slice(0, 2));
+          if (allMatches.length >= 3) rounds.push([allMatches[2]]);
+        } else if (totalPlayers === 8) {
+          if (allMatches.length >= 4) rounds.push(allMatches.slice(0, 4));
+          if (allMatches.length >= 6) rounds.push(allMatches.slice(4, 6));
+          if (allMatches.length >= 7) rounds.push([allMatches[6]]);
+        } else {
+          const matchesPerRound = Math.ceil(totalPlayers / 2);
+          let idx = 0;
+          while (idx < allMatches.length) {
+            const roundSize = Math.max(1, Math.floor((allMatches.length - idx) / 2));
+            rounds.push(allMatches.slice(idx, idx + roundSize));
+            idx += roundSize;
+          }
+        }
+        
+        setBrackets({ 
+          name: response.name, 
+          rounds: rounds 
+        });
+      } else {
+        setBrackets({ name: response.name, rounds: [] });
+      }
+    } catch (err) {
+      setBrackets({ name: '', rounds: [] });
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
     loadTournaments();
   }, [userData, isBackendAuthenticated]);
+
+  // Auto-update every 5 seconds
+  useEffect(() => {
+    if (!isBackendAuthenticated) return;
+
+    const interval = setInterval(() => {
+      loadTournaments();
+      // Also refresh the selected tournament bracket if one is selected
+      if (selectedTournamentId) {
+        loadBracketForTournament(selectedTournamentId);
+      }
+    }, 5000); // Update every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [isBackendAuthenticated, selectedTournamentId, loadBracketForTournament]);
 
   const handleCreateTournament = (e) => {
     e.preventDefault();
@@ -211,14 +271,8 @@ const TournamentPage = () => {
       if (matches && Array.isArray(matches)) {
         setTournamentMatches(matches);
         
-        // Check if we have a match in this tournament and redirect
-        const myMatch = matches.find(m => m.tournament === tournament.id);
-        if (myMatch) {
-          setApiMessage('Tournament started! Redirecting to match...');
-          setTimeout(() => {
-            navigate(`/game?mode=tournament&match=${myMatch.id}`);
-          }, 1500);
-        }
+        // Don't auto-redirect - let users see their match and click to join
+        // The match will appear in the "My Matches" section with a "Join Match" button
       }
     } catch (err) {
       setApiMessage(err?.message || 'Unable to join tournament');
@@ -407,54 +461,11 @@ const TournamentPage = () => {
                 <select 
                   className="form-control" 
                   style={{ maxWidth: '400px', margin: '0 auto' }}
+                  value={selectedTournamentId || ''}
                   onChange={async (e) => {
                     const tournamentId = parseInt(e.target.value);
-                    if (!tournamentId) {
-                      setBrackets({ name: '', rounds: [] });
-                      return;
-                    }
-                    
-                    try {
-                      // Fetch full tournament data with matches
-                      const response = await apiClient.getTournamentById(tournamentId);
-                      if (response && response.matches && response.matches.length > 0) {
-                        const allMatches = response.matches;
-                        
-                        // Group matches by determining their round based on creation order
-                        // First half are round 1, next quarter are round 2 (semis), last is final
-                        const totalPlayers = response.max_players;
-                        const rounds = [];
-                        
-                        if (totalPlayers === 4) {
-                          // 4 players: 2 semis, 1 final
-                          if (allMatches.length >= 2) rounds.push(allMatches.slice(0, 2)); // Semis
-                          if (allMatches.length >= 3) rounds.push([allMatches[2]]); // Final
-                        } else if (totalPlayers === 8) {
-                          // 8 players: 4 quarters, 2 semis, 1 final
-                          if (allMatches.length >= 4) rounds.push(allMatches.slice(0, 4)); // Quarters
-                          if (allMatches.length >= 6) rounds.push(allMatches.slice(4, 6)); // Semis
-                          if (allMatches.length >= 7) rounds.push([allMatches[6]]); // Final
-                        } else {
-                          // Generic: split evenly
-                          const matchesPerRound = Math.ceil(totalPlayers / 2);
-                          let idx = 0;
-                          while (idx < allMatches.length) {
-                            const roundSize = Math.max(1, Math.floor((allMatches.length - idx) / 2));
-                            rounds.push(allMatches.slice(idx, idx + roundSize));
-                            idx += roundSize;
-                          }
-                        }
-                        
-                        setBrackets({ 
-                          name: response.name, 
-                          rounds: rounds 
-                        });
-                      } else {
-                        setBrackets({ name: response.name, rounds: [] });
-                      }
-                    } catch (err) {
-                      setBrackets({ name: '', rounds: [] });
-                    }
+                    setSelectedTournamentId(tournamentId || null);
+                    await loadBracketForTournament(tournamentId);
                   }}
                 >
                   <option value="">{t('tournaments.select') || 'Select Tournament'}</option>
@@ -504,17 +515,17 @@ const TournamentPage = () => {
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             padding: '0.5rem',
-                            background: match.winner?.id === match.player1?.id ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                            background: match.status !== 'ongoing' && match.winner?.id === match.player1?.id ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
                             borderRadius: '4px',
                             marginBottom: '0.25rem',
-                            fontWeight: match.winner?.id === match.player1?.id ? '600' : '400'
+                            fontWeight: match.status !== 'ongoing' && match.winner?.id === match.player1?.id ? '600' : '400'
                           }}>
                             <span>{match.player1?.username || 'TBD'}</span>
                             <span style={{ 
                               fontWeight: 'bold',
-                              color: match.winner?.id === match.player1?.id ? '#22c55e' : 'inherit'
+                              color: match.status !== 'ongoing' && match.winner?.id === match.player1?.id ? '#22c55e' : 'inherit'
                             }}>
-                              {match.player1_score !== null && match.player1_score !== undefined ? match.player1_score : '-'}
+                              {match.status === 'ongoing' ? '-' : (match.player1_score !== null && match.player1_score !== undefined ? match.player1_score : '-')}
                             </span>
                           </div>
                           <div style={{
@@ -522,16 +533,16 @@ const TournamentPage = () => {
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             padding: '0.5rem',
-                            background: match.winner?.id === match.player2?.id ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                            background: match.status !== 'ongoing' && match.winner?.id === match.player2?.id ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
                             borderRadius: '4px',
-                            fontWeight: match.winner?.id === match.player2?.id ? '600' : '400'
+                            fontWeight: match.status !== 'ongoing' && match.winner?.id === match.player2?.id ? '600' : '400'
                           }}>
                             <span>{match.player2?.username || 'TBD'}</span>
                             <span style={{ 
                               fontWeight: 'bold',
-                              color: match.winner?.id === match.player2?.id ? '#22c55e' : 'inherit'
+                              color: match.status !== 'ongoing' && match.winner?.id === match.player2?.id ? '#22c55e' : 'inherit'
                             }}>
-                              {match.player2_score !== null && match.player2_score !== undefined ? match.player2_score : '-'}
+                              {match.status === 'ongoing' ? '-' : (match.player2_score !== null && match.player2_score !== undefined ? match.player2_score : '-')}
                             </span>
                           </div>
                           {match.status === 'ongoing' && (
