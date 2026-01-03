@@ -412,6 +412,47 @@
   }
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.auth-divider span {
+  padding: 0 1rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Google Sign-In Container */
+.google-signin-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.google-signin-container > div {
+  width: 100% !important;
+}
+
+.google-signin-container iframe {
+  margin: 0 auto !important;
+  display: block !important;
+}
+
 /* Google Sign-In Button - Material Design */
 .gsi-material-button {
   -moz-user-select: none;
@@ -428,12 +469,12 @@
   color: #3c4043;
   cursor: pointer;
   font-family: 'Roboto', arial, sans-serif;
-  font-size: 14px;
-  height: 52px;
+  font-size: 1rem;
+  height: auto;
+  padding: 1.125rem;
   letter-spacing: 0.25px;
   outline: none;
   overflow: hidden;
-  padding: 0 12px;
   position: relative;
   text-align: center;
   -webkit-transition:
@@ -447,7 +488,6 @@
   vertical-align: middle;
   white-space: nowrap;
   width: 100%;
-  max-width: 400px;
   min-width: min-content;
   border-color: #dadce0;
 }

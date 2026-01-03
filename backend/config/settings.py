@@ -108,11 +108,9 @@ CACHES = {
 		'LOCATION': 'redis://redis:6379/1',
 	}
 }
-
 PASSWORD_HASHERS = [
 	'user_management.hashers.CustomPBKDF2PasswordHasher',
 ]
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -169,14 +167,24 @@ AUTH_USER_MODEL = 'user_management.User'
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
+    "https://accounts.google.com",
+    "https://oauth2.googleapis.com",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
+    "https://accounts.google.com",
 ]
-CSRF_COOKIE_HTTPONLY = False
+
+# Security Headers Configuration
+# Allow window.postMessage for OAuth and cross-origin communication
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"  # Allow postMessage for OAuth
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# Additional security settings
+SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # REST Framework Configuration
@@ -189,9 +197,6 @@ REST_FRAMEWORK = {
     ],
 }
 
-GOOGLE_OAUTH2_CLIENT_ID = env('GOOGLE_OAUTH2_CLIENT_ID')
-GOOGLE_OAUTH2_CLIENT_SECRET = env('GOOGLE_OAUTH2_CLIENT_SECRET')
-GOOGLE_OAUTH2_REDIRECT_URI = env('GOOGLE_OAUTH2_REDIRECT_URI')
 
 SUPERUSER_USERNAME = env('DJANGO_SUPERUSER_USERNAME')
 SUPERUSER_EMAIL = env('DJANGO_SUPERUSER_EMAIL')
@@ -212,3 +217,7 @@ SWAGGER_SETTINGS = {
 SWAGGER_SETTINGS = {
     'DEFAULT_AUTO_SCHEMA_CLASS': 'config.urls.CustomAutoSchema',
 }
+
+# Google OAuth Settings
+GOOGLE_OAUTH_CLIENT_ID = env('GOOGLE_OAUTH2_CLIENT_ID')
+GOOGLE_OAUTH_CLIENT_SECRET = env('GOOGLE_OAUTH2_CLIENT_SECRET')

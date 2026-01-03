@@ -83,7 +83,8 @@ class ApiClient {
   }
 
   _logError(endpoint, error, quiet) {
-    if (quiet) return;
+    // Suppress logs if quiet mode is on OR if it's auth-related errors (expected during login/register)
+    if (quiet || error?.status === 401 || error?.status === 400 || error?.status === 403 || error?.status === 404) return;
     
     const message = `API Error [${endpoint}]: ${error.message}`;
     if (error?.isAuthError) {
@@ -115,6 +116,8 @@ class ApiClient {
           `HTTP ${response.status}: ${response.statusText}`
         );
         err.status = response.status;
+        err.detail = data?.detail;
+        err.data = data;
         if (response.status === HTTP_STATUS.UNAUTHORIZED || 
             response.status === HTTP_STATUS.FORBIDDEN) {
           err.isAuthError = true;
@@ -137,21 +140,9 @@ class ApiClient {
     }
   }
 
-  async _safeRequest(endpoint, options = {}, fallback = []) {
-    try {
-      return await this.request(endpoint, { quiet: true, ...options });
-    } catch {
-      return fallback;
-    }
-  }
-
   // User Management
   async getAllUsers() {
     return this._safeRequest(`${DJANGO_USER_BASE}/users/`, {}, []);
-  }
-
-  async getUserById(id) {
-    return this.request(`${DJANGO_USER_BASE}/users/${id}/`);
   }
 
   async getMe() {
@@ -163,7 +154,7 @@ class ApiClient {
   }
 
   async getProfiles() {
-    return this._safeRequest(`${DJANGO_USER_BASE}/profiles/`, {}, []);
+    return this._safeRequest(`${DJANGO_USER_BASE}/profiles/leaderboard/`, {}, []);
   }
 
   async updateUser(userId, data) {
@@ -180,40 +171,20 @@ class ApiClient {
     });
   }
 
-  async uploadAvatar(userId, file) {
-    try {
-      const url = `${BACKEND_BASE}${DJANGO_USER_BASE}/users/${userId}/`;
-      const form = new FormData();
-      form.append('avatar', file);
-
-      const response = await fetch(url, {
-        method: 'PATCH',
-        body: form,
-        credentials: 'include',
-      });
-
-      const data = await this._parseResponse(response);
-      if (!response.ok) throw new Error(data?.error || 'Upload failed');
-      return data;
-    } catch (error) {
-      logger.error('Upload avatar error:', error);
-      throw error;
-    }
-  }
-
   // Authentication
-  async register(username, email, password) {
+  async register(username, email, password, fullname = '') {
     try {
       return await this.request('/auth/register/', {
         method: 'POST',
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, email, password, fullname }),
+        quiet: true, // Suppress console warnings for registration failures
       });
     } catch (err) {
       // Fallback to alternate endpoint
       if (err?.status === HTTP_STATUS.NOT_FOUND) {
         return this.request('/users/register/', {
           method: 'POST',
-          body: JSON.stringify({ username, email, password }),
+          body: JSON.stringify({ username, email, password, fullname }),
         });
       }
       throw err;
@@ -225,6 +196,7 @@ class ApiClient {
       return await this.request('/auth/login/', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
+        quiet: true, // Suppress console warnings for login failures
       });
     } catch (err) {
       // Fallback to alternate endpoint
@@ -232,6 +204,7 @@ class ApiClient {
         return this.request('/users/login/', {
           method: 'POST',
           body: JSON.stringify({ username, password }),
+          quiet: true,
         });
       }
       throw err;
@@ -239,11 +212,24 @@ class ApiClient {
   }
 
   async logout() {
-    return this.request('/auth/logout/', { method: 'POST' });
+    return this.request('/auth/logout/', { method: 'POST', body: JSON.stringify({}) });
   }
 
-  async logout() {
-    return this.request('/auth/logout/', { method: 'POST' });
+  async googleLogin(credential) {
+    // Ensure we have a CSRF token before making the POST request
+    if (!this._getCSRFToken()) {
+      try {
+        // Fetch a safe endpoint to set the CSRF cookie
+        await fetch(this._buildUrl('/admin/login/'));
+      } catch (e) {
+        // Ignore error
+      }
+    }
+
+    return this.request('/auth/google_login/', {
+      method: 'POST',
+      body: JSON.stringify({ token: credential }),
+    });
   }
 
   // Search
@@ -251,16 +237,26 @@ class ApiClient {
     if (!query || !query.toString().trim()) return [];
     
     try {
+      // Backend search might not be enabled, so we fetch all and filter locally if needed
       const results = await this.request(
-        `${DJANGO_USER_BASE}/users/?search=${encodeURIComponent(query)}`
+        `${DJANGO_USER_BASE}/users/`,
+        { quiet: false }
       );
       
-      if (Array.isArray(results) && results.length > 0) {
+      logger.debug(`Search results for "${query}":`, results);
+      
+      if (Array.isArray(results)) {
+        if (results.length === 0) {
+          logger.debug('Search returned empty results');
+          return [];
+        }
+        
         const badPattern = /https?:\/\/|www\.|\/.+|=|\?|&|om\/api|\bapi\b/i;
         const maxUsernameLength = 50;
         const maxEmailLength = 120;
+        const lowerQuery = query.toLowerCase();
         
-        return results
+        const filtered = results
           .filter(u => u && typeof u === 'object')
           .filter(u => (u.username?.trim() || u.email?.trim()))
           .filter(u => {
@@ -271,23 +267,37 @@ class ApiClient {
             if (username.length > maxUsernameLength || email.length > maxEmailLength) return false;
             if (badPattern.test(username) || badPattern.test(email)) return false;
             
-            return true;
+            // Client-side filtering
+            return username.toLowerCase().includes(lowerQuery) || 
+                   email.toLowerCase().includes(lowerQuery);
           });
+        
+        logger.debug(`Filtered results: ${filtered.length} users`);
+        return filtered;
       }
+      
+      logger.debug('Search returned non-array result, returning empty');
+      return [];
     } catch (err) {
-      logger.debug('searchUsers: backend search failed, falling back to client-side filter');
+      logger.error('searchUsers: backend search failed:', err);
+      
+      // Fallback: fetch all users then filter locally
+      try {
+        const all = await this.getAllUsers();
+        logger.debug(`Fallback: Got ${all.length} users, filtering locally`);
+        const q = query.toLowerCase();
+        return (all || []).filter(u =>
+          u &&
+          typeof u === 'object' &&
+          ((u.username && u.username.toLowerCase().includes(q)) ||
+            (u.email && u.email.toLowerCase().includes(q)) ||
+            (u.fullname && u.fullname.toLowerCase().includes(q)))
+        );
+      } catch (fallbackErr) {
+        logger.error('Fallback search also failed:', fallbackErr);
+        return [];
+      }
     }
-
-    // Fallback: fetch all users then filter locally
-    const all = await this.getAllUsers();
-    const q = query.toLowerCase();
-    return (all || []).filter(u =>
-      u &&
-      typeof u === 'object' &&
-      ((u.username && u.username.toLowerCase().includes(q)) ||
-        (u.email && u.email.toLowerCase().includes(q)) ||
-        (u.fullname && u.fullname.toLowerCase().includes(q)))
-    );
   }
 
   // Tournaments
@@ -318,27 +328,63 @@ class ApiClient {
     });
   }
 
-  async getActiveTournaments() {
-    return this._safeRequest('/game/tournaments/active/', {}, []);
+  async startTournament(tournamentId) {
+    return this.request(`/game/tournaments/${tournamentId}/start/`, {
+      method: 'POST',
+    });
   }
 
-  async getMyTournaments() {
-    return this._safeRequest('/game/tournaments/my_tournaments/', {}, []);
-  }
 
   // Friends & Invitations
-  async getInvitations() {
-    return this._safeRequest('/game/invitations/', {}, []);
-  }
-
-  async getFriendRequests() {
-    return this._safeRequest(`${DJANGO_USER_BASE}/friendships/`, {}, []);
-  }
-
   async sendFriendRequest(fromId, fromName, toId, toName) {
-    return this.request(`${DJANGO_USER_BASE}/friendships/`, {
-      method: 'POST',
-      body: JSON.stringify({ to_user: toId, to_name: toName }),
+    try {
+      const payload = { 
+        to_user_id: toId
+      };
+      
+      logger.debug('Sending friend request:', payload);
+      
+      const result = await this.request('/friendships/send_request/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      
+      logger.debug('Friend request sent successfully:', result);
+      return result;
+    } catch (err) {
+      logger.error('Friend request failed:', err);
+      throw err;
+    }
+  }
+
+  async getPendingFriendRequests() {
+    // Get pending friend requests received by current user
+    try {
+      const friendships = await this.request('/friendships/pending_requests/');
+      return friendships || [];
+    } catch {
+      return [];
+    }
+  }
+
+  async getPendingGameInvitations() {
+    try {
+      const invitations = await this.request('/game/invitations/');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      return (invitations || []).filter(inv => 
+        inv.status === 'pending' && 
+        inv.receiver?.id === userData.userId &&
+        inv.invitation_type === 'match'
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  async respondToInvitation(invitationId, response) {
+    return this.request(`/game/invitations/${invitationId}/respond/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: response }),
     });
   }
 
@@ -356,12 +402,34 @@ class ApiClient {
     });
   }
 
-  async getMyFriends() {
-    return this._safeRequest('/friendships/my_friends/', {}, []);
+  // Game Invitations (separate from friend requests)
+  async sendGameInvitation(receiverId, invitationType, message) {
+    return this.request('/game/invitations/', {
+      method: 'POST',
+      body: JSON.stringify({
+        receiver_id: receiverId,
+        invitation_type: invitationType,
+        message: message
+      }),
+    });
   }
 
   async getMyFriends() {
-    return this._safeRequest('/friendships/my_friends/', {}, []);
+    try {
+      const friendships = await this.request('/friendships/my_friends/');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      const myId = userData.userId || userData.id;
+
+      return (friendships || []).map(f => {
+        // Return the *other* user in the friendship
+        if (f.from_user && (f.from_user.id === myId || f.from_user.userId === myId)) {
+          return f.to_user;
+        }
+        return f.from_user;
+      }).filter(Boolean); // Filter out any nulls
+    } catch {
+      return [];
+    }
   }
 
   // Chat & Messages
@@ -371,17 +439,6 @@ class ApiClient {
 
   async getConversationMessages(conversationId) {
     return this._safeRequest(`/chat/conversations/${conversationId}/messages/`, {}, []);
-  }
-
-  async getMessages(userId1, userId2) {
-    try {
-      const conversation = await this.getOrCreateConversation(userId1, userId2);
-      if (!conversation?.id) return [];
-      
-      return await this.request(`/chat/conversations/${conversation.id}/messages/`);
-    } catch {
-      return [];
-    }
   }
 
   async getOrCreateConversation(userId1, userId2) {
@@ -404,27 +461,18 @@ class ApiClient {
     }
   }
 
-  async sendMessage(fromId, toId, message) {
-    return this.request('/chat/conversations/', {
-      method: 'POST',
-      body: JSON.stringify({ participant_id: toId, message }),
-    });
-  }
-
-  async markMessagesAsRead(userId, conversationId) {
-    return this.request(`/chat/conversations/${conversationId}/mark_as_read/`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
-  }
-
   // Game & Matches
-  async getMatchesForUser() {
-    return this._safeRequest('/game/matches/my_matches/', {}, []);
-  }
-
   async getMyMatches() {
     return this._safeRequest('/game/matches/my_matches/', {}, []);
+  }
+
+  async getTournamentMatches() {
+    return this._safeRequest('/game/matches/tournament_matches/', {}, []);
+  }
+
+  // Alias for getMyMatches
+  async getMatchesForUser(userId) {
+    return this.getMyMatches();
   }
 
   async createMatch(matchData) {
@@ -436,19 +484,7 @@ class ApiClient {
 
   // Leaderboard
   async getLeaderboard() {
-    return this._safeRequest(`${DJANGO_API_BASE}/leaderboard/`, {}, []);
-  }
-
-  async getLeaderboardAllTime() {
     return this._safeRequest('/game/leaderboard/all_time/', {}, []);
-  }
-
-  async getLeaderboardThisWeek() {
-    return this._safeRequest('/game/leaderboard/this_week/', {}, []);
-  }
-
-  async getLeaderboardThisMonth() {
-    return this._safeRequest('/game/leaderboard/this_month/', {}, []);
   }
 
   // API Key Management
@@ -476,28 +512,8 @@ class ApiClient {
     }
   }
 
-  async getApiKeys() {
-    return this._safeRequest('/api/keys/', {}, []);
-  }
-
-  async createApiKey(name, scopes = []) {
-    return this.request('/api/keys/create_key/', {
-      method: 'POST',
-      body: JSON.stringify({ name, scopes }),
-    });
-  }
-
-  async revokeApiKey(keyId) {
-    return this.request(`/api/keys/${keyId}/revoke/`, {
-      method: 'DELETE',
-    });
-  }
-
-  async toggleApiKey(keyId) {
-    return this.request(`/api/keys/${keyId}/toggle/`, {
-      method: 'PATCH',
-    });
-  }
+  // Notifications (unused - reserved for future use) (unused - reserved for future use)
+  // Achievements (unused - reserved for future use)
 }
 
 const apiClient = new ApiClient();

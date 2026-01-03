@@ -14,6 +14,9 @@ python manage.py makemigrations
 echo "Applying database migrations..."
 python manage.py migrate
 
+echo "Populating achievements..."
+python manage.py populate_achievements
+
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 

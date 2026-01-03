@@ -10,11 +10,12 @@ export default defineConfig({
     host: '0.0.0.0',
     open: false,
     strictPort: false,
-    hmr: false,
-    allowedHosts: ['frontend', 'react', 'localhost'],
-	watch: {
-		usePolling: true,
-	},
+    watch: {
+      usePolling: true,
+    },
+    hmr: {
+      clientPort: 8000,
+    },
     // Dev proxy: forward /api requests to the backend container on localhost:8001
     proxy: {
       '/api': {
@@ -41,4 +42,5 @@ export default defineConfig({
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
+  clearScreen: false,
 });

@@ -48,7 +48,7 @@ const ProfilePage = () => {
         apiClient.clearActiveApiKey();
       }
     } catch (e) {
-      console.warn('loadActiveKeyForUser error', e);
+      // Error loading active key
     }
   };
 
@@ -72,7 +72,6 @@ const ProfilePage = () => {
         setTimeout(() => setApiKeyMessage(null), 2000);
       }
     } catch (e) {
-      console.warn('saveActiveKeyForUser error', e);
       setApiKeyMessage('Save failed');
       setTimeout(() => setApiKeyMessage(null), 2000);
     }
@@ -117,7 +116,7 @@ const ProfilePage = () => {
         }
       }
     } catch (e) {
-      console.warn('loadApiInfoForUser error', e);
+      // Error loading API info
     }
   };
 
@@ -146,7 +145,7 @@ const ProfilePage = () => {
         }
       }
     } catch (e) {
-      console.warn('saveApiInfoForUser error', e);
+      // Error saving API info
     }
   };
 
@@ -156,7 +155,7 @@ const ProfilePage = () => {
     try {
       localStorage.setItem(`local_avatar_${id}`, dataUrl);
     } catch (e) {
-      console.warn('saveLocalAvatarForUser error', e);
+      // Error saving local avatar
     }
   };
 
@@ -165,7 +164,7 @@ const ProfilePage = () => {
     try {
       return localStorage.getItem(`local_avatar_${id}`);
     } catch (e) {
-      console.warn('loadLocalAvatarForUser error', e);
+      // Error loading local avatar
       return null;
     }
   };
@@ -289,7 +288,7 @@ const ProfilePage = () => {
         try {
           await apiClient.updateProfile(profile.id, { bio: editForm.bio });
         } catch (e) {
-          console.warn('Failed to update profile bio:', e);
+          // Error updating profile bio
         }
       }
 
@@ -321,7 +320,7 @@ const ProfilePage = () => {
       }
       setShowEditModal(false);
     } catch (error) {
-      console.error('Error saving profile:', error);
+      // Error saving profile
     } finally {
       setSaving(false);
     }
@@ -340,6 +339,13 @@ const ProfilePage = () => {
       // Check file type
       if (!file.type.match(/image\/(png|jpg|jpeg|gif)/)) {
         setApiMessage('Invalid file type. Please upload PNG, JPG, or GIF');
+        setTimeout(() => setApiMessage(null), 3000);
+        return;
+      }
+
+      // Check file size (max 1MB)
+      if (file.size > 1024 * 1024) {
+        setApiMessage('File too large. Maximum size is 1MB');
         setTimeout(() => setApiMessage(null), 3000);
         return;
       }
@@ -393,7 +399,6 @@ const ProfilePage = () => {
             setTimeout(() => setApiMessage(null), 3000);
           }
         } catch (e) {
-          console.error('Local avatar save failed:', e);
           setApiMessage('Local avatar save failed');
           setTimeout(() => setApiMessage(null), 3000);
         } finally {
@@ -405,17 +410,25 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await apiClient.uploadAvatar(userIdForCalls, selectedFile);
+      const response = await apiClient.uploadAvatar(userData?.userId || userData?.id, selectedFile);
       if (response) {
         // Re-fetch full user record to get latest fields
-        const fresh = await apiClient.getUserById(response.id || response.userId || userIdForCalls);
+        const fresh = await apiClient.getUserById(response.id || response.userId || userData?.userId || userData?.id);
         if (fresh) {
           if (updateUser) updateUser(fresh);
           else login(fresh);
+          
+          // Also update profile state if we're viewing our own profile
+          if (profile?.user?.id === fresh.id) {
+            setProfile(prev => ({
+              ...prev,
+              user: fresh
+            }));
+          }
         }
         // clear any local avatar cache now that server has it
         try {
-          const id = userIdForCalls || userData?.userId || userData?.id;
+          const id = userData?.userId || userData?.id;
           if (id) clearLocalAvatarForUser(id);
         } catch (e) {
           /* ignore */
@@ -426,7 +439,6 @@ const ProfilePage = () => {
       setSelectedFile(null);
       setPreviewUrl(null);
     } catch (error) {
-      console.error('Error uploading avatar:', error);
       setApiMessage('Error uploading avatar');
       setTimeout(() => setApiMessage(null), 3000);
     } finally {
@@ -442,13 +454,17 @@ const ProfilePage = () => {
 
   const [recentMatches, setRecentMatches] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const userIdForCalls = profile?.user?.id || userData?.userId || userData?.id;
 
-  useEffect(() => {
-    const loadProfileAndMatches = async () => {
-      const id = userData?.userId || userData?.id;
-      if (!id) return;
+  const loadProfileAndMatches = async () => {
+    const id = userData?.userId || userData?.id;
+    if (!id) return;
+    
+    setIsRefreshing(true);
+
+    try {
 
       // Load any active API key stored for this user
       loadActiveKeyForUser(id);
@@ -487,39 +503,85 @@ const ProfilePage = () => {
 
       try {
         const matches = await apiClient.getMatchesForUser(id);
-        setRecentMatches(matches || []);
+        // Transform matches data to match the expected format
+        const transformedMatches = (matches || []).map((match) => {
+          const isPlayer1 = match.player1.id === id;
+          const opponent = isPlayer1 ? match.player2 : match.player1;
+          const myScore = isPlayer1 ? match.player1_score : match.player2_score;
+          const opponentScore = isPlayer1 ? match.player2_score : match.player1_score;
+          const didWin = match.winner && match.winner.id === id;
+          
+          return {
+            id: match.id,
+            opponent: opponent.username || opponent.fullname || 'Unknown',
+            score: `${myScore} - ${opponentScore}`,
+            result: didWin ? 'win' : 'loss',
+            date: new Date(match.completed_at || match.created_at).toLocaleDateString(),
+          };
+        });
+        setRecentMatches(transformedMatches);
       } catch (err) {
-        console.error('Error loading matches for profile:', err);
+        // Error loading matches for profile
       }
 
       try {
         const profileData = await apiClient.getUserProfile(id);
         setProfile(profileData);
       } catch (err) {
-        console.error('Error loading profile data:', err);
+        // Error loading profile data
       }
-    };
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     loadProfileAndMatches();
   }, [userData, isBackendAuthenticated]);
 
+  // Auto-refresh when switching to overview tab
+  useEffect(() => {
+    if (activeTab === 'overview' && isBackendAuthenticated) {
+      loadProfileAndMatches();
+    }
+  }, [activeTab]);
+
+  // Listen for achievement unlock events to auto-refresh profile
+  useEffect(() => {
+    const handleAchievementUnlock = () => {
+      if (isBackendAuthenticated) {
+        loadProfileAndMatches();
+      }
+    };
+
+    window.addEventListener('achievementUnlocked', handleAchievementUnlock);
+    
+    return () => {
+      window.removeEventListener('achievementUnlocked', handleAchievementUnlock);
+    };
+  }, [isBackendAuthenticated]);
+
   const stats = {
-    gamesPlayed: profile?.total_games || profile?.wins + profile?.losses || 0,
+    gamesPlayed: profile?.total_games || (profile?.wins || 0) + (profile?.losses || 0),
     wins: profile?.wins || 0,
     losses: profile?.losses || 0,
     winRate: profile?.win_rate || 0,
-    rank: profile?.rank ? `#${profile.rank}` : '—',
+    rank: profile?.rank ? `#${profile.rank}` : '#1000',
     level: profile?.level || 1,
   };
 
   const rawAchievements = profile?.achievements || userData?.achievements || [];
-  const earnedAchievementIds = new Set(
+  // Extract achievement types from backend response
+  const earnedAchievementTypes = new Set(
     (Array.isArray(rawAchievements) ? rawAchievements : [])
-      .map((a) => (typeof a === 'object' ? a.id : typeof a === 'string' ? parseInt(a, 10) : a))
+      .map((userAch) => userAch?.achievement?.achievement_type)
       .filter(Boolean)
   );
+  
+  // Map achievements from constants and mark as earned if user has them
   const achievementsList = ACHIEVEMENTS.map((a) => ({
     ...a,
-    earned: earnedAchievementIds.has(a.id),
+    earned: earnedAchievementTypes.has(a.type),
   }));
 
   return (
@@ -636,8 +698,33 @@ const ProfilePage = () => {
           </div>
 
           {activeTab === 'overview' && (
-            <div className="profile-content">
-              <div className="achievements-grid">
+            <div className="profile-content">              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0 }}>Statistics</h3>
+                <button
+                  onClick={loadProfileAndMatches}
+                  disabled={isRefreshing}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: isRefreshing ? '#6b7280' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }}>
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>              <div className="achievements-grid">
                 <div className="achievement-card">
                   <div className="achievement-icon" style={{ color: '#667eea' }}>
                     <svg

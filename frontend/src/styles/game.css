@@ -434,6 +434,72 @@
 .start-icon-pro {
   font-size: 4rem;
   margin-bottom: 1rem;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.start-icon-pro svg {
+  animation: 
+    orbit 4s ease-in-out infinite,
+    pulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.6));
+}
+
+@keyframes orbit {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(30px, -30px) rotate(90deg);
+  }
+  50% {
+    transform: translate(0, -60px) rotate(180deg);
+  }
+  75% {
+    transform: translate(-30px, -30px) rotate(270deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.start-icon-pro::before {
+  content: '';
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border: 3px dashed rgba(99, 102, 241, 0.3);
+  border-radius: 50%;
+  animation: rotate 8s linear infinite;
+}
+
+.start-icon-pro::after {
+  content: '';
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border: 2px solid rgba(99, 102, 241, 0.1);
+  border-radius: 50%;
+  animation: rotate 12s linear infinite reverse;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .start-message-pro {
@@ -563,3 +629,216 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* === ADDITIONAL RESPONSIVE STYLES === */
+@media (max-width: 1024px) {
+  .game-view {
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .game-container {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .game-canvas-wrapper {
+    margin: 1.5rem 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #pongCanvas {
+    max-width: 100%;
+    height: auto !important;
+  }
+
+  .score-display {
+    max-width: 100%;
+    padding: 1.25rem;
+    gap: 1.5rem;
+  }
+
+  .score-number {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .game-view {
+    padding: 0.5rem;
+  }
+
+  .game-container {
+    padding: 1rem 0.5rem;
+    min-height: calc(100vh - 70px);
+  }
+
+  .game-canvas-wrapper {
+    margin: 1rem 0;
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  #pongCanvas {
+    width: 100% !important;
+    height: auto !important;
+    border: 2px solid var(--primary);
+  }
+
+  .canvas-container {
+    width: 100%;
+    border-radius: 6px;
+  }
+
+  .score-display {
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  .score-number {
+    font-size: 2rem;
+  }
+
+  .player-label {
+    font-size: 0.75rem;
+  }
+
+  .score-divider {
+    font-size: 1.5rem;
+  }
+
+  .game-controls {
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .game-controls-info {
+    gap: 1rem;
+    padding: 0.875rem;
+    max-width: 100%;
+  }
+
+  .control-item {
+    font-size: 0.8125rem;
+  }
+
+  .game-score {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  .score-item {
+    flex: 1;
+  }
+
+  .score-label {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-view {
+    padding: 0.25rem;
+  }
+
+  .game-container {
+    padding: 0.75rem 0.25rem;
+  }
+
+  .game-canvas-wrapper {
+    margin: 0.75rem 0;
+    width: calc(100vw - 0.5rem);
+    max-width: calc(100vw - 0.5rem);
+    border-radius: 8px;
+  }
+
+  #pongCanvas {
+    border: 1.5px solid var(--primary);
+  }
+
+  .score-display {
+    gap: 0.75rem;
+    padding: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .player-score-box {
+    min-width: 80px;
+  }
+
+  .score-number {
+    font-size: 1.75rem;
+  }
+
+  .player-label {
+    font-size: 0.7rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .score-divider {
+    font-size: 1.25rem;
+  }
+
+  .game-controls {
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    width: 100%;
+  }
+
+  .btn {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .game-controls-info {
+    gap: 0.75rem;
+    padding: 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .control-item {
+    font-size: 0.75rem;
+    width: 100%;
+  }
+
+  .game-message {
+    font-size: 1rem;
+    padding: 0.875rem 1.25rem;
+    border-radius: 8px;
+    max-width: 90%;
+  }
+
+  .winner-title-pro {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .winner-score-pro {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .player-score-pro {
+    font-size: 1.5rem;
+  }
+
+  .match-score-pro {
+    font-size: 1.25rem;
+  }
+
+  .game-over-content {
+    gap: 0.5rem;
+  }
+
+  .game-over-content h2 {
+    font-size: 1.25rem;
+  }
+
+  .game-over-content p {
+    font-size: 0.875rem;
+  }
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
