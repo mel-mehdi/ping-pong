@@ -20,6 +20,7 @@ const Navbar = () => {
     const [pendingInvites, setPendingInvites] = useState([]);
     const searchInputRef = useRef(null);
     const [searchExpanded, setSearchExpanded] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -283,66 +284,112 @@ const Navbar = () => {
         <>
             <nav className="navbar" role="navigation" aria-label="Main navigation">
                 <div className="nav-container">
-                    <div className="nav-brand">
-                        <h2>{t('brand')}</h2>
-                    </div>
+                    <Link to="/" className="nav-brand">
+                        <svg className="nav-brand-icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <rect x="4" y="4" width="24" height="24" rx="8" fill="currentColor" opacity="0.1"/>
+                            <path d="M8 16h16M16 8v16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                            <circle cx="16" cy="16" r="3" fill="currentColor"/>
+                        </svg>
+                        <span className="nav-brand-text">{t('brand')}</span>
+                    </Link>
                     <ul className="nav-menu">
                         <li>
-                            <Link to="/" className={isActive('/') ? 'active' : ''}>{t('nav.home')}</Link>
+                            <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                    <polyline points="9 22 9 12 15 12 15 22"/>
+                                </svg>
+                                <span>{t('nav.home')}</span>
+                            </Link>
                         </li>
                         <li>
-                            <Link to="/game" className={isActive('/game') ? 'active' : ''}>{t('nav.play')}</Link>
+                            <Link to="/game" className={`nav-link ${isActive('/game') ? 'active' : ''}`}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="2" y="7" width="20" height="15" rx="2"/>
+                                    <polyline points="17 2 12 7 7 2"/>
+                                </svg>
+                                <span>{t('nav.play')}</span>
+                            </Link>
                         </li>
                         <li>
-                            <Link to="/tournament" className={isActive('/tournament') ? 'active' : ''}>{t('nav.tournaments')}</Link>
+                            <Link to="/tournament" className={`nav-link ${isActive('/tournament') ? 'active' : ''}`}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                                    <path d="M4 22h16"/>
+                                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+                                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+                                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+                                </svg>
+                                <span>{t('nav.tournaments')}</span>
+                            </Link>
                         </li>
                         <li>
-                            <Link to="/leaderboard" className={isActive('/leaderboard') ? 'active' : ''}>{t('nav.leaderboard')}</Link>
+                            <Link to="/leaderboard" className={`nav-link ${isActive('/leaderboard') ? 'active' : ''}`}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="8" y1="6" x2="21" y2="6"/>
+                                    <line x1="8" y1="12" x2="21" y2="12"/>
+                                    <line x1="8" y1="18" x2="21" y2="18"/>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                    <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                    <line x1="3" y1="18" x2="3.01" y2="18"/>
+                                </svg>
+                                <span>{t('nav.leaderboard')}</span>
+                            </Link>
                         </li>
                         <li>
-                            <Link to="/chat" className={isActive('/chat') ? 'active' : ''}>{t('nav.chat')}</Link>
+                            <Link to="/chat" className={`nav-link ${isActive('/chat') ? 'active' : ''}`}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span>{t('nav.chat')}</span>
+                            </Link>
                         </li>
                         <li>
-                            <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>{t('nav.profile')}</Link>
+                            <Link to="/profile" className={`nav-link ${isActive('/profile') ? 'active' : ''}`}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <span>{t('nav.profile')}</span>
+                            </Link>
                         </li>
-                        {isAuthenticated ? (
-                            <li><a href="#" onClick={handleLogout}>{t('nav.logout')}</a></li>
-                        ) : (
+                        {!isAuthenticated && (
                             <>
-                                <li><Link to="/login">{t('nav.login')}</Link></li>
-                                <li><Link to="/register">{t('nav.signup')}</Link></li>
+                                <li><Link to="/login" className="nav-link">{t('nav.login')}</Link></li>
+                                <li><Link to="/register" className="nav-link nav-link-cta">{t('nav.signup')}</Link></li>
                             </>
                         )}
                     </ul>
                     <div className="nav-actions">
                         {isAuthenticated && (
                             <div className="nav-search-wrapper">
-                                        <div className={`nav-search-input-wrapper ${searchExpanded ? 'search-expanded' : ''}`}>
-                                            <input
-                                                ref={searchInputRef}
-                                                type="text"
-                                                className={`nav-search-input ${searchExpanded ? 'expanded' : ''}`}
-                                                placeholder={t('search.placeholder')}
-                                                value={searchQuery}
-                                                onChange={(e) => handleSearch(e.target.value)}
-                                                onFocus={() => { setSearchExpanded(true); searchQuery.length >= 1 && setShowSearchResults(true); }}
-                                                onBlur={() => setTimeout(() => { setShowSearchResults(false); if (!searchQuery) setSearchExpanded(false); }, 300)}
-                                                onKeyDown={(e) => { if (e.key === 'Escape') { e.currentTarget.blur(); setShowSearchResults(false); setSearchExpanded(false); } }}
-                                                autoComplete="off"
-                                            />
-                                            <button
-                                                type="button"
-                                                className="nav-search-toggle nav-icon-btn"
-                                                aria-label="Open search"
-                                                aria-expanded={searchExpanded}
-                                                onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 0); }}
-                                            >
-                                                <svg className="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <circle cx="11" cy="11" r="8"></circle>
-                                                    <path d="m21 21-4.35-4.35"></path>
-                                                </svg>
-                                            </button>
-                                        </div>
+                                <div className={`nav-search-input-wrapper ${searchExpanded ? 'search-expanded' : ''}`}>
+                                    <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        className={`nav-search-input ${searchExpanded ? 'expanded' : ''}`}
+                                        placeholder={t('search.placeholder')}
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                        onFocus={() => { setSearchExpanded(true); searchQuery.length >= 1 && setShowSearchResults(true); }}
+                                        onBlur={() => setTimeout(() => { setShowSearchResults(false); if (!searchQuery) setSearchExpanded(false); }, 300)}
+                                        onKeyDown={(e) => { if (e.key === 'Escape') { e.currentTarget.blur(); setShowSearchResults(false); setSearchExpanded(false); } }}
+                                        autoComplete="off"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="nav-search-toggle nav-icon-btn"
+                                        aria-label="Open search"
+                                        aria-expanded={searchExpanded}
+                                        onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 0); }}
+                                    >
+                                        <svg className="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="11" cy="11" r="8"></circle>
+                                            <path d="m21 21-4.35-4.35"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                                 {showSearchResults && (
                                     <div className="nav-search-results">
                                         {isSearching && (
@@ -396,14 +443,14 @@ const Navbar = () => {
                             </div>
                         )}
 
-                            <LanguageSwitcher />
+                        <LanguageSwitcher />
 
-                            <button
-                                className="nav-icon-btn"
-                                onClick={toggleTheme}
-                                title="Toggle theme"
-                                aria-label="Toggle dark mode"
-                            >
+                        <button
+                            className="nav-icon-btn"
+                            onClick={toggleTheme}
+                            title="Toggle theme"
+                            aria-label="Toggle dark mode"
+                        >
                             {theme === 'light' ? (
                                 <svg className="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <circle cx="12" cy="12" r="5"></circle>
@@ -438,8 +485,116 @@ const Navbar = () => {
                                 )}
                             </button>
                         )}
+                        {isAuthenticated && (
+                            <button
+                                className="nav-icon-btn nav-logout-btn"
+                                onClick={handleLogout}
+                                title={t('nav.logout')}
+                                aria-label={t('nav.logout')}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                    <polyline points="16 17 21 12 16 7"/>
+                                    <line x1="21" y1="12" x2="9" y2="12"/>
+                                </svg>
+                            </button>
+                        )}
+                        <button 
+                            className="nav-mobile-menu-btn"
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            aria-label="Toggle menu"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                {mobileMenuOpen ? (
+                                    <>
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </>
+                                ) : (
+                                    <>
+                                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                                    </>
+                                )}
+                            </svg>
+                        </button>
                     </div>
                 </div>
+                {mobileMenuOpen && (
+                    <div className="nav-mobile-menu">
+                        <Link to="/" className={`nav-mobile-link ${isActive('/') ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                            <span>{t('nav.home')}</span>
+                        </Link>
+                        <Link to="/game" className={`nav-mobile-link ${isActive('/game') ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="2" y="7" width="20" height="15" rx="2"/>
+                                <polyline points="17 2 12 7 7 2"/>
+                            </svg>
+                            <span>{t('nav.play')}</span>
+                        </Link>
+                        <Link to="/tournament" className={`nav-mobile-link ${isActive('/tournament') ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                                <path d="M4 22h16"/>
+                                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+                                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+                                <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+                            </svg>
+                            <span>{t('nav.tournaments')}</span>
+                        </Link>
+                        <Link to="/leaderboard" className={`nav-mobile-link ${isActive('/leaderboard') ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="8" y1="6" x2="21" y2="6"/>
+                                <line x1="8" y1="12" x2="21" y2="12"/>
+                                <line x1="8" y1="18" x2="21" y2="18"/>
+                                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                <line x1="3" y1="18" x2="3.01" y2="18"/>
+                            </svg>
+                            <span>{t('nav.leaderboard')}</span>
+                        </Link>
+                        <Link to="/chat" className={`nav-mobile-link ${isActive('/chat') ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            <span>{t('nav.chat')}</span>
+                        </Link>
+                        <Link to="/profile" className={`nav-mobile-link ${isActive('/profile') ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <span>{t('nav.profile')}</span>
+                        </Link>
+                        {!isAuthenticated && (
+                            <>
+                                <Link to="/login" className="nav-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                        <polyline points="10 17 15 12 10 7"/>
+                                        <line x1="15" y1="12" x2="3" y2="12"/>
+                                    </svg>
+                                    <span>{t('nav.login')}</span>
+                                </Link>
+                                <Link to="/register" className="nav-mobile-link nav-mobile-link-cta" onClick={() => setMobileMenuOpen(false)}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="8.5" cy="7" r="4"/>
+                                        <line x1="20" y1="8" x2="20" y2="14"/>
+                                        <line x1="23" y1="11" x2="17" y2="11"/>
+                                    </svg>
+                                    <span>{t('nav.signup')}</span>
+                                </Link>
+                            </>
+                        )}
+                    </div>
+                )}
             </nav>
 
             {showNotifications && (
