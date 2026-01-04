@@ -10,6 +10,7 @@ from .serializers import (
 	TournamentSerializer, TournamentListSerializer, InvitationSerializer, MatchSerializer
 )
 
+from rest_framework.decorators import api_view
 
 class TournamentViewSet(viewsets.ModelViewSet):
 	swagger_tags = ['Tournaments']
@@ -192,3 +193,23 @@ class MatchViewSet(viewsets.ModelViewSet):
 		matches = self.get_queryset()
 		serializer = self.get_serializer(matches, many=True)
 		return Response(serializer.data)
+
+#for ai opponent
+
+@api_view(["POST"])
+def ai_decide(request):
+    try:
+        difficulty = request.data.get("difficulty", "MEDIUM")
+        from .ai.cpu_ai import CpuAI
+        from .ai.ball import Ball
+        from .ai.paddle import Paddle
+        ai = CpuAI(level=difficulty)
+        ball_data = request.data["ball"]
+        paddle_data = request.data["paddle"]
+        ball = Ball(x=ball_data["x"], y=ball_data["y"], vx=ball_data["vx"], vy=ball_data["vy"], screen_width=800, screen_height=600)
+
+        paddle = Paddle(x=paddle_data["x"], y=paddle_data["y"], height=paddle_data["height"],screen_height=600)
+        direction = ai.decide_direction(paddle, ball)
+        return Response({"direction": direction})
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
