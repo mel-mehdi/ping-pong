@@ -17,6 +17,9 @@ class PongGame {
     // setup initial canvas dimensions and sizes
     this.isFullscreen = false;
     this.setupCanvasDimensions(false);
+    //for ai 
+    this.vsAI = options.vsAI || false; // true if playing against backend AI
+    this.aiDifficulty = options.aiDifficulty || 'MEDIUM'; // default difficulty
 
     // bind resize/fullscreen handlers so canvas is recalculated when viewport changes
     this.handleResize = this.handleResize.bind(this);
