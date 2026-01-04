@@ -31,9 +31,14 @@ class CustomSchemaGenerator(OpenAPISchemaGenerator):
             {'name': 'Users', 'description': 'User management endpoints'},
             {'name': 'User Profiles', 'description': 'User profile management'},
             {'name': 'Friendships', 'description': 'Friend management endpoints'},
+            {'name': 'Notifications', 'description': 'User notifications'},
+            {'name': 'Achievements', 'description': 'User achievements'},
             {'name': 'Tournaments', 'description': 'Tournament management'},
             {'name': 'Invitations', 'description': 'Invitation system'},
             {'name': 'Matches', 'description': 'Match tracking'},
+            {'name': 'Leaderboard', 'description': 'Tournament leaderboards'},
+            {'name': 'Chat', 'description': 'Real-time chat'},
+            {'name': 'API Key Management', 'description': 'API key creation and management'},
             {'name': 'Public API', 'description': 'Public endpoints'},
         ]
         return schema
@@ -47,15 +52,17 @@ schema_view = get_schema_view(
         description="API for ft_transcendence",
     ),
     public=True,
+    url='http://localhost/',
     permission_classes=(permissions.AllowAny,),
     generator_class=CustomSchemaGenerator,
 )
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
     path('', include('user_management.urls')),
+    path('admin/', admin.site.urls),
 	path('game/', include('game.urls')),
+    path('chat/', include('chat.urls')),
 	# Public API
     path('api/', include('public_api.urls')),
     # API Documentation

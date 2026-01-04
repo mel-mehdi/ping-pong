@@ -4,18 +4,18 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  root: 'src',
-  publicDir: '../public',
   base: '/',
   server: {
     port: Number(process.env.PORT) || 8000,
     host: '0.0.0.0',
     open: false,
     strictPort: false,
-    hmr: false,
-	watch: {
-		usePolling: true,
-	},
+    watch: {
+      usePolling: true,
+    },
+    hmr: {
+      clientPort: 8000,
+    },
     // Dev proxy: forward /api requests to the backend container on localhost:8001
     proxy: {
       '/api': {
@@ -36,10 +36,11 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '../dist',
+    outDir: 'dist',
     emptyOutDir: true,
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
+  clearScreen: false,
 });

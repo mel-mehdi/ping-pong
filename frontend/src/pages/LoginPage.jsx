@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { validateRequired } from '../utils/validation';
@@ -6,6 +6,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
 import '../styles/auth.css';
 import SplashCursor from '../components/SplashCursor';
+
+const GOOGLE_CLIENT_ID = '726422486704-f02t4gf3nvs5jo8c2lda00klda9p80mb.apps.googleusercontent.com';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -16,7 +18,55 @@ const LoginPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    // Initialize Google Sign-In
+    if (window.google && GOOGLE_CLIENT_ID) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+      });
+
+      window.google.accounts.id.renderButton(
+        document.getElementById('google-signin-button'),
+        { 
+          theme: 'outline', 
+          size: 'large', 
+          width: document.getElementById('google-signin-button')?.offsetWidth || 400,
+          text: 'signin_with',
+          shape: 'rectangular',
+          logo_alignment: 'left'
+        }
+      );
+    }
+  }, []);
+
+  const handleGoogleResponse = async (response) => {
+    try {
+      setLoading(true);
+      const result = await apiClient.googleLogin(response.credential);
+      const userPayload = result?.user || result || {};
+
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
+        username: userPayload.username,
+        token: result?.token || result?.access,
+        loggedIn: true,
+        loginTime: new Date().toISOString(),
+      });
+
+      checkBackendAuth().catch(() => {});
+      navigate('/');
+    } catch (error) {
+      setLoading(false);
+      setErrors({
+        general: 'Google Sign-In failed. Please try again.',
+      });
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,21 +76,23 @@ const LoginPage = () => {
     }
   };
 
+  const handleFocus = () => setIsTyping(true);
+  const handleBlur = () => setIsTyping(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrors = {};
+    
+    const validations = {
+      username: validateRequired(formData.username),
+      password: validateRequired(formData.password),
+    };
+    
+    const newErrors = Object.entries(validations).reduce((acc, [key, val]) => {
+      if (!val.isValid) acc[key] = val.message;
+      return acc;
+    }, {});
 
-    const usernameValidation = validateRequired(formData.username);
-    const passwordValidation = validateRequired(formData.password);
-
-    if (!usernameValidation.isValid) {
-      newErrors.username = usernameValidation.message;
-    }
-    if (!passwordValidation.isValid) {
-      newErrors.password = passwordValidation.message;
-    }
-
-    if (Object.keys(newErrors).length > 0) {
+    if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
     }
@@ -50,37 +102,36 @@ const LoginPage = () => {
     try {
       const resp = await apiClient.login(formData.username, formData.password);
       const userPayload = resp?.user || resp || {};
-      const userDataObj = {
-        userId: userPayload.id || userPayload.userId || null,
+      
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
         username: userPayload.username || formData.username,
-        email: userPayload.email || null,
-        fullname: userPayload.fullname || '',
-        avatar:
-          userPayload.avatar ||
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(userPayload.username || formData.username)}&background=random`,
-        token: resp?.token || resp?.access || null,
+        token: resp?.token || resp?.access,
         loggedIn: true,
         loginTime: new Date().toISOString(),
-      };
-
-      login(userDataObj);
-      // Attempt to verify backend session
-      try {
-        await checkBackendAuth();
-      } catch (e) {
-        /* ignore */
-      }
+      });
+      
+      checkBackendAuth().catch(() => {});
       navigate('/');
     } catch (error) {
-      // Log error only (do not show in UI)
-      console.error('Login error:', error);
       setLoading(false);
+      
+      if (error.message === 'Invalid credentials' || error.status === 401) {
+        setErrors({
+          password: t('auth.invalid_credentials') || 'Invalid credentials'
+        });
+      } else {
+        setErrors({
+          general: error.message || 'An error occurred during login'
+        });
+      }
     }
   };
 
   return (
     <div className="auth-page">
-      <SplashCursor paused={isAuthenticated} />
+      <SplashCursor paused={isAuthenticated || isTyping} />
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
@@ -95,6 +146,11 @@ const LoginPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
+            {errors.general && (
+              <div className="alert alert-danger" style={{ marginBottom: '1rem', color: 'var(--error)', background: 'rgba(255, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                {errors.general}
+              </div>
+            )}
             <div className="form-group">
               <label htmlFor="username">{t('auth.username')}</label>
               <input
@@ -104,6 +160,8 @@ const LoginPage = () => {
                 className={`form-control ${errors.username ? 'is-invalid' : ''}`}
                 value={formData.username}
                 onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 autoComplete="username"
               />
               {errors.username && <div className="invalid-feedback">{errors.username}</div>}
@@ -118,6 +176,8 @@ const LoginPage = () => {
                 className={`form-control ${errors.password ? 'is-invalid' : ''}`}
                 value={formData.password}
                 onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 autoComplete="current-password"
               />
               {errors.password && <div className="invalid-feedback">{errors.password}</div>}
@@ -135,10 +195,15 @@ const LoginPage = () => {
               <span>{t('auth.or')}</span>
             </div>
 
+            <div
+              id="google-signin-button"
+              className="google-signin-container"
+            ></div>
             <button
               className="gsi-material-button"
               type="button"
-              onClick={() => console.info('Google sign-in')}
+              id="manual-google-button"
+              style={{ display: 'none' }}
             >
               <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -13,6 +13,8 @@ import apiClient from '../utils/api';
 import '../styles/auth.css';
 import SplashCursor from '../components/SplashCursor';
 
+const GOOGLE_CLIENT_ID = '726422486704-f02t4gf3nvs5jo8c2lda00klda9p80mb.apps.googleusercontent.com';
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { login, checkBackendAuth, isAuthenticated } = useAuth();
@@ -26,7 +28,55 @@ const RegisterPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    // Initialize Google Sign-In
+    if (window.google && GOOGLE_CLIENT_ID) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+      });
+
+      window.google.accounts.id.renderButton(
+        document.getElementById('google-signup-button'),
+        { 
+          theme: 'outline', 
+          size: 'large', 
+          width: document.getElementById('google-signup-button')?.offsetWidth || 400,
+          text: 'signup_with',
+          shape: 'rectangular',
+          logo_alignment: 'left'
+        }
+      );
+    }
+  }, []);
+
+  const handleGoogleResponse = async (response) => {
+    try {
+      setLoading(true);
+      const result = await apiClient.googleLogin(response.credential);
+      const userPayload = result?.user || result || {};
+
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
+        username: userPayload.username,
+        token: result?.token || result?.access,
+        loggedIn: true,
+        loginTime: new Date().toISOString(),
+      });
+
+      checkBackendAuth().catch(() => {});
+      navigate('/');
+    } catch (error) {
+      setLoading(false);
+      setErrors({
+        general: 'Google Sign-In failed. Please try again.',
+      });
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -39,28 +89,28 @@ const RegisterPage = () => {
     }
   };
 
+  const handleFocus = () => setIsTyping(true);
+  const handleBlur = () => setIsTyping(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrors = {};
 
-    const fullnameValidation = validateRequired(formData.fullname);
-    const emailValidation = validateEmail(formData.email);
-    const usernameValidation = validateUsername(formData.username);
-    const passwordValidation = validatePassword(formData.password);
-    const passwordMatchValidation = validatePasswordMatch(
-      formData.password,
-      formData.confirmPassword
-    );
+    const validations = {
+      fullname: validateRequired(formData.fullname),
+      email: validateEmail(formData.email),
+      username: validateUsername(formData.username),
+      password: validatePassword(formData.password),
+      confirmPassword: validatePasswordMatch(formData.password, formData.confirmPassword),
+    };
 
-    if (!fullnameValidation.isValid) newErrors.fullname = fullnameValidation.message;
-    if (!emailValidation.isValid) newErrors.email = emailValidation.message;
-    if (!usernameValidation.isValid) newErrors.username = usernameValidation.message;
-    if (!passwordValidation.isValid) newErrors.password = passwordValidation.message;
-    if (!passwordMatchValidation.isValid)
-      newErrors.confirmPassword = passwordMatchValidation.message;
+    const newErrors = Object.entries(validations).reduce((acc, [key, val]) => {
+      if (!val.isValid) acc[key] = val.message;
+      return acc;
+    }, {});
+
     if (!formData.terms) newErrors.terms = t('auth.must_accept_terms');
 
-    if (Object.keys(newErrors).length > 0) {
+    if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
     }
@@ -68,46 +118,54 @@ const RegisterPage = () => {
     setLoading(true);
 
     try {
-      // Create new user via backend
-      await apiClient.register(formData.username, formData.email, formData.password);
+      await apiClient.register(formData.username, formData.email, formData.password, formData.fullname);
       const loginResp = await apiClient.login(formData.username, formData.password);
-      // Normalize login response
-      const userDataPayload = loginResp?.user || loginResp || {};
-      const newUserData = {
-        userId: userDataPayload.id || userDataPayload.userId || null,
-        username: userDataPayload.username || formData.username,
-        email: userDataPayload.email || formData.email,
-        fullname: userDataPayload.fullname || formData.fullname,
-        avatar:
-          userDataPayload.avatar ||
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullname)}&background=random`,
-        token: loginResp?.token || loginResp?.access || null,
+      const userPayload = loginResp?.user || loginResp || {};
+      
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
+        username: userPayload.username || formData.username,
+        email: userPayload.email || formData.email,
+        fullname: userPayload.fullname || formData.fullname,
+        token: loginResp?.token || loginResp?.access,
         loggedIn: true,
         registrationTime: new Date().toISOString(),
-      };
+      });
 
-      login(newUserData);
-      // Attempt to verify backend session (set isBackendAuthenticated)
-      try {
-        await checkBackendAuth();
-      } catch (e) {
-        /* ignore */
-      }
-      navigate('/');
-
-      setTimeout(() => {
-        navigate('/');
-      }, 500);
+      checkBackendAuth().catch(() => {});
+      setTimeout(() => navigate('/'), 500);
     } catch (error) {
-      // Log the error only (do not show on UI)
-      console.error('Registration error:', error);
       setLoading(false);
+      
+      // Handle backend validation errors
+      if (error?.data) {
+        const backendErrors = {};
+        if (error.data.username) {
+          backendErrors.username = Array.isArray(error.data.username) 
+            ? error.data.username[0] 
+            : error.data.username;
+        }
+        if (error.data.email) {
+          backendErrors.email = Array.isArray(error.data.email) 
+            ? error.data.email[0] 
+            : error.data.email;
+        }
+        if (error.data.password) {
+          backendErrors.password = Array.isArray(error.data.password) 
+            ? error.data.password[0] 
+            : error.data.password;
+        }
+        if (Object.keys(backendErrors).length > 0) {
+          setErrors(backendErrors);
+        }
+      }
     }
   };
 
   return (
     <div className="auth-page">
-      <SplashCursor paused={isAuthenticated} />
+      <SplashCursor paused={isAuthenticated || isTyping} />
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
@@ -132,6 +190,8 @@ const RegisterPage = () => {
                   className={`form-control ${errors.fullname ? 'is-invalid' : ''}`}
                   value={formData.fullname}
                   onChange={handleChange}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                 />
                 {errors.fullname && <div className="invalid-feedback">{errors.fullname}</div>}
               </div>
@@ -145,6 +205,8 @@ const RegisterPage = () => {
                   className={`form-control ${errors.email ? 'is-invalid' : ''}`}
                   value={formData.email}
                   onChange={handleChange}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                   autoComplete="email"
                 />
                 {errors.email && <div className="invalid-feedback">{errors.email}</div>}
@@ -161,6 +223,8 @@ const RegisterPage = () => {
                   className={`form-control ${errors.username ? 'is-invalid' : ''}`}
                   value={formData.username}
                   onChange={handleChange}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                   autoComplete="username"
                 />
                 {errors.username && <div className="invalid-feedback">{errors.username}</div>}
@@ -175,6 +239,8 @@ const RegisterPage = () => {
                   className={`form-control ${errors.password ? 'is-invalid' : ''}`}
                   value={formData.password}
                   onChange={handleChange}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                   autoComplete="new-password"
                 />
                 {errors.password && <div className="invalid-feedback">{errors.password}</div>}
@@ -190,6 +256,8 @@ const RegisterPage = () => {
                 className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 autoComplete="new-password"
               />
               {errors.confirmPassword && (
@@ -225,10 +293,15 @@ const RegisterPage = () => {
               <span>{t('auth.or')}</span>
             </div>
 
+            <div
+              id="google-signup-button"
+              className="google-signin-container"
+            ></div>
             <button
               className="gsi-material-button"
               type="button"
-              onClick={() => console.info('Google sign-up')}
+              id="manual-google-signup-button"
+              style={{ display: 'none' }}
             >
               <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">

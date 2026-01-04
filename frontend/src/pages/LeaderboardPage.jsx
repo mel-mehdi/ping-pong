@@ -12,18 +12,82 @@ const LeaderboardPage = () => {
   const [timeFilter, setTimeFilter] = useState('all-time');
 
   const [leaderboardData, setLeaderboardData] = useState([]);
+  const [missingApiKey, setMissingApiKey] = useState(false);
 
   useEffect(() => {
     const loadLeaderboard = async () => {
       try {
-        const data = isBackendAuthenticated ? await apiClient.getLeaderboard() : [];
-        setLeaderboardData((data || []).map((p, idx) => ({ ...p, rank: idx + 1 })));
+        let players = [];
+
+        if (isBackendAuthenticated) {
+          // Get profiles from leaderboard endpoint
+          const profiles = await apiClient.getProfiles();
+          
+          if (Array.isArray(profiles) && profiles.length > 0) {
+            players = profiles.map((p) => {
+              const user = p.user || {};
+              const wins = p.wins || 0;
+              const losses = p.losses || 0;
+              const total = wins + losses || 0;
+              const winRate = total ? Math.round((wins / total) * 100) : 0;
+              return {
+                username: user.username || user.email || 'Unknown',
+                level: p.level || 1,
+                wins,
+                losses,
+                winRate,
+                points: p.xp || 0,
+                rank: p.rank || null,
+              };
+            });
+          }
+        } else {
+          // Not authenticated: try public profiles endpoint
+          try {
+            const profiles = await apiClient.getProfiles();
+            if (Array.isArray(profiles) && profiles.length > 0) {
+              players = profiles.map((p) => {
+                const user = p.user || {};
+                const wins = p.wins || 0;
+                const losses = p.losses || 0;
+                const total = wins + losses || 0;
+                const winRate = total ? Math.round((wins / total) * 100) : 0;
+                return {
+                  username: user.username || user.email || 'Unknown',
+                  level: p.level || 1,
+                  wins,
+                  losses,
+                  winRate,
+                  points: p.xp || 0,
+                  rank: null,
+                };
+              });
+            } else {
+              setMissingApiKey(true);
+              players = [];
+            }
+          } catch (err) {
+            setMissingApiKey(true);
+            players = [];
+          }
+        }
+
+        // Sort by level (descending), then XP (descending), then wins (descending)
+        players.sort((a, b) => {
+          if (b.level !== a.level) return b.level - a.level;
+          if (b.points !== a.points) return b.points - a.points;
+          return b.wins - a.wins;
+        });
+        players = players.map((p, idx) => ({ ...p, rank: idx + 1 }));
+
+        setLeaderboardData(players);
       } catch (err) {
-        console.error('Error fetching leaderboard:', err);
+        // Error fetching leaderboard
       }
     };
+    setMissingApiKey(false);
     loadLeaderboard();
-  }, [isBackendAuthenticated]);
+  }, [isBackendAuthenticated, timeFilter]);
 
   return (
     <>
@@ -147,6 +211,18 @@ const LeaderboardPage = () => {
               </tbody>
             </table>
           </div>
+
+          {missingApiKey && (
+            <div className="leaderboard-warning">
+              <p>
+                Public leaderboard data is not available. Sign in to view internal rankings, or ask an
+                administrator to enable public leaderboard access.
+              </p>
+              <p style={{ marginTop: '0.5rem' }}>
+                <a href="/login" className="btn btn-api small">Sign in</a>
+              </p>
+            </div>
+          )}
 
           <div className="leaderboard-info">
             <div className="info-card">

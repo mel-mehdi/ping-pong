@@ -23,12 +23,13 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'nginx', 'django']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+	'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,10 +41,12 @@ INSTALLED_APPS = [
 	'rest_framework',
 	'corsheaders',
 	'drf_yasg',
+	'channels',
 	# Local apps
 	'user_management',
 	'public_api',
-	'game'
+	'game',
+	'chat',
 ]
 
 MIDDLEWARE = [
@@ -76,6 +79,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 
 # Database Configuration for PostgreSQL via Docker Compose
@@ -90,7 +94,24 @@ DATABASES = {
     }
 }
 
+CHANNEL_LAYERS = {
+	'default': {
+		'BACKEND': 'channels_redis.core.RedisChannelLayer',
+		'CONFIG': {
+			"hosts": [("redis", 6379)],
+		},
+	},
+}
 
+CACHES = {
+	'default': {
+		'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+		'LOCATION': 'redis://redis:6379/1',
+	}
+}
+PASSWORD_HASHERS = [
+	'user_management.hashers.CustomPBKDF2PasswordHasher',
+]
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -100,6 +121,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+		'OPTIONS': {
+			'min_length': 8,
+		}
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -144,15 +168,25 @@ AUTH_USER_MODEL = 'user_management.User'
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
-    "http://127.0.0.1:8000",
+    "https://accounts.google.com",
+    "https://oauth2.googleapis.com",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
-    'http://127.0.0.1:8000',
+    "https://accounts.google.com",
 ]
+
+# Security Headers Configuration
+# Allow window.postMessage for OAuth and cross-origin communication
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"  # Allow postMessage for OAuth
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# Additional security settings
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
@@ -184,3 +218,7 @@ SWAGGER_SETTINGS = {
 SWAGGER_SETTINGS = {
     'DEFAULT_AUTO_SCHEMA_CLASS': 'config.urls.CustomAutoSchema',
 }
+
+# Google OAuth Settings
+GOOGLE_OAUTH_CLIENT_ID = env('GOOGLE_OAUTH2_CLIENT_ID')
+GOOGLE_OAUTH_CLIENT_SECRET = env('GOOGLE_OAUTH2_CLIENT_SECRET')

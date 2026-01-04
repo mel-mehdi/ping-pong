@@ -1,9 +1,18 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { STORAGE_KEYS } from '../utils/constants';
 import { getItem, setItem, removeItem } from '../utils/storage';
+import { normalizeUserData } from '../utils/helpers';
 import apiClient from '../utils/api';
 
 const AuthContext = createContext(undefined);
+
+const parseStoredData = (storedData) => {
+  try {
+    return JSON.parse(storedData);
+  } catch {
+    return null;
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
@@ -11,90 +20,76 @@ export const AuthProvider = ({ children }) => {
   const [isBackendAuthenticated, setIsBackendAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const storedUserData = getItem(STORAGE_KEYS.USER_DATA);
-    if (storedUserData) {
-      setUserData(storedUserData);
-      setIsAuthenticated(true);
-    }
-
-    // Check backend auth only if stored user data contains a token (avoid noisy unauthenticated calls)
-    if (storedUserData) {
-      const parsed = (() => {
-        try {
-          return JSON.parse(storedUserData);
-        } catch (e) {
-          return null;
-        }
-      })();
-
-      const hasToken = parsed && (parsed.token || parsed.access);
-      if (hasToken) {
-        (async () => {
-          try {
-            const me = await apiClient.getMe();
-            if (me) {
-              setIsBackendAuthenticated(true);
-              // update userData with backend normalized id info if available
-              if (!storedUserData && me) {
-                const normalized = { ...me };
-                if (!normalized.userId && normalized.id) normalized.userId = normalized.id;
-                setUserData(normalized);
-                setIsAuthenticated(true);
-                setItem(STORAGE_KEYS.USER_DATA, normalized);
-              }
-            }
-          } catch (err) {
-            // Not logged in to backend
-            setIsBackendAuthenticated(false);
-          } finally {
-            setLoading(false);
-          }
-        })();
-      } else {
-        // No token present — don't probe backend automatically
-        setLoading(false);
-      }
-    } else {
-      // No stored user — skip backend check
-      setLoading(false);
-    }
-  }, []);
-
-  const login = (data) => {
-    const normalized = { ...data };
-    if (!normalized.userId && normalized.id) {
-      normalized.userId = normalized.id;
-    }
-    setUserData(normalized);
-    setIsAuthenticated(true);
-    setItem(STORAGE_KEYS.USER_DATA, normalized);
-
-    // Don't auto-check backend here; provide an explicit check users can trigger
-  };
-
   const checkBackendAuth = async () => {
     try {
       const me = await apiClient.getMe();
       if (me) {
         setIsBackendAuthenticated(true);
-        // Merge/normalize backend profile into stored userData if helpful
-        const normalized = { ...me };
-        if (!normalized.userId && normalized.id) normalized.userId = normalized.id;
+        const normalized = normalizeUserData(me);
         setUserData((prev) => ({ ...(prev || {}), ...normalized }));
-        setItem(STORAGE_KEYS.USER_DATA, (prev) => ({ ...(prev || {}), ...normalized }));
+        setItem(STORAGE_KEYS.USER_DATA, { ...(userData || {}), ...normalized });
         return true;
       }
-    } catch (err) {
+    } catch {
       // swallow — getMe already handles auth failures silently
     }
     setIsBackendAuthenticated(false);
     return false;
   };
 
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const storedUserData = getItem(STORAGE_KEYS.USER_DATA);
+      
+      if (storedUserData) {
+        setUserData(storedUserData);
+        setIsAuthenticated(true);
+        // Optimistically set backend auth to true when we have stored data
+        // Session cookies persist across page refreshes
+        setIsBackendAuthenticated(true);
+
+        // Verify backend auth with session cookie in background
+        try {
+          const me = await apiClient.getMe();
+          if (me) {
+            const normalized = normalizeUserData(me);
+            setUserData(normalized);
+            setItem(STORAGE_KEYS.USER_DATA, normalized);
+          } else {
+            // Only set to false if verification actually fails
+            setIsBackendAuthenticated(false);
+          }
+        } catch {
+          // Session expired, clear auth state
+          setIsBackendAuthenticated(false);
+          setIsAuthenticated(false);
+          setUserData(null);
+          removeItem(STORAGE_KEYS.USER_DATA);
+        }
+      }
+      
+      setLoading(false);
+    };
+
+    initializeAuth();
+  }, []);
+
+  const login = async (data) => {
+    const normalized = normalizeUserData(data);
+    setUserData(normalized);
+    setIsAuthenticated(true);
+    setItem(STORAGE_KEYS.USER_DATA, normalized);
+    
+    // Since the backend uses session authentication, a successful login
+    // means the session cookie was set, so we're backend authenticated
+    setIsBackendAuthenticated(true);
+    
+    // Verify backend auth in background to update user data
+    checkBackendAuth().catch(() => {});
+  };
+
   const updateUser = (data) => {
-    const normalized = { ...data };
-    if (!normalized.userId && normalized.id) normalized.userId = normalized.id;
+    const normalized = normalizeUserData(data);
     setUserData(normalized);
     setItem(STORAGE_KEYS.USER_DATA, normalized);
   };

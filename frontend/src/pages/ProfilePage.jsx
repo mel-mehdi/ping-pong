@@ -25,6 +25,215 @@ const ProfilePage = () => {
   });
   const [saving, setSaving] = useState(false);
 
+  // Active API key management (frontend-only storage)
+  const [activeApiKeyInput, setActiveApiKeyInput] = useState('');
+  const [activeApiKeySaved, setActiveApiKeySaved] = useState(null); // currently active key (masked or full if available)
+  const [showActiveKey, setShowActiveKey] = useState(false);
+  const [apiKeyMessage, setApiKeyMessage] = useState(null);
+
+  const loadActiveKeyForUser = (id) => {
+    if (!id) return;
+    try {
+      // Per-user saved key (if the user stored one previously)
+      const per = localStorage.getItem(`active_api_key_${id}`);
+      // Global active key (what the ApiClient will use)
+      const global = localStorage.getItem('active_api_key');
+      const keyToUse = per || global || null;
+      setActiveApiKeySaved(keyToUse);
+      if (keyToUse) {
+        setActiveApiKeyInput(keyToUse);
+        // ensure api client attaches it
+        apiClient.setActiveApiKey(keyToUse);
+      } else {
+        apiClient.clearActiveApiKey();
+      }
+    } catch (e) {
+      // Error loading active key
+    }
+  };
+
+  const saveActiveKeyForUser = (id, key) => {
+    if (!id) return;
+    try {
+      if (key) {
+        localStorage.setItem(`active_api_key_${id}`, key);
+        localStorage.setItem('active_api_key', key);
+        apiClient.setActiveApiKey(key);
+        setActiveApiKeySaved(key);
+        setApiKeyMessage('Active API key saved');
+        setTimeout(() => setApiKeyMessage(null), 2000);
+      } else {
+        // clear
+        localStorage.removeItem(`active_api_key_${id}`);
+        localStorage.removeItem('active_api_key');
+        apiClient.clearActiveApiKey();
+        setActiveApiKeySaved(null);
+        setApiKeyMessage('Active API key cleared');
+        setTimeout(() => setApiKeyMessage(null), 2000);
+      }
+    } catch (e) {
+      setApiKeyMessage('Save failed');
+      setTimeout(() => setApiKeyMessage(null), 2000);
+    }
+  };
+
+  const copyActiveKeyToClipboard = async () => {
+    const full = activeApiKeySaved;
+    if (!full) {
+      setApiKeyMessage('No active API key to copy');
+      setTimeout(() => setApiKeyMessage(null), 1500);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(full);
+      setApiKeyMessage('API key copied to clipboard');
+      setTimeout(() => setApiKeyMessage(null), 1500);
+    } catch (e) {
+      setApiKeyMessage('Copy failed');
+      setTimeout(() => setApiKeyMessage(null), 1500);
+    }
+  };
+
+  // Frontend-only API activation state (persisted to localStorage per-user)
+  const [apiInfo, setApiInfo] = useState({ active: false, key: null });
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [apiMessage, setApiMessage] = useState(null);
+
+  const loadApiInfoForUser = (id) => {
+    if (!id) return;
+    try {
+      const raw = localStorage.getItem(`api_info_${id}`);
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      setApiInfo({ active: !!obj.active, key: obj.key || null });
+      // ensure ApiClient uses the stored key globally for /api requests
+      if (obj && obj.key) {
+        try {
+          localStorage.setItem('active_api_key', obj.key);
+          apiClient.setActiveApiKey(obj.key);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    } catch (e) {
+      // Error loading API info
+    }
+  };
+
+  const saveApiInfoForUser = (id, info) => {
+    if (!id) return;
+    try {
+      localStorage.setItem(`api_info_${id}`, JSON.stringify(info));
+      // mirror active key globally so apiClient picks it up
+      if (info && info.key && info.active) {
+        try {
+          localStorage.setItem('active_api_key', info.key);
+          apiClient.setActiveApiKey(info.key);
+        } catch (e) {
+          /* ignore */
+        }
+      } else {
+        try {
+          // If deactivated, clear global key
+          const global = localStorage.getItem('active_api_key');
+          if (global && global === (info && info.key)) {
+            localStorage.removeItem('active_api_key');
+            apiClient.clearActiveApiKey();
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    } catch (e) {
+      // Error saving API info
+    }
+  };
+
+  // Local avatar helpers (frontend-only): save/load data URL per user
+  const saveLocalAvatarForUser = (id, dataUrl) => {
+    if (!id || !dataUrl) return;
+    try {
+      localStorage.setItem(`local_avatar_${id}`, dataUrl);
+    } catch (e) {
+      // Error saving local avatar
+    }
+  };
+
+  const loadLocalAvatarForUser = (id) => {
+    if (!id) return null;
+    try {
+      return localStorage.getItem(`local_avatar_${id}`);
+    } catch (e) {
+      // Error loading local avatar
+      return null;
+    }
+  };
+
+  const clearLocalAvatarForUser = (id) => {
+    if (!id) return;
+    try {
+      localStorage.removeItem(`local_avatar_${id}`);
+    } catch (e) {
+      /* ignore */
+    }
+  };
+
+  const generateDemoKey = () => {
+    try {
+      const arr = new Uint8Array(12);
+      window.crypto.getRandomValues(arr);
+      const s = Array.from(arr).map((b) => b.toString(16).padStart(2, '0')).join('');
+      return `ft_demo_${s}`;
+    } catch (e) {
+      // Fallback
+      return `ft_demo_${Math.random().toString(36).slice(2, 12)}`;
+    }
+  };
+
+  const toggleApiActive = () => {
+    const id = userIdForCalls;
+    if (!id) {
+      setApiMessage('Please sign in to activate API');
+      setTimeout(() => setApiMessage(null), 3000);
+      return;
+    }
+
+    if (apiInfo.active) {
+      const next = { active: false, key: apiInfo.key };
+      setApiInfo(next);
+      saveApiInfoForUser(id, next);
+      setApiMessage('API deactivated');
+      setTimeout(() => setApiMessage(null), 2000);
+      return;
+    }
+
+    // If there's no saved key, do not prompt—show a message and keep button disabled
+    if (!apiInfo.key) {
+      setApiMessage('No API key saved — paste a key in your profile settings to activate');
+      setTimeout(() => setApiMessage(null), 3000);
+      return;
+    }
+
+    // Activate using existing saved key
+    const next = { active: true, key: apiInfo.key };
+    setApiInfo(next);
+    saveApiInfoForUser(id, next);
+    setApiMessage('API activated');
+    setTimeout(() => setApiMessage(null), 2000);
+  };
+
+  const copyApiKey = async () => {
+    if (!apiInfo.key) return;
+    try {
+      await navigator.clipboard.writeText(apiInfo.key);
+      setApiMessage('API key copied to clipboard');
+      setTimeout(() => setApiMessage(null), 2000);
+    } catch (e) {
+      setApiMessage('Copy failed');
+      setTimeout(() => setApiMessage(null), 2000);
+    }
+  };
+
   const handleChangeAvatar = () => {
     setShowAvatarModal(true);
   };
@@ -43,8 +252,27 @@ const ProfilePage = () => {
     setSaving(true);
     try {
       if (!isBackendAuthenticated) {
-        console.warn('Updating profile requires backend authentication');
+        setApiMessage('Profile updated locally (will sync when authenticated)');
+        // Recompute avatar for generated avatars (only when user doesn't have a custom upload)
+        const prevAvatar = userData?.avatar;
+        const shouldRegenerateAvatar = !prevAvatar || prevAvatar.includes('ui-avatars.com/api');
+        const nameForAvatar = editForm.fullname || editForm.username || userData?.username || userData?.fullname || '';
+        const regeneratedAvatar = shouldRegenerateAvatar
+          ? `https://ui-avatars.com/api/?name=${encodeURIComponent(nameForAvatar)}&background=random`
+          : prevAvatar;
+
+        const localUpdated = {
+          ...(userData || {}),
+          username: editForm.username,
+          fullname: editForm.fullname,
+          email: editForm.email,
+          bio: editForm.bio,
+          avatar: regeneratedAvatar,
+        };
+        if (updateUser) updateUser(localUpdated);
+        else login(localUpdated);
         setShowEditModal(false);
+        setTimeout(() => setApiMessage(null), 3000);
         setSaving(false);
         return;
       }
@@ -53,19 +281,46 @@ const ProfilePage = () => {
         username: editForm.username,
         fullname: editForm.fullname,
         email: editForm.email,
-        bio: editForm.bio,
       });
+
+      // If profile bio needs updating, update the profile object via profiles endpoint
+      if (profile && profile.id && (editForm.bio !== undefined && editForm.bio !== profile.bio)) {
+        try {
+          await apiClient.updateProfile(profile.id, { bio: editForm.bio });
+        } catch (e) {
+          // Error updating profile bio
+        }
+      }
+
       if (updated) {
         // Re-fetch user to ensure we have full sanitized record
         const fresh = await apiClient.getUserById(updated.id || updated.userId);
         if (fresh) {
+          // If the user didn't have a custom avatar and fullname changed, regenerate a UI avatar URL
+          const prevAvatar = userData?.avatar || '';
+          const isGenerated = !prevAvatar || prevAvatar.includes('ui-avatars.com/api');
+          const nameForAvatar = editForm.fullname || fresh.fullname || fresh.username || userData?.username || '';
+          if (isGenerated) {
+            const newAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(nameForAvatar)}&background=random`;
+            if (newAvatar !== (fresh.avatar || '')) {
+              fresh.avatar = newAvatar;
+            }
+          }
+
           if (updateUser) updateUser(fresh);
           else login(fresh);
+        }
+        // Re-fetch profile
+        try {
+          const freshProfile = await apiClient.getUserProfile(userIdForCalls);
+          if (freshProfile) setProfile(freshProfile);
+        } catch (e) {
+          /* ignore */
         }
       }
       setShowEditModal(false);
     } catch (error) {
-      console.error('Error saving profile:', error);
+      // Error saving profile
     } finally {
       setSaving(false);
     }
@@ -76,13 +331,22 @@ const ProfilePage = () => {
     if (file) {
       // Check file size (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
-        console.error('File size exceeds 2MB');
+        setApiMessage('File size exceeds 2MB');
+        setTimeout(() => setApiMessage(null), 3000);
         return;
       }
 
       // Check file type
       if (!file.type.match(/image\/(png|jpg|jpeg|gif)/)) {
-        console.error('Invalid file type. Please upload PNG, JPG, or GIF');
+        setApiMessage('Invalid file type. Please upload PNG, JPG, or GIF');
+        setTimeout(() => setApiMessage(null), 3000);
+        return;
+      }
+
+      // Check file size (max 1MB)
+      if (file.size > 1024 * 1024) {
+        setApiMessage('File too large. Maximum size is 1MB');
+        setTimeout(() => setApiMessage(null), 3000);
         return;
       }
 
@@ -103,25 +367,71 @@ const ProfilePage = () => {
 
   const handleUploadAvatar = async () => {
     if (!selectedFile) {
-      console.error('No file selected');
+      setApiMessage('No file selected');
+      setTimeout(() => setApiMessage(null), 2000);
       return;
     }
 
     setUploading(true);
     try {
       if (!isBackendAuthenticated) {
-        console.warn('Uploading avatar requires backend authentication');
-        setUploading(false);
+        // Save avatar locally as data URL and update stored userData so UI reflects it
+        const toDataUrl = (file) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+
+        try {
+          const dataUrl = await toDataUrl(selectedFile);
+          const id = userIdForCalls || userData?.userId || userData?.id;
+          if (id) {
+            saveLocalAvatarForUser(id, dataUrl);
+            const localUpdated = { ...(userData || {}), avatar: dataUrl };
+            if (updateUser) updateUser(localUpdated);
+            else login(localUpdated);
+            setApiMessage('Avatar saved locally (will sync when authenticated)');
+            setTimeout(() => setApiMessage(null), 3000);
+          } else {
+            setApiMessage('Unable to save avatar locally: no user id');
+            setTimeout(() => setApiMessage(null), 3000);
+          }
+        } catch (e) {
+          setApiMessage('Local avatar save failed');
+          setTimeout(() => setApiMessage(null), 3000);
+        } finally {
+          setUploading(false);
+          setShowAvatarModal(false);
+          setSelectedFile(null);
+          setPreviewUrl(null);
+        }
         return;
       }
 
-      const response = await apiClient.uploadAvatar(userIdForCalls, selectedFile);
+      const response = await apiClient.uploadAvatar(userData?.userId || userData?.id, selectedFile);
       if (response) {
         // Re-fetch full user record to get latest fields
-        const fresh = await apiClient.getUserById(response.id || response.userId || userIdForCalls);
+        const fresh = await apiClient.getUserById(response.id || response.userId || userData?.userId || userData?.id);
         if (fresh) {
           if (updateUser) updateUser(fresh);
           else login(fresh);
+          
+          // Also update profile state if we're viewing our own profile
+          if (profile?.user?.id === fresh.id) {
+            setProfile(prev => ({
+              ...prev,
+              user: fresh
+            }));
+          }
+        }
+        // clear any local avatar cache now that server has it
+        try {
+          const id = userData?.userId || userData?.id;
+          if (id) clearLocalAvatarForUser(id);
+        } catch (e) {
+          /* ignore */
         }
       }
       // Close modal and reset
@@ -129,7 +439,8 @@ const ProfilePage = () => {
       setSelectedFile(null);
       setPreviewUrl(null);
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      setApiMessage('Error uploading avatar');
+      setTimeout(() => setApiMessage(null), 3000);
     } finally {
       setUploading(false);
     }
@@ -143,63 +454,134 @@ const ProfilePage = () => {
 
   const [recentMatches, setRecentMatches] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const userIdForCalls = profile?.user?.id || userData?.userId || userData?.id;
 
-  useEffect(() => {
-    const loadProfileAndMatches = async () => {
-      const id = userData?.userId || userData?.id;
-      if (!id) return;
+  const loadProfileAndMatches = async () => {
+    const id = userData?.userId || userData?.id;
+    if (!id) return;
+    
+    setIsRefreshing(true);
+
+    try {
+
+      // Load any active API key stored for this user
+      loadActiveKeyForUser(id);
+
+      // Load frontend-saved API info for this user
+      loadApiInfoForUser(id);
 
       // If backend auth is not present, skip backend calls and rely on local profile fields
       if (!isBackendAuthenticated) {
         setRecentMatches([]);
+        // If a locally saved avatar exists, merge it into the stored user data so UI uses it
+        const id = userData?.userId || userData?.id;
+        let mergedUser = userData;
+        try {
+          const localAvatar = loadLocalAvatarForUser(id);
+          // Only update stored userData if the avatar differs to avoid update loops
+          if (localAvatar && localAvatar !== userData?.avatar) {
+            mergedUser = { ...(userData || {}), avatar: localAvatar };
+            if (updateUser) updateUser(mergedUser);
+            else login(mergedUser);
+          }
+        } catch (e) {
+          /* ignore */
+        }
+
         setProfile({
-          user: userData,
-          wins: userData?.wins || 0,
-          losses: userData?.losses || 0,
-          win_rate: userData?.win_rate || 0,
-          rank: userData?.rank,
-          level: userData?.level,
+          user: mergedUser,
+          wins: mergedUser?.wins || 0,
+          losses: mergedUser?.losses || 0,
+          win_rate: mergedUser?.win_rate || 0,
+          rank: mergedUser?.rank,
+          level: mergedUser?.level,
         });
         return;
       }
 
       try {
         const matches = await apiClient.getMatchesForUser(id);
-        setRecentMatches(matches || []);
+        // Transform matches data to match the expected format
+        const transformedMatches = (matches || []).map((match) => {
+          const isPlayer1 = match.player1.id === id;
+          const opponent = isPlayer1 ? match.player2 : match.player1;
+          const myScore = isPlayer1 ? match.player1_score : match.player2_score;
+          const opponentScore = isPlayer1 ? match.player2_score : match.player1_score;
+          const didWin = match.winner && match.winner.id === id;
+          
+          return {
+            id: match.id,
+            opponent: opponent.username || opponent.fullname || 'Unknown',
+            score: `${myScore} - ${opponentScore}`,
+            result: didWin ? 'win' : 'loss',
+            date: new Date(match.completed_at || match.created_at).toLocaleDateString(),
+          };
+        });
+        setRecentMatches(transformedMatches);
       } catch (err) {
-        console.error('Error loading matches for profile:', err);
+        // Error loading matches for profile
       }
 
       try {
         const profileData = await apiClient.getUserProfile(id);
         setProfile(profileData);
       } catch (err) {
-        console.error('Error loading profile data:', err);
+        // Error loading profile data
       }
-    };
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     loadProfileAndMatches();
   }, [userData, isBackendAuthenticated]);
 
+  // Auto-refresh when switching to overview tab
+  useEffect(() => {
+    if (activeTab === 'overview' && isBackendAuthenticated) {
+      loadProfileAndMatches();
+    }
+  }, [activeTab]);
+
+  // Listen for achievement unlock events to auto-refresh profile
+  useEffect(() => {
+    const handleAchievementUnlock = () => {
+      if (isBackendAuthenticated) {
+        loadProfileAndMatches();
+      }
+    };
+
+    window.addEventListener('achievementUnlocked', handleAchievementUnlock);
+    
+    return () => {
+      window.removeEventListener('achievementUnlocked', handleAchievementUnlock);
+    };
+  }, [isBackendAuthenticated]);
+
   const stats = {
-    gamesPlayed: profile?.total_games || profile?.wins + profile?.losses || 0,
+    gamesPlayed: profile?.total_games || (profile?.wins || 0) + (profile?.losses || 0),
     wins: profile?.wins || 0,
     losses: profile?.losses || 0,
     winRate: profile?.win_rate || 0,
-    rank: profile?.rank ? `#${profile.rank}` : '—',
+    rank: profile?.rank ? `#${profile.rank}` : '#1000',
     level: profile?.level || 1,
   };
 
   const rawAchievements = profile?.achievements || userData?.achievements || [];
-  const earnedAchievementIds = new Set(
+  // Extract achievement types from backend response
+  const earnedAchievementTypes = new Set(
     (Array.isArray(rawAchievements) ? rawAchievements : [])
-      .map((a) => (typeof a === 'object' ? a.id : typeof a === 'string' ? parseInt(a, 10) : a))
+      .map((userAch) => userAch?.achievement?.achievement_type)
       .filter(Boolean)
   );
+  
+  // Map achievements from constants and mark as earned if user has them
   const achievementsList = ACHIEVEMENTS.map((a) => ({
     ...a,
-    earned: earnedAchievementIds.has(a.id),
+    earned: earnedAchievementTypes.has(a.type),
   }));
 
   return (
@@ -255,6 +637,23 @@ const ProfilePage = () => {
             <div className="profile-level">
               <span className="level-badge">Level {stats.level}</span>
             </div>
+
+            {/* Active API toggle (single button) */}
+            <div className="profile-api">
+              <span className={apiInfo.active ? 'api-active' : 'api-inactive'}>
+                {apiInfo.active ? 'API Active' : 'API Inactive'}
+              </span>
+
+              <button
+                className={`btn btn-api ${apiInfo.active ? 'active' : ''}`}
+                onClick={toggleApiActive}
+                aria-pressed={apiInfo.active}
+                title={apiInfo.active ? 'Deactivate API' : 'Activate API'}
+              >
+                {apiInfo.active ? 'Deactivate API' : 'Activate API'}
+              </button>
+            </div>
+
             <button
               className="btn-edit-profile"
               onClick={handleEditProfile}
@@ -299,8 +698,33 @@ const ProfilePage = () => {
           </div>
 
           {activeTab === 'overview' && (
-            <div className="profile-content">
-              <div className="achievements-grid">
+            <div className="profile-content">              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0 }}>Statistics</h3>
+                <button
+                  onClick={loadProfileAndMatches}
+                  disabled={isRefreshing}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: isRefreshing ? '#6b7280' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }}>
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>              <div className="achievements-grid">
                 <div className="achievement-card">
                   <div className="achievement-icon" style={{ color: '#667eea' }}>
                     <svg
