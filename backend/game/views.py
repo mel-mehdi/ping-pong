@@ -402,7 +402,7 @@ class MatchViewSet(viewsets.ModelViewSet):
 
 #for ai opponent
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def ai_decide(request):
 	try:
 		difficulty = request.data.get("difficulty", "MEDIUM")

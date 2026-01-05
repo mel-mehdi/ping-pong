@@ -167,7 +167,9 @@ AUTH_USER_MODEL = 'user_management.User'
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost",
     "http://localhost:8000",
+    "http://localhost:8001",
     "https://accounts.google.com",
     "https://oauth2.googleapis.com",
 ]
@@ -175,7 +177,9 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
+    "http://localhost",
     'http://localhost:8000',
+    'http://localhost:8001',
     "https://accounts.google.com",
 ]
 
