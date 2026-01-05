@@ -2,7 +2,7 @@ from django.utils.timezone import timedelta
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q, Count, F
@@ -68,7 +68,7 @@ class LeaderboardViewSet(viewsets.ViewSet):
 		serializer = UserSerializer(leaderboard, many=True)
 		return Response(serializer.data)
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 
 class TournamentViewSet(viewsets.ModelViewSet):
 	swagger_tags = ['Tournaments']
@@ -402,6 +402,7 @@ class MatchViewSet(viewsets.ModelViewSet):
 
 #for ai opponent
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def ai_decide(request):
 	try:
 		difficulty = request.data.get("difficulty", "MEDIUM")

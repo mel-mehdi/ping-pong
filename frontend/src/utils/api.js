@@ -2,7 +2,7 @@ import { API_ENDPOINTS, HTTP_STATUS } from './constants';
 import logger from './logger';
 
 const { DJANGO_USER_BASE, DJANGO_API_BASE } = API_ENDPOINTS;
-const BACKEND_BASE = 'http://localhost';
+const BACKEND_BASE = typeof window !== 'undefined' ? `http://${window.location.hostname}:8001` : 'http://localhost:8001';
 
 class ApiClient {
   // Helper methods
@@ -334,6 +334,13 @@ class ApiClient {
     });
   }
 
+  // AI opponent prediction
+  async aiDecide(ball, paddle, difficulty = 'MEDIUM') {
+    return this.request('/game/ai/decide/', {
+      method: 'POST',
+      body: JSON.stringify({ ball, paddle, difficulty }),
+    });
+  }
 
   // Friends & Invitations
   async sendFriendRequest(fromId, fromName, toId, toName) {

@@ -614,7 +614,7 @@ const HomePage = () => {
 
             <div style={{ display: 'flex' }}>
               <button
-                onClick={() => navigate('/game?ai=normal')}
+                onClick={() => navigate('/game?mode=local&ai=true')}
                 className="modern-card hover-lift text-center w-100"
                 style={{ border: 'none', background: 'var(--bg)', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >

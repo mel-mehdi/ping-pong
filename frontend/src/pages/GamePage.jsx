@@ -41,6 +41,8 @@ class PongGame {
     this.ball = {};
     this.keys = {};
     this.animationId = null;
+    this.vsAI = false;
+    this.aiDirection = 0;
 
     this.resetPositions();
     this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -262,6 +264,15 @@ class PongGame {
       this.player2.y += this.PADDLE_SPEED;
     }
 
+    // Apply AI movement if enabled; aiDirection is -1/0/1
+    if (this.vsAI && this.aiDirection) {
+      if (this.aiDirection === 1 && this.player2.y < this.CANVAS_HEIGHT - this.PADDLE_HEIGHT) {
+        this.player2.y += this.PADDLE_SPEED;
+      } else if (this.aiDirection === -1 && this.player2.y > 0) {
+        this.player2.y -= this.PADDLE_SPEED;
+      }
+    }
+
     this.ball.x += this.ball.dx;
     this.ball.y += this.ball.dy;
 
@@ -446,6 +457,7 @@ const GamePage = () => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode');
   const matchId = searchParams.get('match'); // For tournament matches
+  const aiParam = searchParams.get('ai'); // For local AI games
   const { t } = useLanguage();
   const { userData, isBackendAuthenticated } = useAuth();
   const canvasRef = useRef(null);
@@ -464,6 +476,10 @@ const GamePage = () => {
   const [opponentName, setOpponentName] = useState('');
   const [didIWin, setDidIWin] = useState(false);
   const [countdown, setCountdown] = useState(null);
+
+  // Local AI toggle
+  const [isVsAI, setIsVsAI] = useState(aiParam === 'true');
+  const [aiDifficulty, setAiDifficulty] = useState('MEDIUM');
 
   // WebSocket Connection Logic
   useEffect(() => {
@@ -606,8 +622,21 @@ const GamePage = () => {
     if (isMatchmaking) return;
 
     if (canvasRef.current && !gameRef.current) {
-      const p1Name = (mode === 'online' || mode === 'tournament') ? (myName || t('game.player1')) : t('game.player1');
-      const p2Name = (mode === 'online' || mode === 'tournament') ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2');
+      let p1Name, p2Name;
+      
+      if (isVsAI) {
+        // When playing vs AI, show user's username and "AI"
+        p1Name = userData?.username || 'Player 1';
+        p2Name = 'AI';
+      } else if (mode === 'online' || mode === 'tournament') {
+        // Online/tournament modes
+        p1Name = myName || t('game.player1');
+        p2Name = opponentName || t('game.opponent') || 'Opponent';
+      } else {
+        // Local 2-player mode
+        p1Name = t('game.player1');
+        p2Name = t('game.player2');
+      }
 
       gameRef.current = new PongGame(canvasRef.current, {
         player1Name: p1Name,
@@ -652,7 +681,53 @@ const GamePage = () => {
         gameRef.current = null;
       }
     };
-  }, [t, isMatchmaking, mode, myName, opponentName]);
+  }, [t, isMatchmaking, mode, myName, opponentName, isVsAI, userData]);
+
+  // AI loop: polls backend /game/ai/decide/ for direction when playing locally vs CPU
+  useEffect(() => {
+    if (mode === 'online' || mode === 'tournament') return; // AI only for local mode
+    let timer = null;
+    if (isVsAI && gameRef.current) {
+      gameRef.current.vsAI = true;
+      const loop = async () => {
+        try {
+          const game = gameRef.current;
+          if (!game) return;
+          const scaleX = 800 / game.CANVAS_WIDTH;
+          const scaleY = 600 / game.CANVAS_HEIGHT;
+          const ball = {
+            x: game.ball.x * scaleX,
+            y: game.ball.y * scaleY,
+            vx: game.ball.dx * scaleX,
+            vy: game.ball.dy * scaleY,
+          };
+          const paddle = {
+            x: game.player2.x * scaleX,
+            y: game.player2.y * scaleY,
+            height: game.player2.height * scaleY,
+          };
+          const res = await apiClient.aiDecide(ball, paddle, aiDifficulty);
+          const dir = (res && typeof res.direction === 'number') ? res.direction : 0;
+          game.aiDirection = dir;
+        } catch (e) {
+          // Ignore backend/network errors; keep AI paused (direction stays 0)
+        }
+      };
+      // run immediately then poll
+      loop();
+      timer = setInterval(loop, 100);
+    } else if (gameRef.current) {
+      gameRef.current.vsAI = false;
+      gameRef.current.aiDirection = 0;
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+      if (gameRef.current) {
+        gameRef.current.vsAI = false;
+        gameRef.current.aiDirection = 0;
+      }
+    };
+  }, [isVsAI, aiDifficulty, mode]);
 
   const handlePlayAgain = () => {
     if (mode === 'online') {
@@ -684,7 +759,9 @@ const GamePage = () => {
             <div className="player-card-pro">
               <div className="player-avatar-pro">P1</div>
               <div className="player-info-pro">
-                <div className="player-name-pro">{(mode === 'online' || mode === 'tournament') ? (myName || t('game.player1')) : t('game.player1')}</div>
+                <div className="player-name-pro">
+                  {isVsAI ? (userData?.username || t('game.player1')) : (mode === 'online' || mode === 'tournament') ? (myName || t('game.player1')) : t('game.player1')}
+                </div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
               <div className="player-score-pro">{player1Score}</div>
@@ -698,7 +775,9 @@ const GamePage = () => {
             <div className="player-card-pro">
               <div className="player-score-pro">{player2Score}</div>
               <div className="player-info-pro">
-                <div className="player-name-pro">{(mode === 'online' || mode === 'tournament') ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2')}</div>
+                <div className="player-name-pro">
+                  {isVsAI ? 'AI' : (mode === 'online' || mode === 'tournament') ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2')}
+                </div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
               <div className="player-avatar-pro">P2</div>
@@ -832,7 +911,7 @@ const GamePage = () => {
                     </div>
                   </div>
                 )}
-                {mode !== 'online' && (
+                {mode !== 'online' && !isVsAI && (
                   <div className="control-group-pro">
                     <div className="control-label-pro">{t('game.player2')}</div>
                     <div className="control-keys-pro">
