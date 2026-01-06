@@ -2,7 +2,8 @@ import { API_ENDPOINTS, HTTP_STATUS } from './constants';
 import logger from './logger';
 
 const { DJANGO_USER_BASE, DJANGO_API_BASE } = API_ENDPOINTS;
-const BACKEND_BASE = typeof window !== 'undefined' ? `http://${window.location.hostname}:8001` : 'http://localhost:8001';
+// Use relative path so nginx can proxy requests appropriately
+const BACKEND_BASE = typeof window !== 'undefined' ? '' : '';
 
 class ApiClient {
   // Helper methods

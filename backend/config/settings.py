@@ -170,6 +170,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost",
     "http://localhost:8000",
     "http://localhost:8001",
+    "https://localhost",
+    "https://localhost:8000",
+    "https://localhost:8001",
     "https://accounts.google.com",
     "https://oauth2.googleapis.com",
 ]
@@ -180,6 +183,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost",
     'http://localhost:8000',
     'http://localhost:8001',
+    "https://localhost",
+    'https://localhost:8000',
+    'https://localhost:8001',
     "https://accounts.google.com",
 ]
 
