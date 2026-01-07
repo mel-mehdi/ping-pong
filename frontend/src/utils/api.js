@@ -2,7 +2,8 @@ import { API_ENDPOINTS, HTTP_STATUS } from './constants';
 import logger from './logger';
 
 const { DJANGO_USER_BASE, DJANGO_API_BASE } = API_ENDPOINTS;
-const BACKEND_BASE = 'http://localhost';
+// Use relative path so nginx can proxy requests appropriately
+const BACKEND_BASE = typeof window !== 'undefined' ? '' : '';
 
 class ApiClient {
   // Helper methods
@@ -334,6 +335,13 @@ class ApiClient {
     });
   }
 
+  // AI opponent prediction
+  async aiDecide(ball, paddle, difficulty = 'MEDIUM') {
+    return this.request('/game/ai/decide/', {
+      method: 'POST',
+      body: JSON.stringify({ ball, paddle, difficulty }),
+    });
+  }
 
   // Friends & Invitations
   async sendFriendRequest(fromId, fromName, toId, toName) {
