@@ -1,4 +1,4 @@
-Django==6.0.0 # Web framework
+Django==5.1.4 # Web framework
 psycopg[binary]==3.3.2 # PostgreSQL database adapter
 django-environ==0.12.0 # Environment variable management
 djangorestframework==3.16.1 # REST framework for Django

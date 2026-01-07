@@ -2,7 +2,7 @@
 
 BACKUP_DIR="/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-DB_CONTAINER="transcendence-db"
+DB_CONTAINER="postgres"
 DB_NAME="transcendence"
 DB_USER="postgres"
 RETENTION_DAYS=7

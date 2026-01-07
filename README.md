@@ -7,7 +7,14 @@
 
 This repo has all the Docker/monitoring stuff for our ft_transcendence project. We built a multiplayer Pong game (React + Django) and this is the infrastructure side of things.
 
-Basically I set up:
+Basically I set up:/home/assia/Desktop/ft_mohsinine/grafana
+/home/assia/Desktop/ft_mohsinine/prometheus
+/home/assia/Desktop/ft_mohsinine/scripts
+/home/assia/Desktop/ft_mohsinine/status-page
+/home/assia/Desktop/ft_mohsinine/.env.example
+/home/assia/Desktop/ft_mohsinine/DISASTER_RECOVERY.md
+/home/assia/Desktop/ft_mohsinine/docker-compose.yml
+/home/assia/Desktop/ft_mohsinine/README.md
 - Prometheus to collect metrics from everything
 - Grafana with dashboards that actually look decent
 - Daily backups that run automatically
@@ -127,7 +134,7 @@ docker-compose down
 docker-compose up -d database
 sleep 10
 
-gunzip -c backups/backup_transcendence_YYYYMMDD_HHMMSS.sql.gz | docker exec -i transcendence-db psql -U postgres transcendence
+gunzip -c backups/backup_transcendence_YYYYMMDD_HHMMSS.sql.gz | docker exec -i postgres psql -U postgres transcendence
 
 docker-compose up -d
 ```

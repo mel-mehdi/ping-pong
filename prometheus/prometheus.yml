@@ -42,12 +42,12 @@ scrape_configs:
   # database metrics
   - job_name: 'postgres'
     static_configs:
-      - targets: ['postgres-exporter:9187']
+      - targets: ['postgres_exporter:9187']
 
   # system stats (cpu, mem, disk)
   - job_name: 'node'
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ['node_exporter:9100']
 
   # container stats
   - job_name: 'docker'

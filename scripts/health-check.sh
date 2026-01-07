@@ -4,7 +4,7 @@ echo "Checking system health..."
 
 services=(
     "http://localhost:8000/"            # frontend
-    "http://localhost:3000/"            # backend
+    "http://localhost:8001/"            # backend
     "http://localhost:9090/-/healthy"   # prometheus
     "http://localhost:3001/api/health"  # grafana
 )

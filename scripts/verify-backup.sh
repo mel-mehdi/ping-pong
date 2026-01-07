@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BACKUP_DIR="/backups"
-DB_CONTAINER="transcendence-db"
+DB_CONTAINER="postgres"
 DB_USER="postgres"
 TEST_DB_NAME="test_restore_$(date +%s)"
 
