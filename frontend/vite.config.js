@@ -10,15 +10,14 @@ export default defineConfig({
     host: '0.0.0.0',
     open: false,
     strictPort: false,
-    hmr: {
-      clientPort: 80,
-      host: 'localhost',
-    },
     watch: {
       usePolling: true,
     },
     hmr: {
-      clientPort: 8000,
+      protocol: 'wss',
+      host: 'localhost',
+      port: 443,
+      clientPort: 443,
     },
     // Dev proxy: forward /api requests to the backend container on localhost:8001
     proxy: {
