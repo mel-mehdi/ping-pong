@@ -15,6 +15,7 @@ from .serializers import (
 
 
 class AuthViewSet(viewsets.ViewSet):
+	swagger_tags = ['Authentication']
 	permission_classes = [AllowAny]
 
 	def get_permissions(self):
@@ -97,6 +98,7 @@ class AuthViewSet(viewsets.ViewSet):
 
 
 class UserViewSet(viewsets.ModelViewSet):
+	swagger_tags = ['Users']
 	queryset = User.objects.all()
 	serializer_class = UserSerializer
 	permission_classes = [IsAuthenticated]
@@ -118,6 +120,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
+	swagger_tags = ['User Profiles']
 	queryset = UserProfile.objects.select_related('user')
 	serializer_class = UserProfileSerializer
 	permission_classes = [IsAuthenticated]
@@ -143,6 +146,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
 
 class FriendshipViewSet(viewsets.ModelViewSet):
+	swagger_tags = ['Friendships']
 	queryset = Friendship.objects.select_related('from_user', 'to_user')
 	serializer_class = FriendshipSerializer
 	permission_classes = [IsAuthenticated]
@@ -197,6 +201,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
 
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+	swagger_tags = ['Notifications']
 	serializer_class = NotificationSerializer
 	permission_classes = [IsAuthenticated]
 
@@ -229,6 +234,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AchievementViewSet(viewsets.ReadOnlyModelViewSet):
+	swagger_tags = ['Achievements']
 	serializer_class = AchievementSerializer
 	permission_classes = [IsAuthenticated]
 	queryset = Achievement.objects.all()
