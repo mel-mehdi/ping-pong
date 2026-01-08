@@ -1,3 +1,4 @@
+name: ft_trans
 
 services:
 
@@ -31,6 +32,7 @@ services:
     volumes:
       - ./backend:/app
       - django_static:/app/staticfiles
+      - ./nginx/ssl:/app/ssl:ro
     env_file:
       - backend/.env
     depends_on:

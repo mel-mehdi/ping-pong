@@ -301,6 +301,7 @@
     "sign_in_with_google": "Sign in with Google",
     "user_not_found": "User not found",
     "invalid_password": "Invalid password",
+	"invalid_credentials": "Credenciales inválidas",
     "login_error": "An error occurred during login"
   }
 }
