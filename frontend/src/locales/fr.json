@@ -241,6 +241,7 @@
     "create_account": "Créer un compte",
     "sign_in_with_google": "Se connecter avec Google",
     "user_not_found": "Utilisateur introuvable",
+	"invalid_credentials": "Identifiants invalides",
     "invalid_password": "Mot de passe invalide"
   }
 }
