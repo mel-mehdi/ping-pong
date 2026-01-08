@@ -241,6 +241,7 @@ class UserAchievement(models.Model):
 	unlocked_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
+		db_table = 'user_achievements'
 		unique_together = ['user', 'achievement']
 		ordering = ['-unlocked_at']
 
