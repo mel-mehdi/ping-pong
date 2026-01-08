@@ -369,13 +369,22 @@ const ProfilePage = () => {
         fullname: editForm.fullname,
         email: editForm.email,
       });
+      console.debug('updateUser response:', updated);
+      if (!updated) {
+        setApiMessage('Save failed');
+        setTimeout(() => setApiMessage(null), 2500);
+        setSaving(false);
+        return;
+      }
 
       // If profile bio needs updating, update the profile object via profiles endpoint
       if (profile && profile.id && (editForm.bio !== undefined && editForm.bio !== profile.bio)) {
         try {
           await apiClient.updateProfile(profile.id, { bio: editForm.bio });
         } catch (e) {
-          // Error updating profile bio
+          console.error('Failed updating profile bio', e);
+          setApiMessage('Failed to update profile bio');
+          setTimeout(() => setApiMessage(null), 3000);
         }
       }
 
@@ -406,8 +415,12 @@ const ProfilePage = () => {
         }
       }
       setShowEditModal(false);
+      setApiMessage('Profile saved');
+      setTimeout(() => setApiMessage(null), 2500);
     } catch (error) {
-      // Error saving profile
+      console.error('Save profile failed', error);
+      setApiMessage('Error saving profile');
+      setTimeout(() => setApiMessage(null), 3500);
     } finally {
       setSaving(false);
     }
