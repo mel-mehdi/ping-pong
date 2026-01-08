@@ -23,6 +23,22 @@ const Navbar = () => {
     const searchInputRef = useRef(null);
     const [searchExpanded, setSearchExpanded] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const MAX_SEARCH_RESULTS = 8;
+
+    // Defer focus work to avoid long synchronous handlers on focus events
+    const handleSearchFocus = () => {
+        setTimeout(() => {
+            setSearchExpanded(true);
+            if (searchQuery.length >= 1) setShowSearchResults(true);
+        }, 0);
+    };
+
+    const handleSearchBlur = () => {
+        setTimeout(() => {
+            setShowSearchResults(false);
+            if (!searchQuery) setSearchExpanded(false);
+        }, 300);
+    };
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -131,65 +147,75 @@ const Navbar = () => {
             };
 
             ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    
-                    if (data.type === 'game_invite_accepted') {
-                        navigate('/game?mode=online');
-                        return;
-                    }
-
-                    if (data.type === 'new_notification') {
-                        const notif = data.notification;
+                // Defer processing to avoid blocking the main thread
+                const processMessage = () => {
+                    try {
+                        const data = JSON.parse(event.data);
                         
-                        let newNotif = null;
-                        
-                        if (notif.game_invitation) {
-                            newNotif = {
-                                id: notif.game_invitation.id,
-                                senderId: notif.related_user?.id,
-                                fromName: notif.related_user?.username || 'Unknown',
-                                type: 'game_invite'
-                            };
-                        } else if (notif.friend_request_id || notif.type === 'friend_request_received') {
-                            newNotif = {
-                                id: notif.friend_request_id || notif.id,
-                                senderId: notif.related_user?.id,
-                                fromName: notif.related_user?.username || notif.from_user || 'Unknown',
-                                type: 'friend_request'
-                            };
-                        } else if (notif.type === 'friend_request_accepted') {
-                            // Friend request accepted - reload friendships to update UI
-                            loadFriendships();
-                            // Don't show as notification badge, just update state
+                        if (data.type === 'game_invite_accepted') {
+                            navigate('/game?mode=online');
                             return;
-                        } else if (notif.type === 'achievement_unlocked' && notif.achievement) {
-                            newNotif = {
-                                id: notif.id,
-                                achievementName: notif.achievement.name,
-                                achievementDesc: notif.achievement.description,
-                                achievementIcon: notif.achievement.icon,
-                                xpReward: notif.achievement.xp_reward,
-                                type: 'achievement_unlocked',
-                                timestamp: Date.now()
-                            };
-                            // Trigger profile refresh event
-                            window.dispatchEvent(new Event('achievementUnlocked'));
-                            // Auto-dismiss achievement notifications after 5 seconds
-                            setTimeout(() => {
-                                setNotifications(prev => prev.filter(n => n.id !== notif.id));
-                            }, 5000);
                         }
 
-                        if (newNotif) {
-                            setNotifications(prev => {
-                                if (prev.some(n => n.id === newNotif.id && n.type === newNotif.type)) return prev;
-                                return [newNotif, ...prev];
-                            });
+                        if (data.type === 'new_notification') {
+                            const notif = data.notification;
+                            
+                            let newNotif = null;
+                            
+                            if (notif.game_invitation) {
+                                newNotif = {
+                                    id: notif.game_invitation.id,
+                                    senderId: notif.related_user?.id,
+                                    fromName: notif.related_user?.username || 'Unknown',
+                                    type: 'game_invite'
+                                };
+                            } else if (notif.friend_request_id || notif.type === 'friend_request_received') {
+                                newNotif = {
+                                    id: notif.friend_request_id || notif.id,
+                                    senderId: notif.related_user?.id,
+                                    fromName: notif.related_user?.username || notif.from_user || 'Unknown',
+                                    type: 'friend_request'
+                                };
+                            } else if (notif.type === 'friend_request_accepted') {
+                                // Friend request accepted - reload friendships to update UI
+                                loadFriendships();
+                                // Don't show as notification badge, just update state
+                                return;
+                            } else if (notif.type === 'achievement_unlocked' && notif.achievement) {
+                                newNotif = {
+                                    id: notif.id,
+                                    achievementName: notif.achievement.name,
+                                    achievementDesc: notif.achievement.description,
+                                    achievementIcon: notif.achievement.icon,
+                                    xpReward: notif.achievement.xp_reward,
+                                    type: 'achievement_unlocked',
+                                    timestamp: Date.now()
+                                };
+                                // Trigger profile refresh event
+                                window.dispatchEvent(new Event('achievementUnlocked'));
+                                // Auto-dismiss achievement notifications after 5 seconds
+                                setTimeout(() => {
+                                    setNotifications(prev => prev.filter(n => n.id !== notif.id));
+                                }, 5000);
+                            }
+
+                            if (newNotif) {
+                                setNotifications(prev => {
+                                    if (prev.some(n => n.id === newNotif.id && n.type === newNotif.type)) return prev;
+                                    return [newNotif, ...prev];
+                                });
+                            }
                         }
+                    } catch (err) {
+                        // Error processing notification
                     }
-                } catch (err) {
-                    // Error processing notification
+                };
+                
+                // Use requestIdleCallback to defer processing, or setTimeout as fallback
+                if (typeof requestIdleCallback !== 'undefined') {
+                    requestIdleCallback(processMessage, { timeout: 100 });
+                } else {
+                    setTimeout(processMessage, 0);
                 }
             };
 
@@ -446,8 +472,8 @@ const Navbar = () => {
                                         placeholder={t('search.placeholder')}
                                         value={searchQuery}
                                         onChange={(e) => handleSearch(e.target.value)}
-                                        onFocus={() => { setSearchExpanded(true); searchQuery.length >= 1 && setShowSearchResults(true); }}
-                                        onBlur={() => setTimeout(() => { setShowSearchResults(false); if (!searchQuery) setSearchExpanded(false); }, 300)}
+                                        onFocus={handleSearchFocus}
+                                        onBlur={handleSearchBlur}
                                         onKeyDown={(e) => { if (e.key === 'Escape') { e.currentTarget.blur(); setShowSearchResults(false); setSearchExpanded(false); } }}
                                         autoComplete="off"
                                     />
@@ -473,7 +499,7 @@ const Navbar = () => {
                                         {!isSearching && searchResults.length > 0 && (
                                             <>
                                                 <div style={{ padding: '0.25rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{searchSource === 'backend' ? t('search.backend_results') : t('search.client_results')}</div>
-                                                {searchResults.filter(u => isValidUser(u) && (!userData || (u.username !== userData.username && (u.id || u.userId) !== (userData.userId || userData.id)))).map((user) => (
+                                                {searchResults.filter(u => isValidUser(u) && (!userData || (u.username !== userData.username && (u.id || u.userId) !== (userData.userId || userData.id)))).slice(0, MAX_SEARCH_RESULTS).map((user) => (
                                                     <div key={user.id} className="nav-search-result-item">
                                                     <div className="nav-search-result-info">
                                                         {(() => {

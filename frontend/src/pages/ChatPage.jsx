@@ -46,37 +46,42 @@ const ChatPage = () => {
     };
 
     ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'chat_message' && data.message) {
-          const newMsg = {
-            id: data.message.id || Date.now(),
-            sender: data.message.sender?.username || data.message.sender_name || 'Unknown',
-            text: data.message.content || data.message.text || '',
-            time: new Date(data.message.created_at || Date.now()).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            }),
-            isOwn: data.message.sender?.id === userData.userId || data.message.sender_id === userData.userId,
-            created_at: data.message.created_at || new Date().toISOString(),
-          };
+      // Defer processing to avoid blocking the main thread
+      const processMessage = () => {
+        try {
+          const data = JSON.parse(event.data);
           
-          setMessages(prev => {
-            // Avoid duplicates
-            if (prev.some(m => m.id === newMsg.id)) return prev;
+          if (data.type === 'chat_message' && data.message) {
+            const newMsg = {
+              id: data.message.id || Date.now(),
+              sender: data.message.sender?.username || data.message.sender_name || 'Unknown',
+              text: data.message.content || data.message.text || '',
+              time: new Date(data.message.created_at || Date.now()).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }),
+              isOwn: data.message.sender?.id === userData.userId || data.message.sender_id === userData.userId,
+              created_at: data.message.created_at || new Date().toISOString(),
+            };
             
-            // Add new message and sort by created_at
-            const updated = [...prev, newMsg];
-            return updated.sort((a, b) => {
-              const timeA = new Date(a.created_at || 0).getTime();
-              const timeB = new Date(b.created_at || 0).getTime();
-              return timeA - timeB;
+            setMessages(prev => {
+              // Avoid duplicates - fast path
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              
+              // Append new message (assume chronological order from server)
+              return [...prev, newMsg];
             });
-          });
+          }
+        } catch (err) {
+          // Failed to parse WebSocket message
         }
-      } catch (err) {
-        // Failed to parse WebSocket message
+      };
+      
+      // Use requestIdleCallback or setTimeout to defer heavy work
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(processMessage, { timeout: 50 });
+      } else {
+        setTimeout(processMessage, 0);
       }
     };
 

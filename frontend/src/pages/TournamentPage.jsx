@@ -112,19 +112,47 @@ const TournamentPage = () => {
     loadTournaments();
   }, [userData, isBackendAuthenticated]);
 
-  // Auto-update every 5 seconds
+  // Auto-update with visibility-awareness and reduced frequency (15s)
   useEffect(() => {
     if (!isBackendAuthenticated) return;
 
-    const interval = setInterval(() => {
-      loadTournaments();
-      // Also refresh the selected tournament bracket if one is selected
-      if (selectedTournamentId) {
-        loadBracketForTournament(selectedTournamentId);
-      }
-    }, 5000); // Update every 5 seconds
+    let interval = null;
+    const POLL_INTERVAL = 15000; // 15 seconds
 
-    return () => clearInterval(interval);
+    const startPolling = () => {
+      // Avoid multiple intervals
+      if (interval) return;
+      interval = setInterval(() => {
+        // Skip polling when tab is hidden to save CPU and network
+        if (typeof document !== 'undefined' && document.hidden) return;
+        loadTournaments();
+        if (selectedTournamentId) {
+          loadBracketForTournament(selectedTournamentId);
+        }
+      }, POLL_INTERVAL);
+    };
+
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) stopPolling();
+      else startPolling();
+    };
+
+    // Initial load + start polling
+    loadTournaments();
+    startPolling();
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [isBackendAuthenticated, selectedTournamentId, loadBracketForTournament]);
 
   const handleCreateTournament = (e) => {
@@ -736,128 +764,7 @@ const TournamentPage = () => {
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label>
-                        {t('tournaments.invite_friends').replace('{n}', tournamentForm.maxPlayers)}
-                      </label>
-                      <div className="invite-search-container">
-                        <div className="invite-input-group">
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder={t('tournaments.search_placeholder')}
-                            value={inviteUsername}
-                            onChange={(e) => handleSearchFriends(e.target.value)}
-                            onKeyPress={(e) =>
-                              e.key === 'Enter' && (e.preventDefault(), handleInvitePlayer(e))
-                            }
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={handleInvitePlayer}
-                            disabled={
-                              invitedPlayers.length >= tournamentForm.maxPlayers ||
-                              !inviteUsername.trim()
-                            }
-                          >
-                            {t('tournaments.add')}
-                          </button>
-                        </div>
-
-                        {/* Search Results Dropdown */}
-                        {searchResults.length > 0 && (
-                          <div className="search-results-dropdown">
-                            {searchResults.map((user, index) => (
-                              <div key={index} className="search-result-item">
-                                <div className="search-result-info">
-                                  <span className="user-avatar">
-                                    {user.avatar &&
-                                    user.avatar.startsWith &&
-                                    user.avatar.startsWith('data:') ? (
-                                      <img
-                                        src={user.avatar}
-                                        alt={user.username}
-                                        style={{ width: 36, height: 36, borderRadius: '50%' }}
-                                      />
-                                    ) : (
-                                      <span className="avatar-fallback">{user.avatar || '🙂'}</span>
-                                    )}
-                                  </span>
-                                  <div className="user-details">
-                                    <span className="user-name">{user.username}</span>
-                                    <span
-                                      className={`user-status ${user.online_status ? 'online' : 'offline'}`}
-                                    >
-                                      <span className="status-dot"></span>
-                                      {user.online_status
-                                        ? t('status.online')
-                                        : t('status.offline')}
-                                    </span>
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  className={`btn-invite-small ${pendingInvites.includes(user.username) ? 'pending' : ''}`}
-                                  onClick={() => handleInviteFromSearch(user.username)}
-                                  disabled={
-                                    invitedPlayers.length >= tournamentForm.maxPlayers ||
-                                    pendingInvites.includes(user.username)
-                                  }
-                                >
-                                  {pendingInvites.includes(user.username)
-                                    ? t('invite.pending')
-                                    : t('invite.invite')}
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {isSearching && (
-                          <div className="search-loading">{t('search.searching')}</div>
-                        )}
-
-                        {inviteUsername.trim().length >= 1 &&
-                          searchResults.length === 0 &&
-                          !isSearching && (
-                            <div className="search-no-results">{t('search.no_users')}</div>
-                          )}
-                      </div>
-
-                      <div className="player-slots-container">
-                        <div className="player-slots-grid">
-                          {Array.from({ length: tournamentForm.maxPlayers }, (_, index) => (
-                            <div key={index} className="player-slot">
-                              {invitedPlayers[index] ? (
-                                <>
-                                  <span className="slot-number">{index + 1}</span>
-                                  <span className="slot-name">{invitedPlayers[index]}</span>
-                                  <button
-                                    type="button"
-                                    className="slot-remove"
-                                    onClick={() => removeInvitedPlayer(invitedPlayers[index])}
-                                    title={t('tournaments.remove_player_title')}
-                                  >
-                                    ×
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="slot-number">{index + 1}</span>
-                                  <span className="slot-empty">{t('tournaments.empty_slot')}</span>
-                                </>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        <p className="slots-info">
-                          {t('tournaments.invited_info')
-                            .replace('{invited}', invitedPlayers.length)
-                            .replace('{max}', tournamentForm.maxPlayers)}
-                        </p>
-                      </div>
-                    </div>
+                    {/* Invite friends section removed per request */}
                   </div>
                   <div className="modal-footer">
                     <button

@@ -22,24 +22,12 @@ const LoginPage = () => {
   const { t } = useLanguage();
 
   useEffect(() => {
-    // Initialize Google Sign-In
+    // Initialize Google Sign-In without rendering the default button
     if (window.google && GOOGLE_CLIENT_ID) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleResponse,
       });
-
-      window.google.accounts.id.renderButton(
-        document.getElementById('google-signin-button'),
-        { 
-          theme: 'outline', 
-          size: 'large', 
-          width: document.getElementById('google-signin-button')?.offsetWidth || 400,
-          text: 'signin_with',
-          shape: 'rectangular',
-          logo_alignment: 'left'
-        }
-      );
     }
   }, []);
 
@@ -116,16 +104,18 @@ const LoginPage = () => {
       navigate('/');
     } catch (error) {
       setLoading(false);
-      
-      if (error.message === 'Invalid credentials' || error.status === 401) {
-        setErrors({
-          password: t('auth.invalid_credentials') || 'Invalid credentials'
-        });
-      } else {
-        setErrors({
-          general: error.message || 'An error occurred during login'
-        });
+      console.error('Login failed', error);
+
+      // Handle 401/invalid credentials specifically
+      if (error.status === 401) {
+        const msg = error.detail || error.data?.detail || error.data?.error || t('auth.invalid_credentials') || 'Invalid credentials';
+        setErrors({ password: msg });
+        return;
       }
+
+      // Backend may return structured errors (e.g., non_field_errors)
+      const backendMsg = error.data?.non_field_errors?.[0] || error.data?.detail || error.data?.error || error.message;
+      setErrors({ general: backendMsg || t('auth.login_error') || 'An error occurred during login' });
     }
   };
 
@@ -195,17 +185,11 @@ const LoginPage = () => {
               <span>{t('auth.or')}</span>
             </div>
 
-            <div
-              id="google-signin-button"
-              className="google-signin-container"
-            ></div>
             <button
               className="gsi-material-button"
               type="button"
-              id="manual-google-button"
-              style={{ display: 'none' }}
+              onClick={() => window.google?.accounts.id.prompt()}
             >
-              <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">
                 <div className="gsi-material-button-icon">
                   <svg
