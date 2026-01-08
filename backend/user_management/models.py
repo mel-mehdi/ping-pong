@@ -16,6 +16,7 @@ class User(AbstractUser):
 	email = models.EmailField(unique=True)
 	avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
 	online_status = models.BooleanField(default=False)
+	google_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
@@ -131,6 +132,7 @@ class Notification(models.Model):
 		('friend_request_received', 'Friend Request Received'),
 		('friend_request_accepted', 'Friend Request Accepted'),
 		('achievement_unlocked', 'Achievement Unlocked'),
+		('game_invite', 'Game Invitation Received'),
 	]
 
 	user = models.ForeignKey(
@@ -155,6 +157,13 @@ class Notification(models.Model):
 		on_delete=models.CASCADE, 
 		null=True, 
 		blank=True, 
+		related_name='notifications'
+	)
+	game_invitation = models.ForeignKey(
+		'game.Invitation',
+		on_delete=models.CASCADE,
+		null=True,
+		blank=True,
 		related_name='notifications'
 	)
 	achievement = models.ForeignKey(

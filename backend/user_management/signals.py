@@ -61,7 +61,12 @@ def create_friend_request_notifications(sender, instance, created, **kwargs):
 					'id': notification.id,
 					'type': 'friend_request_received',
 					'message': notification.message,
-					'from_user': instance.from_user.username
+					'from_user': instance.from_user.username,
+					'friend_request_id': instance.id,
+					'related_user': {
+						'id': instance.from_user.id,
+						'username': instance.from_user.username
+					}
 				}
 			}
 		)

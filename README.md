@@ -1,6 +1,6 @@
 # PingPong
 
-*This project has been created as part of the 42 curriculum by mel-mehdi, ael-bouz, amabchou.*
+*This project has been created as part of the 42 curriculum by mel-mehdi, ael-bouz, amabchou, szeroual.*
 
 ## Description
 
@@ -26,6 +26,7 @@
 | Mehdi | mel-mehdi | Product Owner, Tech Lead, Frontend Developer | Architecture design, technical decisions, game engine, frontend views, module implementation |
 | Abdellatif | ael-bouz | Backend Developer | Backend API, database schema, Django REST Framework, WebSocket implementation, authentication system |
 | Assia | amabchou | DevOps Engineer, Infrastructure Lead | Docker setup, monitoring (Prometheus/Grafana), backup systems, deployment, disaster recovery |
+| Sanaa | szeroual | AI Developer | AI opponent implementation, machine learning features, AI system integration |
 
 ### Project Management
 
@@ -71,15 +72,45 @@
 
 We use PostgreSQL with Django ORM. Main tables:
 
-- **Users**: Login, profile info, stats (wins/losses)
-- **Sessions**: User sessions (managed by Django + Redis)
-- **Matches**: Game records with scores and winner
-- **Tournaments**: Tournament data and brackets
-- **Friend Requests**: Friend system
-- **Messages**: Chat messages
-- **Game Invitations**: Player invites
+### Schema Overview
 
-Everything's connected with proper foreign keys. Check the backend/*/models.py files for details.
+**Users** (`user_management_customuser`)
+- Login credentials and profile (username, email, hashed password)
+- Stats: wins, losses, games played
+- Avatar and full name
+- Created/updated timestamps
+
+**Sessions** (`django_session`)
+- User sessions managed by Django + Redis
+- Session keys and expiration
+
+**Matches** (`game_match`)
+- Game records with player1, player2
+- Scores and winner
+- Game mode (local/online/tournament)
+- Timestamps
+
+**Tournaments** (`game_tournament`)
+- Tournament name and status
+- Players list (JSONB array)
+- Matches and winner
+- Tournament brackets
+
+**Friend Requests** (`user_management_friendrequest`)
+- Sender and receiver
+- Status (pending/accepted/rejected)
+- Created timestamps
+
+**Messages** (`chat_message`)
+- Chat messages between users
+- Read/unread status
+- Message content and timestamps
+
+**Game Invitations** (`game_gameinvitation`)
+- Game invites between players
+- Status and game mode
+
+All tables use proper foreign keys and indexes. Check `backend/*/models.py` for full details.
 
 ## Features
 
@@ -109,7 +140,7 @@ Everything's connected with proper foreign keys. Check the backend/*/models.py f
 - Health checks and status page
 - Disaster recovery docs
 
-## Modules (17/14 points)
+## Modules (19/14 points)
 
 ### Major (2 pts each)
 
@@ -118,16 +149,17 @@ Everything's connected with proper foreign keys. Check the backend/*/models.py f
 3. **User Management** - Auth, profiles, stats (mel-mehdi, ael-bouz)
 4. **User Interaction** - Chat, friends, invites (mel-mehdi, ael-bouz)
 5. **Monitoring** - Prometheus + Grafana (amabchou)
+6. **AI Opponent** - Backend AI with 3 difficulty levels (szeroual)
 
 ### Minor (1 pt each)
 
-6. **Stats & History** - Match tracking (mel-mehdi)
-7. **Backend Framework** - Django (ael-bouz)
-8. **Tournaments** - Bracket system (mel-mehdi)
-9. **Customization** - Game settings (mel-mehdi)
-10. **Multi-browser** - Chrome, Firefox, Edge, Safari (mel-mehdi)
-11. **ORM** - Django ORM (ael-bouz)
-12. **Health Checks** - Backups, monitoring, recovery (amabchou)
+7. **Stats & History** - Match tracking (mel-mehdi)
+8. **Backend Framework** - Django (ael-bouz)
+9. **Tournaments** - Bracket system (mel-mehdi)
+10. **Customization** - Game settings (mel-mehdi)
+11. **Multi-browser** - Chrome, Firefox, Edge, Safari (mel-mehdi)
+12. **ORM** - Django ORM (ael-bouz)
+13. **Health Checks** - Backups, monitoring, recovery (amabchou)
 
 ## Who Did What
 
@@ -169,6 +201,26 @@ Everything's connected with proper foreign keys. Check the backend/*/models.py f
 - Getting Django Channels to work properly
 - Redis session management
 - Optimizing database queries (select_related saved us)
+
+### Sanaa (szeroual) - AI Developer
+
+**AI Opponent:**
+- Built complete AI opponent system (`backend/game/ai/`)
+- Implemented ball trajectory prediction algorithm
+- Created reaction time simulation for human-like behavior
+- Added error injection system for realistic mistakes
+- Designed 3 difficulty levels (Easy, Medium, Hard)
+
+**Backend Integration:**
+- Created `/game/ai/decide/` API endpoint
+- Integrated AI with Django backend
+- Connected AI to frontend game loop (100ms polling)
+- Set up difficulty configuration system
+
+**Challenges:**
+- Balancing AI difficulty (not too easy, not unbeatable)
+- Making AI feel human with reaction delays and errors
+- Optimizing prediction algorithm for real-time performance
 
 ### Assia (amabchou) - DevOps
 
@@ -273,6 +325,6 @@ All AI-generated content was reviewed, understood, and tested before integration
 
 ---
 
-**Status**: ✅ 17/14 points  
+**Status**: ✅ 19/14 points  
 **Updated**: January 8, 2026  
-**Team**: mel-mehdi, ael-bouz, amabchou
+**Team**: mel-mehdi, ael-bouz, amabchou, szeroual

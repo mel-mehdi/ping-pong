@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { validateRequired } from '../utils/validation';
@@ -6,6 +6,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
 import '../styles/auth.css';
 import SplashCursor from '../components/SplashCursor';
+
+const GOOGLE_CLIENT_ID = '726422486704-f02t4gf3nvs5jo8c2lda00klda9p80mb.apps.googleusercontent.com';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -18,6 +20,53 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    // Initialize Google Sign-In
+    if (window.google && GOOGLE_CLIENT_ID) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+      });
+
+      window.google.accounts.id.renderButton(
+        document.getElementById('google-signin-button'),
+        { 
+          theme: 'outline', 
+          size: 'large', 
+          width: document.getElementById('google-signin-button')?.offsetWidth || 400,
+          text: 'signin_with',
+          shape: 'rectangular',
+          logo_alignment: 'left'
+        }
+      );
+    }
+  }, []);
+
+  const handleGoogleResponse = async (response) => {
+    try {
+      setLoading(true);
+      const result = await apiClient.googleLogin(response.credential);
+      const userPayload = result?.user || result || {};
+
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
+        username: userPayload.username,
+        token: result?.token || result?.access,
+        loggedIn: true,
+        loginTime: new Date().toISOString(),
+      });
+
+      checkBackendAuth().catch(() => {});
+      navigate('/');
+    } catch (error) {
+      setLoading(false);
+      setErrors({
+        general: 'Google Sign-In failed. Please try again.',
+      });
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,8 +115,17 @@ const LoginPage = () => {
       checkBackendAuth().catch(() => {});
       navigate('/');
     } catch (error) {
-      console.error('Login error:', error);
       setLoading(false);
+      
+      if (error.message === 'Invalid credentials' || error.status === 401) {
+        setErrors({
+          password: t('auth.invalid_credentials') || 'Invalid credentials'
+        });
+      } else {
+        setErrors({
+          general: error.message || 'An error occurred during login'
+        });
+      }
     }
   };
 
@@ -88,6 +146,11 @@ const LoginPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
+            {errors.general && (
+              <div className="alert alert-danger" style={{ marginBottom: '1rem', color: 'var(--error)', background: 'rgba(255, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                {errors.general}
+              </div>
+            )}
             <div className="form-group">
               <label htmlFor="username">{t('auth.username')}</label>
               <input
@@ -132,10 +195,15 @@ const LoginPage = () => {
               <span>{t('auth.or')}</span>
             </div>
 
+            <div
+              id="google-signin-button"
+              className="google-signin-container"
+            ></div>
             <button
               className="gsi-material-button"
               type="button"
-              onClick={() => {/* Google sign-in not implemented */}}
+              id="manual-google-button"
+              style={{ display: 'none' }}
             >
               <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">

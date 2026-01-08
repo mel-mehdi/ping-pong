@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import '../styles/game.css';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,10 +11,15 @@ class PongGame {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.options = options;
+    this.socket = options.socket;
+    this.isOnline = options.isOnline || false;
 
     // setup initial canvas dimensions and sizes
     this.isFullscreen = false;
     this.setupCanvasDimensions(false);
+    //for ai 
+    this.vsAI = options.vsAI || false; // true if playing against backend AI
+    this.aiDifficulty = options.aiDifficulty || 'MEDIUM'; // default difficulty
 
     // bind resize/fullscreen handlers so canvas is recalculated when viewport changes
     this.handleResize = this.handleResize.bind(this);
@@ -36,6 +41,8 @@ class PongGame {
     this.ball = {};
     this.keys = {};
     this.animationId = null;
+    this.vsAI = false;
+    this.aiDirection = 0;
 
     this.resetPositions();
     this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -45,6 +52,10 @@ class PongGame {
     window.addEventListener('keyup', this.handleKeyUp);
 
     this.render();
+  }
+
+  updateSocket(newSocket) {
+    this.socket = newSocket;
   }
 
   resetPositions() {
@@ -114,22 +125,24 @@ class PongGame {
   }
 
   handleResize() {
-    // Recalculate sizes and center paddles/ball so layout looks correct after resize/fullscreen
     try {
       this.setupCanvasDimensions(this.isFullscreen);
-      this.resetPositions();
+      if (!this.isOnline) {
+        this.resetPositions();
+      }
     } catch (err) {
       // ignore
     }
   }
 
   handleFullscreenChange() {
-    // small delay to allow browser to settle fullscreen layout
     setTimeout(() => {
       try {
         this.isFullscreen = !!document.fullscreenElement;
         this.setupCanvasDimensions(this.isFullscreen);
-        this.resetPositions();
+        if (!this.isOnline) {
+          this.resetPositions();
+        }
       } catch (err) {
         // ignore
       }
@@ -142,11 +155,28 @@ class PongGame {
     }
     this.keys[e.code] = true;
 
+    if (this.isOnline && this.socket && this.socket.readyState === WebSocket.OPEN) {
+      if (e.code === 'KeyW' || e.code === 'KeyS' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        this.socket.send(JSON.stringify({
+          action: 'input',
+          up: this.keys['KeyW'] || this.keys['ArrowUp'],
+          down: this.keys['KeyS'] || this.keys['ArrowDown']
+        }));
+      }
+      // For online games, don't allow manual start/pause with SPACE
+      if (e.code === 'KeyF') {
+        this.toggleFullscreen();
+      }
+      return;
+    }
+
+    // Local game controls
     if (e.code === 'Space') {
-      if (!this.isRunning && !this.gameOver) {
-        this.start();
-      } else if (this.isRunning) {
+      // Only allow pause/resume, not initial start (handled by countdown)
+      if (this.isRunning) {
         this.pause();
+      } else if (this.isPaused) {
+        this.start();
       }
     }
 
@@ -157,14 +187,22 @@ class PongGame {
 
   handleKeyUp(e) {
     this.keys[e.code] = false;
+    
+    if (this.isOnline && this.socket && this.socket.readyState === WebSocket.OPEN) {
+      if (e.code === 'KeyW' || e.code === 'KeyS' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        this.socket.send(JSON.stringify({
+          action: 'input',
+          up: this.keys['KeyW'] || this.keys['ArrowUp'],
+          down: this.keys['KeyS'] || this.keys['ArrowDown']
+        }));
+      }
+    }
   }
 
   toggleFullscreen() {
     const arenaElement = this.canvas.parentElement;
     if (!document.fullscreenElement) {
-      arenaElement.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
+      arenaElement.requestFullscreen().catch(() => {});
     } else {
       document.exitFullscreen();
     }
@@ -185,7 +223,31 @@ class PongGame {
     this.notifyStatusChange(this.isPaused ? pausedMsg : null);
   }
 
+  updateState(state) {
+    // Auto-start game when receiving updates from server
+    if (!this.isRunning) {
+      this.isRunning = true;
+      this.isPaused = false;
+      this.notifyStatusChange(null);
+    }
+
+    // Map server coordinates (800x600) to local canvas dimensions
+    const scaleX = this.CANVAS_WIDTH / 800;
+    const scaleY = this.CANVAS_HEIGHT / 600;
+
+    this.player1.y = state.p1_y * scaleY;
+    this.player2.y = state.p2_y * scaleY;
+    this.ball.x = state.bx * scaleX;
+    this.ball.y = state.by * scaleY;
+    
+    this.player1Score = state.s1;
+    this.player2Score = state.s2;
+    this.notifyScoreUpdate();
+  }
+
   update() {
+    if (this.isOnline) return; // Server handles physics
+
     if (!this.isRunning || this.isPaused || this.gameOver) return;
 
     if (this.keys['KeyW'] && this.player1.y > 0) {
@@ -200,6 +262,15 @@ class PongGame {
     }
     if (this.keys['KeyK'] && this.player2.y < this.CANVAS_HEIGHT - this.PADDLE_HEIGHT) {
       this.player2.y += this.PADDLE_SPEED;
+    }
+
+    // Apply AI movement if enabled; aiDirection is -1/0/1
+    if (this.vsAI && this.aiDirection) {
+      if (this.aiDirection === 1 && this.player2.y < this.CANVAS_HEIGHT - this.PADDLE_HEIGHT) {
+        this.player2.y += this.PADDLE_SPEED;
+      } else if (this.aiDirection === -1 && this.player2.y > 0) {
+        this.player2.y -= this.PADDLE_SPEED;
+      }
     }
 
     this.ball.x += this.ball.dx;
@@ -383,22 +454,132 @@ class PongGame {
 
 const GamePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode');
+  const matchId = searchParams.get('match'); // For tournament matches
+  const aiParam = searchParams.get('ai'); // For local AI games
   const { t } = useLanguage();
   const { userData, isBackendAuthenticated } = useAuth();
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
+  const socketRef = useRef(null);
+  const currentRoomRef = useRef(null);
   const [player1Score, setPlayer1Score] = useState(0);
   const [player2Score, setPlayer2Score] = useState(0);
   const [gameMessage, setGameMessage] = useState(t('game.press_space_start'));
   const [showMessage, setShowMessage] = useState(true);
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState('');
+  const [isMatchmaking, setIsMatchmaking] = useState(mode === 'online' && !matchId);
+  const [playerRole, setPlayerRole] = useState(null);
+  const [myName, setMyName] = useState('');
+  const [opponentName, setOpponentName] = useState('');
+  const [didIWin, setDidIWin] = useState(false);
+  const [countdown, setCountdown] = useState(null);
+
+  // Local AI toggle
+  const [isVsAI, setIsVsAI] = useState(aiParam === 'true');
+  const [aiDifficulty, setAiDifficulty] = useState('MEDIUM');
+
+  // WebSocket Connection Logic
+  useEffect(() => {
+    if ((mode !== 'online' && mode !== 'tournament') || !isBackendAuthenticated) return;
+
+    const connectToGame = (roomName) => {
+      currentRoomRef.current = roomName;
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws/game/${roomName}/`;
+      
+      const socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        // Connected to game server
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'match_found') {
+          // Store player info
+          setPlayerRole(data.player_role);
+          setMyName(data.my_name);
+          setOpponentName(data.opponent_name);
+          
+          // For matchmaking, reconnect to specific room
+          if (mode === 'online' && !matchId) {
+            if (data.room_id !== currentRoomRef.current) {
+              socket.close();
+              connectToGame(data.room_id);
+              // Update socket reference in existing game if it exists
+              setTimeout(() => {
+                if (gameRef.current && socketRef.current) {
+                  gameRef.current.updateSocket(socketRef.current);
+                }
+              }, 500);
+            }
+          }
+          setIsMatchmaking(false);
+          setGameMessage(t('game.opponent_found') || 'Opponent Found! Starting...');
+          
+          // Game start is now handled by server countdown
+        } else if (data.type === 'update') {
+          if (gameRef.current) {
+            gameRef.current.updateState(data.state);
+          }
+        } else if (data.type === 'countdown') {
+          setCountdown(data.count);
+          if (data.count > 0) {
+             setGameMessage(`Starting in ${data.count}...`);
+             setShowMessage(true);
+          } else {
+             setGameMessage('GO!');
+             setTimeout(() => {
+               setCountdown(null);
+               setShowMessage(false);
+             }, 1000);
+          }
+        } else if (data.type === 'game_over') {
+          if (gameRef.current) {
+            const iAmWinner = data.winner === playerRole;
+            setDidIWin(iAmWinner);
+            gameRef.current.endGame(data.winner_name);
+          }
+        }
+      };
+
+      socket.onclose = () => {
+        // Disconnected from game server
+      };
+    };
+
+    // For tournament matches, connect directly to the match room
+    if (mode === 'tournament' && matchId) {
+      connectToGame(`tournament_${matchId}`);
+      setIsMatchmaking(false);
+    } else {
+      // Start with matchmaking for regular online mode
+      connectToGame('matchmaking');
+    }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+    };
+  }, [mode, matchId, isBackendAuthenticated, t, playerRole]);
 
   // Save match result to backend
   const saveMatchResult = async (winnerName, p1Score, p2Score) => {
     if (!isBackendAuthenticated || !userData?.userId) return;
     
     try {
+      // Tournament matches are automatically saved by the backend WebSocket consumer
+      if (mode === 'tournament' && matchId) {
+        return;
+      }
+
+      // For regular matches
       const matchData = {
         player1_id: userData.userId,
         player2_id: null, // Local game, no second player
@@ -408,19 +589,62 @@ const GamePage = () => {
         match_type: 'local',
         duration: 0, // Could track actual duration if needed
       };
-      await apiClient.createMatch(matchData);
+      
+      // Only save match if it's not a local game, as the backend requires two registered users
+      if (matchData.match_type !== 'local') {
+        await apiClient.createMatch(matchData);
+      }
     } catch (err) {
-      console.warn('Failed to save match result:', err);
+      // Failed to save match result
     }
   };
 
+  const startLocalCountdown = () => {
+    let count = 3;
+    setCountdown(count);
+    setShowMessage(true);
+    
+    const timer = setInterval(() => {
+      count--;
+      setCountdown(count);
+      if (count === 0) {
+        clearInterval(timer);
+        setTimeout(() => {
+          setCountdown(null);
+          setShowMessage(false);
+          if (gameRef.current) gameRef.current.start();
+        }, 1000);
+      }
+    }, 1000);
+  };
+
   useEffect(() => {
+    if (isMatchmaking) return;
+
     if (canvasRef.current && !gameRef.current) {
+      let p1Name, p2Name;
+      
+      if (isVsAI) {
+        // When playing vs AI, show user's username and "AI"
+        p1Name = userData?.username || 'Player 1';
+        p2Name = 'AI';
+      } else if (mode === 'online' || mode === 'tournament') {
+        // Online/tournament modes
+        p1Name = myName || t('game.player1');
+        p2Name = opponentName || t('game.opponent') || 'Opponent';
+      } else {
+        // Local 2-player mode
+        p1Name = t('game.player1');
+        p2Name = t('game.player2');
+      }
+
       gameRef.current = new PongGame(canvasRef.current, {
-        player1Name: t('game.player1'),
-        player2Name: t('game.player2'),
+        player1Name: p1Name,
+        player2Name: p2Name,
+        socket: socketRef.current,
+        isOnline: mode === 'online' || mode === 'tournament',
         strings: {
-          start: t('game.press_space_start'),
+          start: (mode === 'online' || mode === 'tournament') ? t('game.waiting_for_players') || 'Waiting for both players...' : '',
           paused: t('game.paused_resume'),
           press_space: t('game.press_space'),
         },
@@ -444,6 +668,11 @@ const GamePage = () => {
           }
         },
       });
+
+      // Auto-start local game
+      if (mode !== 'online' && mode !== 'tournament') {
+        startLocalCountdown();
+      }
     }
 
     return () => {
@@ -452,19 +681,73 @@ const GamePage = () => {
         gameRef.current = null;
       }
     };
-  }, [t]);
+  }, [t, isMatchmaking, mode, myName, opponentName, isVsAI, userData]);
+
+  // AI loop: polls backend /game/ai/decide/ for direction when playing locally vs CPU
+  useEffect(() => {
+    if (mode === 'online' || mode === 'tournament') return; // AI only for local mode
+    let timer = null;
+    if (isVsAI && gameRef.current) {
+      gameRef.current.vsAI = true;
+      const loop = async () => {
+        try {
+          const game = gameRef.current;
+          if (!game) return;
+          const scaleX = 800 / game.CANVAS_WIDTH;
+          const scaleY = 600 / game.CANVAS_HEIGHT;
+          const ball = {
+            x: game.ball.x * scaleX,
+            y: game.ball.y * scaleY,
+            vx: game.ball.dx * scaleX,
+            vy: game.ball.dy * scaleY,
+          };
+          const paddle = {
+            x: game.player2.x * scaleX,
+            y: game.player2.y * scaleY,
+            height: game.player2.height * scaleY,
+          };
+          const res = await apiClient.aiDecide(ball, paddle, aiDifficulty);
+          const dir = (res && typeof res.direction === 'number') ? res.direction : 0;
+          game.aiDirection = dir;
+        } catch (e) {
+          // Ignore backend/network errors; keep AI paused (direction stays 0)
+        }
+      };
+      // run immediately then poll
+      loop();
+      timer = setInterval(loop, 100);
+    } else if (gameRef.current) {
+      gameRef.current.vsAI = false;
+      gameRef.current.aiDirection = 0;
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+      if (gameRef.current) {
+        gameRef.current.vsAI = false;
+        gameRef.current.aiDirection = 0;
+      }
+    };
+  }, [isVsAI, aiDifficulty, mode]);
 
   const handlePlayAgain = () => {
+    if (mode === 'online') {
+      window.location.reload();
+      return;
+    }
+
     if (gameRef.current) {
       gameRef.current.reset();
       setGameOver(false);
-      setShowMessage(true);
-      setGameMessage(t('game.press_space_start'));
+      startLocalCountdown();
     }
   };
 
   const handleHome = () => {
     navigate('/');
+  };
+
+  const handleBackToTournament = () => {
+    navigate('/tournament');
   };
 
   return (
@@ -476,21 +759,25 @@ const GamePage = () => {
             <div className="player-card-pro">
               <div className="player-avatar-pro">P1</div>
               <div className="player-info-pro">
-                <div className="player-name-pro">{t('game.player1')}</div>
+                <div className="player-name-pro">
+                  {isVsAI ? (userData?.username || t('game.player1')) : (mode === 'online' || mode === 'tournament') ? (myName || t('game.player1')) : t('game.player1')}
+                </div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
               <div className="player-score-pro">{player1Score}</div>
             </div>
 
             <div className="match-info-pro">
-              <div className="match-title-pro">{t('game.quick_match')}</div>
+              <div className="match-title-pro">{mode === 'tournament' ? (t('game.tournament_match') || 'Tournament Match') : t('game.quick_match')}</div>
               <div className="match-status-pro">{t('game.first_to').replace('{n}', '5')}</div>
             </div>
 
             <div className="player-card-pro">
               <div className="player-score-pro">{player2Score}</div>
               <div className="player-info-pro">
-                <div className="player-name-pro">{t('game.player2')}</div>
+                <div className="player-name-pro">
+                  {isVsAI ? 'AI' : (mode === 'online' || mode === 'tournament') ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2')}
+                </div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
               <div className="player-avatar-pro">P2</div>
@@ -499,46 +786,98 @@ const GamePage = () => {
 
           <div className="game-arena-pro">
             <canvas ref={canvasRef}></canvas>
-            {showMessage && (
+            {isMatchmaking ? (
+              <div className="game-overlay-pro">
+                <div className="game-start-pro">
+                  <div className="start-icon-pro">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                  </div>
+                  <p className="start-message-pro">{t('game.searching_opponent') || 'Searching for opponent...'}</p>
+                </div>
+              </div>
+            ) : showMessage && (
               <div className="game-overlay-pro">
                 {gameOver ? (
                   <div className="game-result-pro">
-                    <div className="winner-trophy-pro">🏆</div>
-                    <h2 className="winner-title-pro">
-                      {t('game.winner_wins').replace('{winner}', winner)}
-                    </h2>
-                    <div className="winner-score-pro">
-                      {player1Score} - {player2Score}
-                    </div>
+                    {(mode === 'online' || mode === 'tournament') ? (
+                      <>
+                        <div className="winner-trophy-pro">{didIWin ? '🏆' : '💔'}</div>
+                        <h2 className="winner-title-pro">
+                          {didIWin ? t('game.you_won') || 'You Won!' : t('game.you_lost') || 'You Lost'}
+                        </h2>
+                        <div className="winner-score-pro">
+                          {player1Score} - {player2Score}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="winner-trophy-pro">🏆</div>
+                        <h2 className="winner-title-pro">
+                          {t('game.winner_wins').replace('{winner}', winner)}
+                        </h2>
+                        <div className="winner-score-pro">
+                          {player1Score} - {player2Score}
+                        </div>
+                      </>
+                    )}
                     <div className="result-actions-pro">
-                      <button onClick={handlePlayAgain} className="btn-result-pro btn-primary-pro">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-                        </svg>
-                        {t('game.play_again')}
-                      </button>
-                      <button onClick={handleHome} className="btn-result-pro">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                          <polyline points="9 22 9 12 15 12 15 22" />
-                        </svg>
-                        {t('game.main_menu')}
-                      </button>
+                      {mode === 'tournament' ? (
+                        <button onClick={handleBackToTournament} className="btn-result-pro btn-primary-pro">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                          </svg>
+                          {t('game.back_to_tournament') || t('game.main_menu')}
+                        </button>
+                      ) : (
+                        <>
+                          <button onClick={handlePlayAgain} className="btn-result-pro btn-primary-pro">
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+                            </svg>
+                            {t('game.play_again')}
+                          </button>
+                          <button onClick={handleHome} className="btn-result-pro">
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                              <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                            {t('game.main_menu')}
+                          </button>
+                        </>
+                      )}
                     </div>
+                  </div>
+                ) : countdown !== null ? (
+                  <div className="game-start-pro">
+                    <div className="start-icon-pro" style={{ fontSize: '6rem', animation: 'pulse 0.5s infinite alternate' }}>
+                      {countdown > 0 ? countdown : 'GO!'}
+                    </div>
+                    <p className="start-message-pro">{countdown > 0 ? 'Get Ready!' : 'Game On!'}</p>
                   </div>
                 ) : (
                   <div className="game-start-pro">
@@ -555,7 +894,7 @@ const GamePage = () => {
               <h4 className="controls-title-pro">{t('game.controls')}</h4>
               <div className="controls-grid-pro">
                 <div className="control-group-pro">
-                  <div className="control-label-pro">{t('game.player1')}</div>
+                  <div className="control-label-pro">{mode === 'online' ? 'Controls' : t('game.player1')}</div>
                   <div className="control-keys-pro">
                     {(t('game.keys.player1') || []).map((k, i) => (
                       <span key={`p1-${i}`} className="key-badge-pro">
@@ -564,29 +903,41 @@ const GamePage = () => {
                     ))}
                   </div>
                 </div>
-                <div className="control-group-pro">
-                  <div className="control-label-pro">{t('game.player2')}</div>
-                  <div className="control-keys-pro">
-                    {(t('game.keys.player2') || []).map((k, i) => (
-                      <span key={`p2-${i}`} className="key-badge-pro">
-                        {k}
-                      </span>
-                    ))}
+                {mode === 'online' && (
+                  <div className="control-group-pro">
+                    <div className="control-label-pro">Fullscreen</div>
+                    <div className="control-keys-pro">
+                      <span className="key-badge-pro">F</span>
+                    </div>
                   </div>
-                </div>
-                <div className="control-group-pro">
-                  <div className="control-label-pro">{t('game.label') || 'Game'}</div>
-                  <div className="control-keys-pro">
-                    {(t('game.keys.game') || []).map((k, i) => (
-                      <span
-                        key={`g-${i}`}
-                        className={`key-badge-pro ${k.length > 6 ? 'wide-pro' : ''}`}
-                      >
-                        {k}
-                      </span>
-                    ))}
+                )}
+                {mode !== 'online' && !isVsAI && (
+                  <div className="control-group-pro">
+                    <div className="control-label-pro">{t('game.player2')}</div>
+                    <div className="control-keys-pro">
+                      {(t('game.keys.player2') || []).map((k, i) => (
+                        <span key={`p2-${i}`} className="key-badge-pro">
+                          {k}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+                {mode !== 'online' && (
+                  <div className="control-group-pro">
+                    <div className="control-label-pro">{t('game.label') || 'Game'}</div>
+                    <div className="control-keys-pro">
+                      {(t('game.keys.game') || []).map((k, i) => (
+                        <span
+                          key={`g-${i}`}
+                          className={`key-badge-pro ${k.length > 6 ? 'wide-pro' : ''}`}
+                        >
+                          {k}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

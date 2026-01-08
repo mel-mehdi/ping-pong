@@ -654,66 +654,78 @@
 .match-history {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .match-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  padding: 1rem;
+  gap: 1.5rem;
+  padding: 1.5rem;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   transition: all var(--transition);
 }
 
 .match-item:hover {
-  box-shadow: var(--shadow);
-  transform: translateX(4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: var(--primary);
 }
 
 .match-result {
-  margin-right: 1rem;
-}
-
-.result-badge {
-  width: 40px;
-  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  font-size: 1.25rem;
+}
+
+.result-badge {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 1.75rem;
   font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .result-badge.win {
-  background: #10b981;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
 }
 
 .result-badge.loss {
-  background: #ef4444;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   color: white;
 }
 
 .match-details {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .match-opponent {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--text);
 }
 
 .match-score {
-  font-size: 0.875rem;
-  color: var(--text-muted);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--primary);
 }
 
 .match-date {
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--text-muted);
+  font-weight: 500;
+  text-align: right;
 }
 
 /* Achievements */
@@ -1076,4 +1088,13 @@ textarea.form-input {
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

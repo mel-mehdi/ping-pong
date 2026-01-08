@@ -73,6 +73,14 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 			'notification': notification
 		}))
 
+	async def game_invite_accepted(self, event):
+		await self.send(text_data=json.dumps({
+			'type': 'game_invite_accepted',
+			'invitation_id': event['invitation_id'],
+			'receiver_id': event['receiver_id'],
+			'receiver_name': event['receiver_name']
+		}))
+
 	@database_sync_to_async
 	def get_unread_notifications(self):
 		notifications = Notification.objects.filter(
@@ -134,6 +142,17 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 				'description': notification.achievement.description,
 				'icon': notification.achievement.icon,
 				'xp_reward': notification.achievement.xp_reward
+			}
+		
+		if notification.game_invitation:
+			result['game_invitation'] = {
+				'id': notification.game_invitation.id,
+				'sender': {
+					'id': notification.game_invitation.sender.id,
+					'username': notification.game_invitation.sender.username,
+					'avatar': notification.game_invitation.sender.avatar.url if notification.game_invitation.sender.avatar else None
+				},
+				'status': notification.game_invitation.status
 			}
 		
 		return result

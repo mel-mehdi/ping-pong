@@ -31,13 +31,3 @@ export const validatePasswordMatch = (password, confirmPassword) => {
   const isValid = password === confirmPassword;
   return createResult(isValid, isValid ? '' : ERROR_MESSAGES.PASSWORDS_NOT_MATCH);
 };
-
-export const validateForm = (fields) => {
-  const errors = Object.entries(fields).reduce((acc, [key, validator]) => {
-    const result = validator();
-    if (!result.isValid) acc[key] = result.message;
-    return acc;
-  }, {});
-  
-  return { isValid: !Object.keys(errors).length, errors };
-};
