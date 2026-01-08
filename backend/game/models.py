@@ -38,6 +38,7 @@ class Tournament(models.Model):
 	updated_at = models.DateTimeField(auto_now=True)
 
 	class Meta:
+		db_table = 'tournaments'
 		verbose_name = 'Tournament'
 		verbose_name_plural = 'Tournaments'
 		ordering = ['-created_at']
@@ -62,6 +63,7 @@ class TournamentParticipant(models.Model):
 	placement = models.PositiveIntegerField(null=True, blank=True)
 
 	class Meta:
+		db_table = 'tournament_participants'
 		verbose_name = 'Tournament Participant'
 		verbose_name_plural = 'Tournament Participants'
 		ordering = ['joined_at']
@@ -115,6 +117,7 @@ class Invitation(models.Model):
 	responded_at = models.DateTimeField(null=True, blank=True)
 
 	class Meta:
+		db_table = 'invitations'
 		verbose_name = 'Invitation'
 		verbose_name_plural = 'Invitations'
 		ordering = ['-created_at']
@@ -169,6 +172,7 @@ class Match(models.Model):
 	completed_at = models.DateTimeField(null=True, blank=True)
 
 	class Meta:
+		db_table = 'matches'
 		verbose_name = 'Match'
 		verbose_name_plural = 'Matches'
 		ordering = ['-created_at']
