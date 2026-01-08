@@ -21,6 +21,5 @@ echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
 echo "Starting ASGI server with Daphne (HTTPS)..."
-exec daphne -b 0.0.0.0 -p 8001 \
-	-e ssl:8001:privateKey=/app/ssl/django.key:certKey=/app/ssl/django.crt \
-	config.asgi:application
+exec daphne -e ssl:8001:privateKey=/app/ssl/nginx.key:certKey=/app/ssl/nginx.crt \
+  config.asgi:application
