@@ -244,11 +244,8 @@ class ApiClient {
         { quiet: false }
       );
       
-      logger.debug(`Search results for "${query}":`, results);
-      
       if (Array.isArray(results)) {
         if (results.length === 0) {
-          logger.debug('Search returned empty results');
           return [];
         }
         
@@ -273,19 +270,16 @@ class ApiClient {
                    email.toLowerCase().includes(lowerQuery);
           });
         
-        logger.debug(`Filtered results: ${filtered.length} users`);
         return filtered;
       }
       
-      logger.debug('Search returned non-array result, returning empty');
-      return [];
+      return []; 
     } catch (err) {
       logger.error('searchUsers: backend search failed:', err);
       
       // Fallback: fetch all users then filter locally
       try {
         const all = await this.getAllUsers();
-        logger.debug(`Fallback: Got ${all.length} users, filtering locally`);
         const q = query.toLowerCase();
         return (all || []).filter(u =>
           u &&
@@ -350,17 +344,17 @@ class ApiClient {
         to_user_id: toId
       };
       
-      logger.debug('Sending friend request:', payload);
-      
       const result = await this.request('/friendships/send_request/', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
       
-      logger.debug('Friend request sent successfully:', result);
-      return result;
+      return result; 
     } catch (err) {
-      logger.error('Friend request failed:', err);
+      // Only log actual errors, not expected validations like "already exists"
+      if (err.status !== 400) {
+        logger.error('Friend request failed:', err);
+      }
       throw err;
     }
   }
@@ -369,6 +363,30 @@ class ApiClient {
     // Get pending friend requests received by current user
     try {
       const friendships = await this.request('/friendships/pending_requests/');
+      return friendships || [];
+    } catch {
+      return [];
+    }
+  }
+
+  async getSentFriendRequests() {
+    // Get all friendships where current user is the sender
+    try {
+      const friendships = await this.request('/friendships/');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      return (friendships || []).filter(fs => 
+        fs.from_user?.id === userData.userId && 
+        fs.status === 'pending'
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  async getMyFriends() {
+    // Get accepted friendships
+    try {
+      const friendships = await this.request('/friendships/my_friends/');
       return friendships || [];
     } catch {
       return [];
@@ -518,6 +536,20 @@ class ApiClient {
     } catch {
       // ignore
     }
+  }
+
+  async createApiKey({ name, rate_limit = 60, expires_at = null } = {}) {
+    return this.request('/api/keys/create_key/', {
+      method: 'POST',
+      body: JSON.stringify({ name, rate_limit, expires_at }),
+    });
+  }
+
+  async revokeApiKey(id) {
+    if (!id) throw new Error('Missing key id');
+    return this.request(`/api/keys/${id}/revoke/`, {
+      method: 'DELETE',
+    });
   }
 
   // Notifications (unused - reserved for future use) (unused - reserved for future use)

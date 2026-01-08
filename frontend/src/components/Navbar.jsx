@@ -18,6 +18,8 @@ const Navbar = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchSource, setSearchSource] = useState('backend');
     const [pendingInvites, setPendingInvites] = useState([]);
+    const [friends, setFriends] = useState([]);
+    const [isLoadingFriendships, setIsLoadingFriendships] = useState(false);
     const searchInputRef = useRef(null);
     const [searchExpanded, setSearchExpanded] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -61,6 +63,46 @@ const Navbar = () => {
         }
     }, [userData, isBackendAuthenticated]);
 
+    const loadFriendships = useCallback(async () => {
+        if (!userData?.userId || !isBackendAuthenticated) {
+            setPendingInvites([]);
+            setFriends([]);
+            setIsLoadingFriendships(false);
+            return;
+        }
+        
+        setIsLoadingFriendships(true);
+        try {
+            // Load sent friend requests and accepted friendships
+            const [sentRequests, friendships] = await Promise.all([
+                apiClient.getSentFriendRequests(),
+                apiClient.getMyFriends()
+            ]);
+            
+            // Add IDs of users we've sent requests to
+            const pendingUserIds = (sentRequests || []).map(req => req.to_user?.id).filter(Boolean);
+            
+            // Add IDs of users who are already friends
+            const friendUserIds = (friendships || []).map(fs => {
+                // If the API returns friendship objects (with from_user/to_user), derive the other user's id
+                if (fs && (fs.from_user || fs.to_user)) {
+                    const myId = userData.userId || userData.id;
+                    const otherUser = (fs.from_user?.id === myId || fs.from_user?.userId === myId) ? fs.to_user : fs.from_user;
+                    return otherUser?.id || otherUser?.userId;
+                }
+                // Otherwise, if the API returned user objects directly, use their id
+                return fs?.id || fs?.userId;
+            }).filter(Boolean);
+            
+            setPendingInvites(pendingUserIds);
+            setFriends(friendUserIds);
+        } catch (err) {
+            // Silently handle friendship loading errors during search
+        } finally {
+            setIsLoadingFriendships(false);
+        }
+    }, [userData, isBackendAuthenticated]);
+
     useEffect(() => {
         if (!isAuthenticated || !userData?.userId) return;
         if (!isBackendAuthenticated) {
@@ -69,7 +111,8 @@ const Navbar = () => {
             return;
         }
         loadNotifications();
-    }, [isAuthenticated, userData, isBackendAuthenticated, loadNotifications]);
+        loadFriendships();
+    }, [isAuthenticated, userData, isBackendAuthenticated, loadNotifications, loadFriendships]);
 
     useEffect(() => {
         if (!isAuthenticated || !userData?.userId || !isBackendAuthenticated) return;
@@ -115,6 +158,11 @@ const Navbar = () => {
                                 fromName: notif.related_user?.username || notif.from_user || 'Unknown',
                                 type: 'friend_request'
                             };
+                        } else if (notif.type === 'friend_request_accepted') {
+                            // Friend request accepted - reload friendships to update UI
+                            loadFriendships();
+                            // Don't show as notification badge, just update state
+                            return;
                         } else if (notif.type === 'achievement_unlocked' && notif.achievement) {
                             newNotif = {
                                 id: notif.id,
@@ -205,7 +253,12 @@ const Navbar = () => {
         }
 
         setIsSearching(true);
-        try {
+        setShowSearchResults(true);
+        
+        try {        
+            // Refresh friendships when searching to ensure button states are accurate
+            await loadFriendships();
+            
             const results = await apiClient.searchUsers(query);
             const uid = userData?.userId || userData?.id;
             const filtered = (results || [])
@@ -228,12 +281,29 @@ const Navbar = () => {
     const handleSendInvite = async (userId, username) => {
         if (!userData || !isBackendAuthenticated) return;
         
+        // Don't send if already friends or already pending
+        if (friends.includes(userId) || pendingInvites.includes(userId)) {
+            return;
+        }
+        
         try {
             await apiClient.sendFriendRequest(userData.userId, userData.username, userId, username);
             setPendingInvites([...pendingInvites, userId]);
         } catch (error) {
-            // Error sending friend request - still mark as pending locally
-            setPendingInvites([...pendingInvites, userId]);
+            // Check if it's an "already exists" error (400)
+            if (error.status === 400) {
+                if (error.message?.includes('already friends')) {
+                    // Already friends - add to friends list and reload to sync
+                    setFriends([...friends, userId]);
+                    loadFriendships(); // Reload to ensure sync
+                } else if (error.message?.includes('already exists')) {
+                    // Already pending - mark as pending in UI and reload
+                    setPendingInvites([...pendingInvites, userId]);
+                    loadFriendships(); // Reload to ensure sync
+                }
+            } else {
+                // Other errors - silently ignore to avoid spamming console during search
+            }
         }
     };
 
@@ -249,6 +319,8 @@ const Navbar = () => {
                 await apiClient.acceptFriendRequest(notification.id);
                 // Trigger event to refresh friends list in chat
                 window.dispatchEvent(new Event('friendAccepted'));
+                // Reload friendships to update state (move from pending to friends)
+                await loadFriendships();
             }
             
             loadNotifications();
@@ -265,6 +337,8 @@ const Navbar = () => {
                 await apiClient.respondToInvitation(notification.id, 'declined');
             } else if (notification.type === 'friend_request') {
                 await apiClient.rejectFriendRequest(notification.id);
+                // Reload friendships after rejecting
+                loadFriendships();
             }
             loadNotifications();
         } catch (err) {
@@ -422,14 +496,20 @@ const Navbar = () => {
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        className={`nav-btn-invite ${pendingInvites.includes(user.id) ? 'pending' : ''}`}
-                                                        onClick={() => handleSendInvite(user.id, user.username)}
-                                                        onMouseDown={(e) => e.preventDefault()}
-                                                        disabled={pendingInvites.includes(user.id)}
-                                                    >
-                                                        {pendingInvites.includes(user.id) ? t('invite.pending') : t('invite.invite')}
-                                                    </button>
+                                                    {friends.includes(user.id) ? (
+                                                        <button className="nav-btn-friend" disabled>
+                                                            {t('invite.friend') || 'Friend'}
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            className={`nav-btn-invite ${pendingInvites.includes(user.id) ? 'pending' : ''}`}
+                                                            onClick={() => handleSendInvite(user.id, user.username)}
+                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            disabled={isLoadingFriendships || pendingInvites.includes(user.id)}
+                                                        >
+                                                            {isLoadingFriendships ? '...' : pendingInvites.includes(user.id) ? t('invite.pending') : t('invite.invite')}
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 ))}
                                             </>

@@ -26,7 +26,7 @@
     "accept": "Accepter",
     "decline": "Refuser"
   },
-  "invite": { "invite": "Inviter", "pending": "En attente" },
+  "invite": { "invite": "Inviter", "pending": "En attente", "friends": "Amis", "friend": "Ami" },
   "status": { "online": "en ligne", "offline": "absent" },
   "tournaments": {
     "title": "Tournois",

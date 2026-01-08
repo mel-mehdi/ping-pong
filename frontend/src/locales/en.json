@@ -26,7 +26,7 @@
     "accept": "Accept",
     "decline": "Decline"
   },
-  "invite": { "invite": "Invite", "pending": "Pending" },
+  "invite": { "invite": "Invite", "pending": "Pending", "friends": "Friends", "friend": "Friend" },
   "status": { "online": "online", "offline": "offline" },
   "tournaments": {
     "title": "Tournaments",

@@ -16,9 +16,15 @@ export default defineConfig({
     hmr: {
       protocol: 'wss',
       host: 'localhost',
-      port: 443,
       clientPort: 443,
+      path: '/@vite/client',
+      // Add timeout and overlay options
+      timeout: 30000,
+      overlay: false,
     },
+    // Reduce client-side work and noise in dev tooling
+    // Set lower log level to avoid excessive message handling
+    logLevel: 'warn',
     // Dev proxy: forward /api requests to the backend container on localhost:8001
     proxy: {
       '/api': {
@@ -35,6 +41,13 @@ export default defineConfig({
           'X-API-Key': process.env.VITE_PUBLIC_API_KEY || ''
         },
         rewrite: (path) => path.replace(/^\/api/, '/api')
+      },
+      // Proxy WebSocket connections to backend
+      '/ws': {
+        target: 'ws://backend:8001',
+        ws: true,
+        changeOrigin: false,
+        secure: false,
       }
     }
   },

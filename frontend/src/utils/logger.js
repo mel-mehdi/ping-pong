@@ -9,7 +9,8 @@ const isDevelopment = import.meta.env.DEV;
 
 class Logger {
   _log(level, message, ...args) {
-    if (!isDevelopment && level === LOG_LEVELS.DEBUG) return;
+    // Silence DEBUG logs entirely (no-op)
+    if (level === LOG_LEVELS.DEBUG) return;
     
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] [${level.toUpperCase()}]`;

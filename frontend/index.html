@@ -13,6 +13,19 @@
 </head>
 <body>
     <div id="root"></div>
+    <script>
+    (function(){
+      // Suppress noisy Vite client logs in dev (e.g., "[vite] connecting...", "[vite] connected.")
+      const isViteMsg = msg => typeof msg === 'string' && (msg.includes('[vite]') || msg.includes('[vite] connecting') || msg.includes('[vite] connected'));
+      ['log','info','warn','debug'].forEach(fn => {
+        const orig = console[fn];
+        console[fn] = function(...args){
+          if (args.some(isViteMsg)) return;
+          return orig.apply(console, args);
+        };
+      });
+    })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

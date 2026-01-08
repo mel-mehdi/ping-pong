@@ -132,7 +132,9 @@
   },
   "invite": {
     "invite": "Invitar",
-    "pending": "En espera"
+    "pending": "En espera",
+    "friends": "Amigos",
+    "friend": "Amigo"
   },
   "status": {
     "online": "en línea",

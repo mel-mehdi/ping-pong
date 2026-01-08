@@ -87,6 +87,8 @@ const ProfilePage = () => {
     try {
       await navigator.clipboard.writeText(full);
       setApiKeyMessage('API key copied to clipboard');
+      setActiveKeyCopied(true);
+      setTimeout(() => setActiveKeyCopied(false), 1200);
       setTimeout(() => setApiKeyMessage(null), 1500);
     } catch (e) {
       setApiKeyMessage('Copy failed');
@@ -98,6 +100,38 @@ const ProfilePage = () => {
   const [apiInfo, setApiInfo] = useState({ active: false, key: null });
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiMessage, setApiMessage] = useState(null);
+  // Public API quick key
+  const [creatingPublicKey, setCreatingPublicKey] = useState(false);
+  const [publicCreatedFullKey, setPublicCreatedFullKey] = useState(null);
+  const [publicCreatedDetails, setPublicCreatedDetails] = useState(null);
+  const [publicExpanded, setPublicExpanded] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Restore any session-stored public key so clicking "Get key" can reveal it
+  useEffect(() => {
+    const id = userData?.userId || userData?.id;
+    if (!id) return;
+    try {
+      const raw = sessionStorage.getItem(`public_api_key_${id}`);
+      if (raw) {
+        try {
+          const obj = JSON.parse(raw);
+          if (obj && obj.key) {
+            setPublicCreatedFullKey(obj.key);
+            setPublicCreatedDetails({ id: obj.id || null, created_at: obj.createdAt || obj.created_at || null });
+          }
+        } catch (e) {
+          // backward-compat: raw string with key only
+          setPublicCreatedFullKey(raw);
+        }
+      }
+    } catch (e) { /* ignore */ }
+  }, [userData?.userId, userData?.id]);
+
+  // Copy feedback states (animated transient indicators)
+  const [activeKeyCopied, setActiveKeyCopied] = useState(false);
+  const [apiKeyCopied, setApiKeyCopied] = useState(false);
+  const [publicKeyCopied, setPublicKeyCopied] = useState(false);
 
   const loadApiInfoForUser = (id) => {
     if (!id) return;
@@ -227,10 +261,63 @@ const ProfilePage = () => {
     try {
       await navigator.clipboard.writeText(apiInfo.key);
       setApiMessage('API key copied to clipboard');
+      setApiKeyCopied(true);
+      setTimeout(() => setApiKeyCopied(false), 1200);
       setTimeout(() => setApiMessage(null), 2000);
     } catch (e) {
       setApiMessage('Copy failed');
       setTimeout(() => setApiMessage(null), 2000);
+    }
+  };
+
+  // Reveal an existing session key, or create one once and persist it to session
+  const revealOrCreatePublicKey = async () => {
+    if (!isBackendAuthenticated) {
+      setApiMessage('Sign in to get a Public API key');
+      setTimeout(() => setApiMessage(null), 2500);
+      return;
+    }
+
+    const id = userData?.userId || userData?.id;
+
+    // Try to load existing session copy
+    try {
+      const raw = sessionStorage.getItem(`public_api_key_${id}`);
+      if (raw) {
+        try {
+          const obj = JSON.parse(raw);
+          if (obj && obj.key) {
+            setPublicCreatedFullKey(obj.key);
+            setPublicCreatedDetails({ id: obj.id || null, created_at: obj.createdAt || obj.created_at || null });
+            setPublicExpanded(true);
+            return;
+          }
+        } catch (e) {
+          setPublicCreatedFullKey(raw);
+          setPublicExpanded(true);
+          return;
+        }
+      }
+    } catch (e) { /* ignore */ }
+
+    // Create a new one and persist it
+    setCreatingPublicKey(true);
+    try {
+      const res = await apiClient.createApiKey({ name: 'Public API Key', rate_limit: 60 });
+      const createdAt = (res.details && (res.details.created_at || res.details.createdAt)) || new Date().toISOString();
+      setPublicCreatedFullKey(res.key || null);
+      setPublicCreatedDetails({ id: res.details?.id || null, created_at: createdAt });
+      try {
+        if (res.key && id) sessionStorage.setItem(`public_api_key_${id}`, JSON.stringify({ key: res.key, id: res.details?.id || null, createdAt }));
+      } catch (e) { /* ignore */ }
+      setPublicExpanded(true);
+      setApiMessage('Public API key created — save it now');
+      setTimeout(() => setApiMessage(null), 4000);
+    } catch (e) {
+      setApiMessage('Create Public API key failed');
+      setTimeout(() => setApiMessage(null), 3000);
+    } finally {
+      setCreatingPublicKey(false);
     }
   };
 
@@ -539,6 +626,17 @@ const ProfilePage = () => {
     loadProfileAndMatches();
   }, [userData, isBackendAuthenticated]);
 
+  // Refresh API key list if we created a key via public button
+  useEffect(() => {
+    if (isBackendAuthenticated) {
+      try {
+        // If profile page loads, ensure API keys list is fresh (if the list exists later)
+        // (no-op if fetchApiKeys not present)
+        if (typeof fetchApiKeys === 'function') fetchApiKeys();
+      } catch (e) { /* ignore */ }
+    }
+  }, [isBackendAuthenticated]);
+
   // Auto-refresh when switching to overview tab
   useEffect(() => {
     if (activeTab === 'overview' && isBackendAuthenticated) {
@@ -638,20 +736,63 @@ const ProfilePage = () => {
               <span className="level-badge">Level {stats.level}</span>
             </div>
 
-            {/* Active API toggle (single button) */}
-            <div className="profile-api">
-              <span className={apiInfo.active ? 'api-active' : 'api-inactive'}>
-                {apiInfo.active ? 'API Active' : 'API Inactive'}
-              </span>
 
-              <button
-                className={`btn btn-api ${apiInfo.active ? 'active' : ''}`}
-                onClick={toggleApiActive}
-                aria-pressed={apiInfo.active}
-                title={apiInfo.active ? 'Deactivate API' : 'Activate API'}
-              >
-                {apiInfo.active ? 'Deactivate API' : 'Activate API'}
-              </button>
+            {/* Public API — window-style (collapsed shows only Get key) */}
+            <div className="profile-public-api window">
+              <div className="window-header">
+                <div className="title-left">
+                  <h4 style={{ margin: 0 }}>Public API</h4>
+                </div>
+                <div className="title-right">
+                  {!publicCreatedFullKey ? (
+                    <button className="btn btn-primary" onClick={revealOrCreatePublicKey} disabled={creatingPublicKey}>{creatingPublicKey ? 'Generating…' : 'Get key'}</button>
+                  ) : (
+                    <button className="btn" onClick={() => setPublicExpanded((s) => !s)}>{publicExpanded ? '✕' : 'Show'}</button>
+                  )}
+                </div>
+              </div>
+
+              {publicCreatedFullKey && publicExpanded && (
+                <div className="window-body">
+                  <div className="api-key-row">
+                    <code className="api-key">{publicCreatedFullKey}</code>
+                    <div className="api-actions">
+                      <button className="btn" onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(publicCreatedFullKey);
+                          setApiMessage('Public API key copied to clipboard');
+                          setPublicKeyCopied(true);
+                          setTimeout(() => setPublicKeyCopied(false), 1200);
+                          setTimeout(() => setApiMessage(null), 1500);
+                        } catch (e) {
+                          setApiMessage('Copy failed');
+                          setTimeout(() => setApiMessage(null), 1500);
+                        }
+                      }}>{publicKeyCopied ? 'Copied!' : 'Copy'}</button>
+
+                      <button className="btn btn-danger" onClick={() => setShowDeleteConfirm(true)}>Delete key</button>
+                    </div>
+                  </div>
+
+                  <div className="window-note">
+                    <div className="profile-public-api-desc">Public endpoints (no auth required when using an API key):</div>
+                    <ul className="profile-public-api-list">
+                      <li><strong>GET</strong> <code>/api/leaderboard/</code> <small>api_leaderboard</small></li>
+                      <li><strong>GET</strong> <code>/api/tournaments/</code> <small>api_tournaments_read</small></li>
+                      <li><strong>POST</strong> <code>/api/tournaments/</code> <small>api_tournaments_create</small></li>
+                      <li><strong>PUT</strong> <code>/api/tournaments/{'{id}'}/</code> <small>api_tournaments_update</small></li>
+                      <li><strong>DELETE</strong> <code>/api/tournaments/{'{id}'}/</code> <small>api_tournaments_delete</small></li>
+                    </ul>
+                  </div>
+
+                  {/* show created timestamp if present */}
+                  {publicCreatedDetails?.created_at && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Created: {new Date(publicCreatedDetails.created_at).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <button
@@ -659,6 +800,7 @@ const ProfilePage = () => {
               onClick={handleEditProfile}
               title={t('profile.edit_profile')}
             >
+
               <svg
                 className="edit-icon"
                 width="20"
@@ -675,6 +817,43 @@ const ProfilePage = () => {
               </svg>
             </button>
           </div>
+
+          {/* Delete confirmation modal for Public API key */}
+          {showDeleteConfirm && (
+            <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>Delete Public API key?</h2>
+                  <button className="modal-close" onClick={() => setShowDeleteConfirm(false)}>✕</button>
+                </div>
+                <div className="modal-body">
+                  <p>Are you sure you want to delete the generated Public API key? This action cannot be undone.</p>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+                  <button className="btn btn-danger" onClick={async () => {
+                    const id = userIdForCalls || userData?.userId || userData?.id;
+                    if (!id) return;
+                    const keyId = publicCreatedDetails?.id;
+                    try {
+                      if (keyId) await apiClient.revokeApiKey(keyId);
+                      try { sessionStorage.removeItem(`public_api_key_${id}`); } catch (e) { /* ignore */ }
+                      setPublicCreatedFullKey(null);
+                      setPublicCreatedDetails(null);
+                      setPublicExpanded(false);
+                      setShowDeleteConfirm(false);
+                      setApiMessage('Public API key deleted');
+                      setTimeout(() => setApiMessage(null), 2000);
+                    } catch (e) {
+                      setApiMessage('Delete failed');
+                      setTimeout(() => setApiMessage(null), 2000);
+                      setShowDeleteConfirm(false);
+                    }
+                  }}>Delete</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="profile-tabs">
             <button

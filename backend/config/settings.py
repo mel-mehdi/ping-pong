@@ -192,6 +192,7 @@ CSRF_TRUSTED_ORIGINS = [
 # Security Headers Configuration
 # Allow window.postMessage for OAuth and cross-origin communication
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"  # Allow postMessage for OAuth
+SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = "unsafe-none"  # Keep COEP permissive for dev tools and postMessage
 SECURE_REFERRER_POLICY = 'same-origin'
 
 # Additional security settings
