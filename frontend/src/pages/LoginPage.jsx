@@ -19,6 +19,7 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [googleInitialized, setGoogleInitialized] = useState(false);
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -28,6 +29,8 @@ const LoginPage = () => {
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleResponse,
       });
+      // mark initialization complete so prompt() is safe to call
+      setGoogleInitialized(true);
     }
   }, []);
 
@@ -188,7 +191,15 @@ const LoginPage = () => {
             <button
               className="gsi-material-button"
               type="button"
-              onClick={() => window.google?.accounts.id.prompt()}
+              onClick={() => {
+                if (googleInitialized && window.google) {
+                  window.google.accounts.id.prompt();
+                } else {
+                  console.warn('Google Sign-In not initialized yet.');
+                }
+              }}
+              disabled={!googleInitialized || loading}
+              title={!googleInitialized ? t('auth.google_not_ready') || 'Google Sign-In not ready' : ''}
             >
               <div className="gsi-material-button-content-wrapper">
                 <div className="gsi-material-button-icon">

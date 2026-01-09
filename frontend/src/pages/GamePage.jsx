@@ -493,59 +493,96 @@ const GamePage = () => {
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
+      // Throttle game state updates to ~60fps max
+      let lastUpdateTime = 0;
+      let pendingUpdate = null;
+      const MIN_UPDATE_INTERVAL = 16; // ~60fps
+
       socket.onopen = () => {
         // Connected to game server
       };
 
       socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+        // Defer ALL processing to avoid blocking the message handler
+        const rawData = event.data;
         
-        if (data.type === 'match_found') {
-          // Store player info
-          setPlayerRole(data.player_role);
-          setMyName(data.my_name);
-          setOpponentName(data.opponent_name);
-          
-          // For matchmaking, reconnect to specific room
-          if (mode === 'online' && !matchId) {
-            if (data.room_id !== currentRoomRef.current) {
-              socket.close();
-              connectToGame(data.room_id);
-              // Update socket reference in existing game if it exists
-              setTimeout(() => {
-                if (gameRef.current && socketRef.current) {
-                  gameRef.current.updateSocket(socketRef.current);
+        setTimeout(() => {
+          try {
+            const data = JSON.parse(rawData);
+            
+            if (data.type === 'match_found') {
+              // Store player info
+              setPlayerRole(data.player_role);
+              setMyName(data.my_name);
+              setOpponentName(data.opponent_name);
+              
+              // For matchmaking, reconnect to specific room
+              if (mode === 'online' && !matchId) {
+                if (data.room_id !== currentRoomRef.current) {
+                  socket.close();
+                  connectToGame(data.room_id);
+                  // Update socket reference in existing game if it exists
+                  setTimeout(() => {
+                    if (gameRef.current && socketRef.current) {
+                      gameRef.current.updateSocket(socketRef.current);
+                    }
+                  }, 500);
                 }
-              }, 500);
+              }
+              setIsMatchmaking(false);
+              setGameMessage(t('game.opponent_found') || 'Opponent Found! Starting...');
+              
+            } else if (data.type === 'update') {
+              // Throttle updates to avoid flooding the main thread
+              const now = performance.now();
+              
+              if (now - lastUpdateTime >= MIN_UPDATE_INTERVAL) {
+                // Process immediately if enough time has passed
+                if (gameRef.current) {
+                  gameRef.current.updateState(data.state);
+                }
+                lastUpdateTime = now;
+                pendingUpdate = null;
+              } else {
+                // Store the latest update and schedule it
+                pendingUpdate = data.state;
+                
+                if (!pendingUpdate.scheduled) {
+                  pendingUpdate.scheduled = true;
+                  const delay = MIN_UPDATE_INTERVAL - (now - lastUpdateTime);
+                  
+                  setTimeout(() => {
+                    if (pendingUpdate && gameRef.current) {
+                      gameRef.current.updateState(pendingUpdate);
+                      lastUpdateTime = performance.now();
+                      pendingUpdate = null;
+                    }
+                  }, delay);
+                }
+              }
+            } else if (data.type === 'countdown') {
+              setCountdown(data.count);
+              if (data.count > 0) {
+                 setGameMessage(`Starting in ${data.count}...`);
+                 setShowMessage(true);
+              } else {
+                 setGameMessage('GO!');
+                 setTimeout(() => {
+                   setCountdown(null);
+                   setShowMessage(false);
+                 }, 1000);
+              }
+            } else if (data.type === 'game_over') {
+              if (gameRef.current) {
+                const iAmWinner = data.winner === playerRole;
+                setDidIWin(iAmWinner);
+                gameRef.current.endGame(data.winner_name);
+              }
             }
+          } catch (err) {
+            // ignore malformed messages
           }
-          setIsMatchmaking(false);
-          setGameMessage(t('game.opponent_found') || 'Opponent Found! Starting...');
-          
-          // Game start is now handled by server countdown
-        } else if (data.type === 'update') {
-          if (gameRef.current) {
-            gameRef.current.updateState(data.state);
-          }
-        } else if (data.type === 'countdown') {
-          setCountdown(data.count);
-          if (data.count > 0) {
-             setGameMessage(`Starting in ${data.count}...`);
-             setShowMessage(true);
-          } else {
-             setGameMessage('GO!');
-             setTimeout(() => {
-               setCountdown(null);
-               setShowMessage(false);
-             }, 1000);
-          }
-        } else if (data.type === 'game_over') {
-          if (gameRef.current) {
-            const iAmWinner = data.winner === playerRole;
-            setDidIWin(iAmWinner);
-            gameRef.current.endGame(data.winner_name);
-          }
-        }
+        }, 0);
       };
 
       socket.onclose = () => {
@@ -638,6 +675,29 @@ const GamePage = () => {
         p2Name = t('game.player2');
       }
 
+      // Throttle score/status updates to once per animation frame to avoid flooding React's scheduler
+      let scoreFrameRequested = false;
+      let latestP1 = 0;
+      let latestP2 = 0;
+      const flushScores = () => {
+        setPlayer1Score(latestP1);
+        setPlayer2Score(latestP2);
+        scoreFrameRequested = false;
+      };
+
+      let statusFrameRequested = false;
+      let latestStatusMsg = null;
+      const flushStatus = () => {
+        if (latestStatusMsg) {
+          setGameMessage(latestStatusMsg);
+          setShowMessage(true);
+        } else {
+          setShowMessage(false);
+        }
+        statusFrameRequested = false;
+        latestStatusMsg = null;
+      };
+
       gameRef.current = new PongGame(canvasRef.current, {
         player1Name: p1Name,
         player2Name: p2Name,
@@ -649,8 +709,12 @@ const GamePage = () => {
           press_space: t('game.press_space'),
         },
         onScoreUpdate: (p1, p2) => {
-          setPlayer1Score(p1);
-          setPlayer2Score(p2);
+          latestP1 = p1;
+          latestP2 = p2;
+          if (!scoreFrameRequested) {
+            scoreFrameRequested = true;
+            requestAnimationFrame(flushScores);
+          }
         },
         onGameEnd: (winnerName) => {
           setWinner(winnerName);
@@ -660,11 +724,10 @@ const GamePage = () => {
           saveMatchResult(winnerName, gameRef.current.player1Score, gameRef.current.player2Score);
         },
         onStatusChange: (message) => {
-          if (message) {
-            setGameMessage(message);
-            setShowMessage(true);
-          } else {
-            setShowMessage(false);
+          latestStatusMsg = message;
+          if (!statusFrameRequested) {
+            statusFrameRequested = true;
+            requestAnimationFrame(flushStatus);
           }
         },
       });
