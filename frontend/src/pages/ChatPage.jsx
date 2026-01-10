@@ -36,13 +36,22 @@ const ChatPage = () => {
     }
 
     // Create WebSocket connection
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsProtocol = 'wss:'; // Force secure WebSocket
     const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${currentConversationId}/`;
     
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.debug('[WSS][Chat] open', wsUrl);
+    };
+
+    ws.onerror = (err) => {
+      console.debug('[WSS][Chat] error', err);
+    };
+
+    ws.onclose = (ev) => {
+      console.debug('[WSS][Chat] close', ev);
     };
 
     ws.onmessage = (event) => {

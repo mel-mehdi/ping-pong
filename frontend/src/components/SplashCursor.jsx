@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 function SplashCursor({
@@ -691,10 +691,27 @@ function SplashCursor({
     let colorUpdateTimer = 0.0;
 
     function updateFrame() {
-      // stop rendering when user is logged in or paused via prop
-      if (authRef.current || pausedRef.current) {
+      const now = performance.now();
+
+      // always keep looping so we can respond quickly to pause/unpause events
+      if (authRef.current) {
+        requestAnimationFrame(updateFrame);
         return;
       }
+
+      // When paused (e.g., typing or input focused), throttle rendering to a low rate
+      if (pausedRef.current) {
+        // throttle to ~10 FPS while paused to reduce CPU usage and avoid jank
+        if (!updateFrame._last || (now - updateFrame._last) >= 100) {
+          updateFrame._last = now;
+          const dt = calcDeltaTime();
+          // perform minimal maintenance (colors/timers) without full render
+          updateColors(dt);
+        }
+        requestAnimationFrame(updateFrame);
+        return;
+      }
+
       const dt = calcDeltaTime();
       if (resizeCanvas()) initFramebuffers();
       updateColors(dt);
@@ -1051,9 +1068,34 @@ function SplashCursor({
       }
     });
 
+    // Pause while input elements are focused to avoid jank while typing
+    function handleFocusIn(e) {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) {
+        pausedRef.current = true;
+      }
+    }
+    function handleFocusOut(e) {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) {
+        pausedRef.current = false;
+      }
+    }
+    window.addEventListener('focusin', handleFocusIn, true);
+    window.addEventListener('focusout', handleFocusOut, true);
+
     // expose a restarter so auth changes can resume the loop
     startRef.current = () => requestAnimationFrame(updateFrame);
     startRef.current();
+
+    // Cleanup listeners on unmount
+    const cleanup = () => {
+      window.removeEventListener('focusin', handleFocusIn, true);
+      window.removeEventListener('focusout', handleFocusOut, true);
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return cleanup; 
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -1098,4 +1140,4 @@ function SplashCursor({
   );
 }
 
-export default SplashCursor;
+export default React.memo(SplashCursor);

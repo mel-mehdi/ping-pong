@@ -487,7 +487,7 @@ const GamePage = () => {
 
     const connectToGame = (roomName) => {
       currentRoomRef.current = roomName;
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const protocol = 'wss:'; // Force secure WebSocket
       const wsUrl = `${protocol}//${window.location.host}/ws/game/${roomName}/`;
       
       const socket = new WebSocket(wsUrl);

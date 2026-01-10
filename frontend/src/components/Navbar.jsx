@@ -133,7 +133,7 @@ const Navbar = () => {
     useEffect(() => {
         if (!isAuthenticated || !userData?.userId || !isBackendAuthenticated) return;
 
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsProtocol = 'wss:'; // Force secure WebSocket
         const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications/`;
         
         let ws = null;
@@ -143,7 +143,15 @@ const Navbar = () => {
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                // WebSocket connected
+                console.debug('[WSS][Navbar] open', wsUrl);
+            };
+
+            ws.onerror = (err) => {
+                console.debug('[WSS][Navbar] error', err);
+            };
+
+            ws.onclose = (ev) => {
+                console.debug('[WSS][Navbar] close', ev);
             };
 
             ws.onmessage = (event) => {

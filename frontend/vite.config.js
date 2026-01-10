@@ -1,13 +1,29 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import fs from 'fs';
+
+const SSL_CERT_DIR = resolve(__dirname, '../nginx/ssl');
+
+function loadHttpsConfig() {
+  try {
+    return {
+      key: fs.readFileSync(resolve(SSL_CERT_DIR, 'nginx.key')),
+      cert: fs.readFileSync(resolve(SSL_CERT_DIR, 'nginx.crt')),
+    };
+  } catch (err) {
+    console.warn('⚠️ SSL certs not found at', SSL_CERT_DIR, '— falling back to https:true. Browsers will warn for self-signed certs.', err);
+    return true;
+  }
+}
 
 export default defineConfig({
   plugins: [react()],
   base: '/',
   server: {
-    port: Number(process.env.PORT) || 8000,
+    port: Number(process.env.PORT) || 5173,
     host: '0.0.0.0',
+    https: loadHttpsConfig(),
     open: false,
     strictPort: false,
     watch: {
@@ -31,7 +47,7 @@ export default defineConfig({
         // Point to the backend service inside Docker network so the dev server
         // running in the frontend container can reach the API directly.
         // Force Host header to 'localhost' so Django's ALLOWED_HOSTS check passes.
-        target: 'http://backend:8001',
+        target: 'https://backend:8001',
         // Keep the original Host header (so backend's ALLOWED_HOSTS will accept it)
         changeOrigin: false,
         secure: false,
@@ -44,7 +60,7 @@ export default defineConfig({
       },
       // Proxy WebSocket connections to backend
       '/ws': {
-        target: 'ws://backend:8001',
+        target: 'wss://backend:8001',
         ws: true,
         changeOrigin: false,
         secure: false,
