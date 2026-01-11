@@ -556,6 +556,32 @@
   opacity: 8%;
 }
 
+/* Spinner for Google prompt waiting state */
+.gsi-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  margin-left: 10px;
+  display: none;
+  vertical-align: middle;
+  animation: gsi-spin 0.9s linear infinite;
+}
+
+.gsi-material-button.loading .gsi-spinner {
+  display: inline-block;
+}
+
+.gsi-material-button.loading .gsi-material-button-icon {
+  opacity: 0.35;
+}
+
+@keyframes gsi-spin {
+  to { transform: rotate(360deg); }
+}
+
+
 /* Auth Divider */
 .auth-divider {
   text-align: center;

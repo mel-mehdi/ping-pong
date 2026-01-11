@@ -129,6 +129,7 @@
     "your_friends": "Vos amis",
     "no_results": "Aucun utilisateur trouvé",
     "no_friends": "Aucun ami trouvé. Ajoutez d'abord des amis !",
+    "no_friends_suggestion": "Essayez de chercher des joueurs ou invitez vos amis à rejoindre !",
     "sending": "Envoi...",
     "invite_sent": "Invitation envoyée !",
     "invite_failed": "Échec de l'envoi de l'invitation",

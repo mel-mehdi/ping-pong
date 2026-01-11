@@ -2,8 +2,9 @@ import { API_ENDPOINTS, HTTP_STATUS } from './constants';
 import logger from './logger';
 
 const { DJANGO_USER_BASE, DJANGO_API_BASE } = API_ENDPOINTS;
-// Use relative path so nginx can proxy requests appropriately
-const BACKEND_BASE = typeof window !== 'undefined' ? '' : '';
+// Use configurable backend origin via `VITE_BACKEND_ORIGIN`. Default to relative path
+// so nginx can proxy requests appropriately when not set.
+const BACKEND_BASE = typeof window !== 'undefined' ? (import.meta.env.VITE_BACKEND_ORIGIN || '') : ''; 
 
 class ApiClient {
   // Helper methods
@@ -170,6 +171,60 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+  }
+
+  // Get user by id
+  async getUserById(id) {
+    return this._safeRequest(`${DJANGO_USER_BASE}/users/${id}/`, {}, null);
+  }
+
+  // Upload avatar (multipart PATCH)
+  async uploadAvatar(userId, file) {
+    if (!userId) throw new Error('Missing user id');
+    if (!file) throw new Error('Missing file');
+
+    const endpoint = `${DJANGO_USER_BASE}/users/${userId}/`;
+    const url = this._buildUrl(endpoint);
+
+    // Ensure CSRF token is present; attempt to fetch a safe endpoint to set cookie if not
+    if (!this._getCSRFToken()) {
+      try {
+        // Include credentials so the browser accepts Set-Cookie headers
+        await fetch(this._buildUrl('/admin/login/'), { credentials: 'include' });
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Re-read CSRF token after the fetch attempt
+    const csrfToken = this._getCSRFToken();
+
+    const form = new FormData();
+    form.append('avatar', file);
+
+    // Build headers but let browser set Content-Type for multipart
+    const headers = this._buildHeaders(endpoint, { method: 'PATCH' });
+    if (headers['Content-Type']) delete headers['Content-Type'];
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      body: form,
+      headers,
+      credentials: 'include',
+    });
+
+    const data = await this._parseResponse(response);
+
+    if (!response.ok) {
+      const err = new Error((data && (data.error || data.detail)) || `HTTP ${response.status}: ${response.statusText}`);
+      err.status = response.status;
+      err.data = data;
+      if (response.status === HTTP_STATUS.UNAUTHORIZED || response.status === HTTP_STATUS.FORBIDDEN) err.isAuthError = true;
+      this._logError(endpoint, err, false);
+      throw err;
+    }
+
+    return data;
   }
 
   // Authentication

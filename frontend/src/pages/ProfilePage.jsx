@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import apiClient from '../utils/api';
 import { ACHIEVEMENTS } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,7 +8,7 @@ import '../styles/profile.css';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const ProfilePage = () => {
-  const { userData, login, updateUser, isBackendAuthenticated } = useAuth();
+  const { userData, login, updateUser, isBackendAuthenticated, logout } = useAuth();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -325,7 +325,11 @@ const ProfilePage = () => {
     setShowAvatarModal(true);
   };
 
+  // Ensure modal only opens when user clicks Edit — use a ref to mark user-triggered opens
+  const editTriggeredByUserRef = useRef(false);
+
   const handleEditProfile = () => {
+    editTriggeredByUserRef.current = true;
     setEditForm({
       username: userData?.username || '',
       fullname: userData?.fullname || '',
@@ -334,6 +338,19 @@ const ProfilePage = () => {
     });
     setShowEditModal(true);
   };
+
+  // If modal appears without a user-trigger (e.g., after a refresh), close it before paint
+  useLayoutEffect(() => {
+    if (showEditModal && !editTriggeredByUserRef.current) {
+      // Close synchronously before paint to avoid any visible flash
+      setShowEditModal(false);
+    }
+
+    // Reset the user-trigger marker when the modal closes so subsequent clicks work
+    if (!showEditModal) {
+      editTriggeredByUserRef.current = false;
+    }
+  }, [showEditModal]);
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -377,12 +394,35 @@ const ProfilePage = () => {
         return;
       }
 
+      // Immediately merge updated user into local state so UI reflects changes without refresh
+      try {
+        const mergedUser = { ...(userData || {}), ...(updated || {}) };
+        if (updateUser) updateUser(mergedUser);
+        else login(mergedUser);
+
+        // If we're viewing our own profile, update the profile.user optimistically
+        if (profile && profile.user && (profile.user.id === (updated.id || updated.userId))) {
+          setProfile(prev => ({ ...(prev || {}), user: { ...(prev.user || {}), ...(updated || {}) } }));
+        }
+      } catch (e) {
+        // ignore optimistic merge errors
+      }
+
       // If profile bio needs updating, update the profile object via profiles endpoint
       if (profile && profile.id && (editForm.bio !== undefined && editForm.bio !== profile.bio)) {
         try {
           await apiClient.updateProfile(profile.id, { bio: editForm.bio });
+
+          // Optimistically update local profile.bio so UI reflects change immediately
+          setProfile(prev => ({ ...(prev || {}), bio: editForm.bio }));
         } catch (e) {
           console.error('Failed updating profile bio', e);
+          if (e?.status === 403) {
+            setApiMessage('Session expired. You have been logged out.');
+            setTimeout(() => setApiMessage(null), 3000);
+            if (logout) logout();
+            return;
+          }
           setApiMessage('Failed to update profile bio');
           setTimeout(() => setApiMessage(null), 3000);
         }
@@ -419,6 +459,15 @@ const ProfilePage = () => {
       setTimeout(() => setApiMessage(null), 2500);
     } catch (error) {
       console.error('Save profile failed', error);
+      // If server forbids access, log the user out and notify
+      if (error?.status === 403) {
+        setApiMessage('Session expired. You have been logged out.');
+        setTimeout(() => setApiMessage(null), 3500);
+        if (logout) logout();
+        setShowEditModal(false);
+        setSaving(false);
+        return;
+      }
       setApiMessage('Error saving profile');
       setTimeout(() => setApiMessage(null), 3500);
     } finally {
@@ -539,8 +588,22 @@ const ProfilePage = () => {
       setSelectedFile(null);
       setPreviewUrl(null);
     } catch (error) {
-      setApiMessage('Error uploading avatar');
-      setTimeout(() => setApiMessage(null), 3000);
+      if (error?.status === 403) {
+        setApiMessage('Session expired. You have been logged out.');
+        setTimeout(() => setApiMessage(null), 3000);
+        if (logout) logout();
+        setShowAvatarModal(false);
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setUploading(false);
+        return;
+      }
+
+      // Show detailed server error if available
+      const detail = (error && (error.detail || (error.data && (error.data.error || error.data.avatar || error.data.detail)))) || null;
+      const message = detail ? `Upload failed: ${Array.isArray(detail) ? detail.join(' ') : detail}` : 'Error uploading avatar';
+      setApiMessage(message);
+      setTimeout(() => setApiMessage(null), 4000);
     } finally {
       setUploading(false);
     }

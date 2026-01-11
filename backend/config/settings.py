@@ -23,7 +23,7 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'nginx', 'django']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'nginx', 'django', 'backend']
 
 
 # Application definition
@@ -171,6 +171,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://localhost:5173",
     "https://localhost:5173",
     "https://localhost:8001",
+    "https://backend:8001",
     "https://accounts.google.com",
     "https://oauth2.googleapis.com",
 ]
@@ -181,6 +182,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://localhost",
     'https://localhost:5173',
     'https://localhost:8001',
+    'https://backend:8001',
     "https://accounts.google.com",
 ]
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { validateRequired } from '../utils/validation';
@@ -20,6 +20,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [googleInitialized, setGoogleInitialized] = useState(false);
+  const [googlePrompting, setGooglePrompting] = useState(false);
+  const promptTimeoutRef = useRef(null);
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -27,11 +29,19 @@ const LoginPage = () => {
     if (window.google && GOOGLE_CLIENT_ID) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
+        callback: (resp) => {
+          // Ensure any pending prompt loading state is cleared when a credential arrives
+          setGooglePrompting(false);
+          handleGoogleResponse(resp);
+        },
       });
       // mark initialization complete so prompt() is safe to call
       setGoogleInitialized(true);
     }
+
+    return () => {
+      if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+    };
   }, []);
 
   const handleGoogleResponse = async (response) => {
@@ -189,16 +199,22 @@ const LoginPage = () => {
             </div>
 
             <button
-              className="gsi-material-button"
+              className={`gsi-material-button ${googlePrompting ? 'loading' : ''}`}
               type="button"
               onClick={() => {
-                if (googleInitialized && window.google) {
+                if (googleInitialized && window.google && !googlePrompting) {
+                  // show spinner while the Google prompt/UI appears
+                  setGooglePrompting(true);
+                  // Fallback: clear spinner after timeout if nothing happens
+                  if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+                  promptTimeoutRef.current = setTimeout(() => setGooglePrompting(false), 8000);
+
                   window.google.accounts.id.prompt();
                 } else {
                   console.warn('Google Sign-In not initialized yet.');
                 }
               }}
-              disabled={!googleInitialized || loading}
+              disabled={!googleInitialized || loading || googlePrompting}
               title={!googleInitialized ? t('auth.google_not_ready') || 'Google Sign-In not ready' : ''}
             >
               <div className="gsi-material-button-content-wrapper">
@@ -231,6 +247,8 @@ const LoginPage = () => {
                 <span className="gsi-material-button-contents">
                   {t('auth.sign_in_with_google')}
                 </span>
+                {/* Spinner shown while waiting for Google prompt */}
+                <span className="gsi-spinner" aria-hidden={!googlePrompting} style={{ display: googlePrompting ? 'inline-block' : 'none' }}></span>
               </div>
             </button>
           </form>

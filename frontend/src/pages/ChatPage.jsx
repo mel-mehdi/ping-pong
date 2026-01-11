@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
+import { buildWsUrl, wsLog } from '../utils/wss';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/chat.css';
@@ -36,27 +37,27 @@ const ChatPage = () => {
     }
 
     // Create WebSocket connection
-    const wsProtocol = 'wss:'; // Force secure WebSocket
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${currentConversationId}/`;
+    const wsUrl = buildWsUrl(`/ws/chat/${currentConversationId}/`);
     
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.debug('[WSS][Chat] open', wsUrl);
+      wsLog('[WSS][Chat] open', wsUrl);
     };
 
     ws.onerror = (err) => {
-      console.debug('[WSS][Chat] error', err);
+      wsLog('[WSS][Chat] error', err);
     };
 
     ws.onclose = (ev) => {
-      console.debug('[WSS][Chat] close', ev);
+      wsLog('[WSS][Chat] close', ev);
     };
 
     ws.onmessage = (event) => {
       // Defer processing to avoid blocking the main thread
       const processMessage = () => {
+        const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
         try {
           const data = JSON.parse(event.data);
           
@@ -84,6 +85,8 @@ const ChatPage = () => {
         } catch (err) {
           // Failed to parse WebSocket message
         }
+        const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+        if (typeof wsLog !== 'undefined' && (t1 - t0) > 50) wsLog('[WSS][Chat] processMessage took', (t1 - t0).toFixed(1), 'ms');
       };
       
       // Use requestIdleCallback or setTimeout to defer heavy work
@@ -316,7 +319,7 @@ const ChatPage = () => {
                     {conversations.map((conv) => (
                       <div
                         key={conv.id}
-                        className={`chat-user-item ${selectedChatId === conv.id ? 'active' : ''}`}
+                        className={`chat-user-item ${selectedChat?.id === conv.id ? 'active' : ''}`}
                         onClick={() => setSelectedChat(conv)}
                       >
                         <div className="chat-user-avatar">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -31,26 +31,29 @@ const RegisterPage = () => {
   const [isTyping, setIsTyping] = useState(false);
   const { t } = useLanguage();
 
+  const [googleInitialized, setGoogleInitialized] = useState(false);
+  const [googlePrompting, setGooglePrompting] = useState(false);
+  const promptTimeoutRef = useRef(null);
+
   useEffect(() => {
-    // Initialize Google Sign-In
+    // Initialize Google Sign-In (do not render the default button; use our custom button)
     if (window.google && GOOGLE_CLIENT_ID) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
+        callback: (resp) => {
+          // clear prompting state when credential arrives
+          setGooglePrompting(false);
+          handleGoogleResponse(resp);
+        },
       });
 
-      window.google.accounts.id.renderButton(
-        document.getElementById('google-signup-button'),
-        { 
-          theme: 'outline', 
-          size: 'large', 
-          width: document.getElementById('google-signup-button')?.offsetWidth || 400,
-          text: 'signup_with',
-          shape: 'rectangular',
-          logo_alignment: 'left'
-        }
-      );
+      // Mark initialization complete so we can safely call prompt from our custom button
+      setGoogleInitialized(true);
     }
+
+    return () => {
+      if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+    };
   }, []);
 
   const handleGoogleResponse = async (response) => {
@@ -293,15 +296,29 @@ const RegisterPage = () => {
               <span>{t('auth.or')}</span>
             </div>
 
+            {/* Keep the placeholder for Google's renderButton for compatibility, but the UI will show our custom button */}
             <div
               id="google-signup-button"
               className="google-signin-container"
+              style={{ display: 'none' }}
             ></div>
+
             <button
-              className="gsi-material-button"
+              className={`gsi-material-button ${googlePrompting ? 'loading' : ''}`}
               type="button"
               id="manual-google-signup-button"
-              style={{ display: 'none' }}
+              onClick={() => {
+                if (googleInitialized && window.google && !googlePrompting) {
+                  setGooglePrompting(true);
+                  if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+                  promptTimeoutRef.current = setTimeout(() => setGooglePrompting(false), 8000);
+                  window.google.accounts.id.prompt();
+                } else {
+                  console.warn('Google Sign-In not initialized yet.');
+                }
+              }}
+              disabled={!googleInitialized || loading || googlePrompting}
+              title={!googleInitialized ? t('auth.google_not_ready') || 'Google Sign-In not ready' : ''}
             >
               <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">
@@ -334,6 +351,7 @@ const RegisterPage = () => {
                 <span className="gsi-material-button-contents">
                   {t('auth.sign_in_with_google')}
                 </span>
+                <span className="gsi-spinner" aria-hidden={!googlePrompting} style={{ display: googlePrompting ? 'inline-block' : 'none' }}></span>
               </div>
             </button>
           </form>

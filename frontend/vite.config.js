@@ -47,7 +47,7 @@ export default defineConfig({
         // Point to the backend service inside Docker network so the dev server
         // running in the frontend container can reach the API directly.
         // Force Host header to 'localhost' so Django's ALLOWED_HOSTS check passes.
-        target: 'https://backend:8001',
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
         // Keep the original Host header (so backend's ALLOWED_HOSTS will accept it)
         changeOrigin: false,
         secure: false,
@@ -60,7 +60,7 @@ export default defineConfig({
       },
       // Proxy WebSocket connections to backend
       '/ws': {
-        target: 'wss://backend:8001',
+        target: process.env.VITE_DEV_WS_TARGET || 'wss://backend:8001',
         ws: true,
         changeOrigin: false,
         secure: false,

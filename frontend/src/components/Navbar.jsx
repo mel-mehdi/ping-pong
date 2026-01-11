@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
 import apiClient from '../utils/api';
+import { buildWsUrl, wsLog } from '../utils/wss';
 
 const Navbar = () => {
     const { isAuthenticated, isBackendAuthenticated, userData, logout } = useAuth();
@@ -62,15 +63,33 @@ const Navbar = () => {
                     id: req.id,
                     senderId: req.from_user?.id,
                     fromName: req.from_user?.username || req.from_user?.fullname || 'Unknown',
-                    type: 'friend_request'
+                    type: 'friend_request',
+                    backendType: 'friendship'
                 })),
                 ...(gameInvites || []).map(inv => ({
                     id: inv.id,
                     senderId: inv.sender?.id,
                     fromName: inv.sender?.username || inv.sender?.fullname || 'Unknown',
-                    type: 'game_invite'
+                    type: 'game_invite',
+                    backendType: 'game_invitation'
                 }))
             ];
+
+            // Debug: warn if ids collide across types which could confuse UI
+            try {
+              const idMap = {};
+              allNotifications.forEach(n => {
+                const key = `${n.id}`;
+                if (!idMap[key]) idMap[key] = new Set();
+                idMap[key].add(n.type);
+              });
+              Object.entries(idMap).forEach(([k, set]) => {
+                if (set.size > 1) {
+                  // eslint-disable-next-line no-console
+                  console.warn('[NOTIF] id collision across types for id', k, Array.from(set));
+                }
+              });
+            } catch (e) { /* ignore */ }
             
             setNotifications(allNotifications);
         } catch (err) {
@@ -133,8 +152,7 @@ const Navbar = () => {
     useEffect(() => {
         if (!isAuthenticated || !userData?.userId || !isBackendAuthenticated) return;
 
-        const wsProtocol = 'wss:'; // Force secure WebSocket
-        const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications/`;
+        const wsUrl = buildWsUrl('/ws/notifications/');
         
         let ws = null;
         let isClosed = false;
@@ -143,25 +161,28 @@ const Navbar = () => {
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                console.debug('[WSS][Navbar] open', wsUrl);
+                wsLog('[WSS][Navbar] open', wsUrl);
             };
 
             ws.onerror = (err) => {
-                console.debug('[WSS][Navbar] error', err);
+                wsLog('[WSS][Navbar] error', err);
             };
 
             ws.onclose = (ev) => {
-                console.debug('[WSS][Navbar] close', ev);
+                wsLog('[WSS][Navbar] close', ev);
             };
 
             ws.onmessage = (event) => {
                 // Defer processing to avoid blocking the main thread
                 const processMessage = () => {
+                    const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
                     try {
                         const data = JSON.parse(event.data);
                         
                         if (data.type === 'game_invite_accepted') {
                             navigate('/game?mode=online');
+                            const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+                            if (typeof wsLog !== 'undefined' && (t1 - t0) > 50) wsLog('[WSS][Navbar] processMessage took', (t1 - t0).toFixed(1), 'ms');
                             return;
                         }
 
@@ -175,14 +196,16 @@ const Navbar = () => {
                                     id: notif.game_invitation.id,
                                     senderId: notif.related_user?.id,
                                     fromName: notif.related_user?.username || 'Unknown',
-                                    type: 'game_invite'
+                                    type: 'game_invite',
+                                    backendType: 'game_invitation'
                                 };
                             } else if (notif.friend_request_id || notif.type === 'friend_request_received') {
                                 newNotif = {
                                     id: notif.friend_request_id || notif.id,
                                     senderId: notif.related_user?.id,
                                     fromName: notif.related_user?.username || notif.from_user || 'Unknown',
-                                    type: 'friend_request'
+                                    type: 'friend_request',
+                                    backendType: 'friendship'
                                 };
                             } else if (notif.type === 'friend_request_accepted') {
                                 // Friend request accepted - reload friendships to update UI
@@ -217,6 +240,8 @@ const Navbar = () => {
                     } catch (err) {
                         // Error processing notification
                     }
+                    const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+                    if (typeof wsLog !== 'undefined' && (t1 - t0) > 50) wsLog('[WSS][Navbar] processMessage took', (t1 - t0).toFixed(1), 'ms');
                 };
                 
                 // Use requestIdleCallback to defer processing, or setTimeout as fallback
@@ -342,24 +367,38 @@ const Navbar = () => {
     };
 
     const handleAcceptRequest = async (notification) => {
+        // Debug log for investigation
+        // eslint-disable-next-line no-console
+        console.debug('[NOTIF] accept clicked', notification);
+
         if (!isBackendAuthenticated) return;
         
         try {
-            if (notification.type === 'game_invite') {
-                await apiClient.respondToInvitation(notification.id, 'accepted');
-                setShowNotifications(false);
-                navigate('/game?mode=online');
-            } else if (notification.type === 'friend_request') {
+            // Prefer the explicit backendType when branching (safer against naming mismatches)
+            if (notification.backendType === 'game_invitation' || notification.type === 'game_invite') {
+                const res = await apiClient.respondToInvitation(notification.id, 'accepted');
+                // Only navigate after the server confirms acceptance
+                if (res) {
+                    setShowNotifications(false);
+                    navigate('/game?mode=online');
+                }
+            } else if (notification.backendType === 'friendship' || notification.type === 'friend_request') {
                 await apiClient.acceptFriendRequest(notification.id);
                 // Trigger event to refresh friends list in chat
                 window.dispatchEvent(new Event('friendAccepted'));
                 // Reload friendships to update state (move from pending to friends)
                 await loadFriendships();
+            } else {
+                // Unknown notification type - don't take action
+                // eslint-disable-next-line no-console
+                console.warn('[NOTIF] unknown accept type', notification);
             }
             
             loadNotifications();
         } catch (err) {
             // Error accepting request
+            // eslint-disable-next-line no-console
+            console.error('[NOTIF] accept failed', err, notification);
         }
     };
 
@@ -476,7 +515,7 @@ const Navbar = () => {
                                     <input
                                         ref={searchInputRef}
                                         type="text"
-                                        className={`nav-search-input ${searchExpanded ? 'expanded' : ''}`}
+                                        className={`nav-search-input small ${searchExpanded ? 'expanded' : ''}`}
                                         placeholder={t('search.placeholder')}
                                         value={searchQuery}
                                         onChange={(e) => handleSearch(e.target.value)}

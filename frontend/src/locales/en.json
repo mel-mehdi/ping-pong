@@ -131,6 +131,7 @@
     "your_friends": "Your Friends",
     "no_results": "No users found",
     "no_friends": "No friends found. Add some friends first!",
+    "no_friends_suggestion": "Try searching players or invite your friends to join!",
     "sending": "Sending...",
     "invite_sent": "Invitation sent!",
     "invite_failed": "Failed to send invitation",

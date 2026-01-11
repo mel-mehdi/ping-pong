@@ -571,6 +571,19 @@ body {
   pointer-events: auto;
 }
 
+/* Compact variant for navbar search */
+.nav-search-input.small {
+  width: 140px;
+  padding: 0.45rem 2.25rem 0.45rem 0.8rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+}
+
+.nav-search-input-wrapper.search-expanded .nav-search-input.small {
+  transform: scaleX(1);
+  opacity: 1;
+  pointer-events: auto;
+}
 .nav-search-input::placeholder {
   color: var(--text-muted);
 }
