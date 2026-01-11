@@ -5,7 +5,7 @@ services:
     image: postgres:18-alpine
     container_name: postgres
     env_file:
-      - backend/.env
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     restart: unless-stopped
@@ -41,7 +41,7 @@ services:
     image: prometheuscommunity/postgres-exporter
     container_name: postgres_exporter
     env_file:
-      - backend/.env
+      - .env
     environment:
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?sslmode=disable"
     networks:
@@ -72,14 +72,14 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     env_file:
-      - backend/.env
+      - .env
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./devops/grafana/provisioning:/etc/grafana/provisioning
     ports:
       - "3001:3000"
     networks:
@@ -123,9 +123,9 @@ services:
     image: postgres:18-alpine
     container_name: backup
     env_file:
-      - backend/.env
+      - .env
     volumes:
-      - ./scripts/backup.sh:/backup.sh:ro
+      - ./devops/scripts/backup.sh:/backup.sh:ro
       - ./backups:/backups
       - /etc/localtime:/etc/localtime:ro
     entrypoint: ["/bin/sh"]
@@ -162,7 +162,7 @@ services:
       - ./backend:/app
       - django_static:/app/staticfiles
     env_file:
-      - backend/.env
+      - .env
     depends_on:
       - database
       - redis

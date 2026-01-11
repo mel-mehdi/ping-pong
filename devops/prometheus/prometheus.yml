@@ -29,16 +29,6 @@ scrape_configs:
         target_label: instance
         replacement: 'backend'
 
-  # frontend
-  - job_name: 'frontend'
-    metrics_path: '/metrics'
-    static_configs:
-      - targets: ['frontend:8000']
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
-        replacement: 'frontend'
-
   # database metrics
   - job_name: 'postgres'
     static_configs:

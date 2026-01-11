@@ -43,6 +43,14 @@ fclean: clean
 	rm -rf nginx/ssl
 	@echo "🗑️  Removing media files..."
 	rm -rf backend/media/*
+	@echo "🗑️  Removing migration files..."
+	find backend/*/migrations -name "*_initial.py" -type f -delete 2>/dev/null || true
+	@echo "🗑️  Removing staticfiles..."
+	rm -rf backend/staticfiles
+	@echo "🗑️  Removing backups..."
+	rm -rf backups
+	@echo "🗑️  Removing auto-created folders..."
+	rm -rf grafana scripts status-page frontend/node_modules
 
 re: clean all
 
