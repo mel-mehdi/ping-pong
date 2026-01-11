@@ -68,6 +68,8 @@ urlpatterns = [
     # API Documentation
     path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='api-docs'),
     path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='api-redoc'),
+    # Prometheus Metrics
+    path('', include('django_prometheus.urls')),
 ]
 
 # Serve media files in development
