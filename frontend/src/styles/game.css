@@ -328,7 +328,8 @@
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   background: #000;
-}
+  --game-scale: 1; /* default scale for small screens (updated from JS) */
+} 
 
 .game-arena-pro canvas {
   display: block;
@@ -373,10 +374,10 @@
 }
 
 .winner-title-pro {
-  font-size: 2.5rem;
+  font-size: calc(2.25rem * var(--game-scale, 1));
   font-weight: 700;
   color: white;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -735,6 +736,35 @@
 
   .score-label {
     font-size: 0.75rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .game-canvas-wrapper {
+    max-height: calc(100vh - 140px);
+    overflow: hidden;
+  }
+
+  .game-header-pro {
+    padding: 0.75rem;
+  }
+
+  .game-start-pro,
+  .game-result-pro {
+    padding: 1rem;
+  }
+
+  .start-icon-pro {
+    font-size: 2.5rem;
+  }
+
+  .winner-trophy-pro {
+    font-size: 3rem;
+  }
+
+  .game-message {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
   }
 }
 

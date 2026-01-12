@@ -7,6 +7,12 @@ const { DJANGO_USER_BASE, DJANGO_API_BASE } = API_ENDPOINTS;
 const BACKEND_BASE = typeof window !== 'undefined' ? (import.meta.env.VITE_BACKEND_ORIGIN || '') : ''; 
 
 class ApiClient {
+  constructor() {
+    // Track in-flight GET requests to avoid duplicate network calls
+    // (useful during React StrictMode double-invocation in development).
+    this._inFlight = new Map();
+  }
+
   // Helper methods
   _getAuthToken() {
     try {
@@ -98,40 +104,59 @@ class ApiClient {
 
   async request(endpoint, options = {}) {
     const quiet = options.quiet === true;
-    
-    try {
-      const url = this._buildUrl(endpoint);
-      const headers = this._buildHeaders(endpoint, options);
+    const method = (options.method || 'GET').toUpperCase();
 
-      const config = {
-        ...options,
-        credentials: 'include',
-        headers,
-      };
+    // Dedupe in-flight GET requests unless caller sets `forceRefresh: true`
+    const shouldDedupe = method === 'GET' && !options.forceRefresh;
+    const cacheKey = shouldDedupe ? `${method}:${endpoint}` : null;
 
-      const response = await fetch(url, config);
-      const data = await this._parseResponse(response);
-
-      if (!response.ok) {
-        const err = new Error(
-          (data && (data.error || data.detail)) || 
-          `HTTP ${response.status}: ${response.statusText}`
-        );
-        err.status = response.status;
-        err.detail = data?.detail;
-        err.data = data;
-        if (response.status === HTTP_STATUS.UNAUTHORIZED || 
-            response.status === HTTP_STATUS.FORBIDDEN) {
-          err.isAuthError = true;
-        }
-        throw err;
-      }
-
-      return data;
-    } catch (error) {
-      this._logError(endpoint, error, quiet);
-      throw error;
+    if (shouldDedupe && this._inFlight.has(cacheKey)) {
+      return this._inFlight.get(cacheKey);
     }
+
+    const run = (async () => {
+      try {
+        const url = this._buildUrl(endpoint);
+        const headers = this._buildHeaders(endpoint, options);
+
+        const config = {
+          ...options,
+          credentials: 'include',
+          headers,
+        };
+
+        const response = await fetch(url, config);
+        const data = await this._parseResponse(response);
+
+        if (!response.ok) {
+          const err = new Error(
+            (data && (data.error || data.detail)) || 
+            `HTTP ${response.status}: ${response.statusText}`
+          );
+          err.status = response.status;
+          err.detail = data?.detail;
+          err.data = data;
+          if (response.status === HTTP_STATUS.UNAUTHORIZED || 
+              response.status === HTTP_STATUS.FORBIDDEN) {
+            err.isAuthError = true;
+          }
+          throw err;
+        }
+
+        return data;
+      } catch (error) {
+        this._logError(endpoint, error, quiet);
+        throw error;
+      } finally {
+        if (shouldDedupe) this._inFlight.delete(cacheKey);
+      }
+    })();
+
+    if (shouldDedupe) {
+      this._inFlight.set(cacheKey, run);
+    }
+
+    return run;
   }
 
   async _safeRequest(endpoint, options = {}, fallback = []) {

@@ -86,42 +86,48 @@ class PongGame {
   }
 
   setupCanvasDimensions(fullscreen = false) {
-    // If fullscreen requested, use exact window inner size (no margins)
-    if (fullscreen) {
-      const canvasWidth = window.innerWidth;
-      const canvasHeight = window.innerHeight;
-      this.CANVAS_WIDTH = Math.floor(canvasWidth);
-      this.CANVAS_HEIGHT = Math.floor(canvasHeight);
-    } else {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const availableHeight = viewportHeight - 240;
-      const availableWidth = viewportWidth - 60;
-      const aspectRatio = 1.6;
+    const ASPECT = 1.6;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-      let canvasWidth = availableWidth;
-      let canvasHeight = canvasWidth / aspectRatio;
+    const maxW = fullscreen ? vw : Math.max(320, vw - 40);
+    const maxH = fullscreen ? vh : Math.max(300, vh - 160);
 
-      if (canvasHeight > availableHeight) {
-        canvasHeight = availableHeight;
-        canvasWidth = canvasHeight * aspectRatio;
-      }
-
-      this.CANVAS_WIDTH = Math.floor(canvasWidth);
-      this.CANVAS_HEIGHT = Math.floor(canvasHeight);
+    let cw = maxW;
+    let ch = Math.floor(cw / ASPECT);
+    if (ch > maxH) {
+      ch = maxH;
+      cw = Math.floor(ch * ASPECT);
     }
 
-    // element sizes derived from final canvas dimensions
-    this.PADDLE_WIDTH = Math.floor(this.CANVAS_WIDTH * 0.012);
-    this.PADDLE_HEIGHT = Math.floor(this.CANVAS_HEIGHT * 0.2);
-    this.PADDLE_SPEED = this.CANVAS_HEIGHT * 0.016;
-    this.BALL_SIZE = Math.floor(this.CANVAS_HEIGHT * 0.025);
-    this.BALL_SPEED = this.CANVAS_WIDTH * 0.0075;
+    // enforce minimums
+    cw = Math.max(320, cw);
+    ch = Math.max(300, ch);
+
+    this.CANVAS_WIDTH = Math.floor(cw);
+    this.CANVAS_HEIGHT = Math.floor(ch);
+
+    // compact size calculations with sensible minima
+    this.PADDLE_WIDTH = Math.max(8, Math.round(this.CANVAS_WIDTH * 0.012));
+    this.PADDLE_HEIGHT = Math.max(28, Math.round(this.CANVAS_HEIGHT * 0.18));
+    this.PADDLE_SPEED = Math.max(4, this.CANVAS_HEIGHT * 0.016);
+    this.BALL_SIZE = Math.max(6, Math.round(this.CANVAS_HEIGHT * 0.025));
+    this.BALL_SPEED = Math.max(1, this.CANVAS_WIDTH * 0.0075);
     this.WINNING_SCORE = 5;
     this.MAX_BALL_SPEED = this.BALL_SPEED * 2;
 
-    this.canvas.width = this.CANVAS_WIDTH;
-    this.canvas.height = this.CANVAS_HEIGHT;
+    if (this.canvas) {
+      this.canvas.width = this.CANVAS_WIDTH;
+      this.canvas.height = this.CANVAS_HEIGHT;
+      this.canvas.style.maxWidth = '100%';
+      this.canvas.style.height = 'auto';
+      this.canvas.style.display = 'block';
+
+      // expose a scale var for small-screen tweaks (used by CSS)
+      const parent = this.canvas.parentElement || document.documentElement;
+      const scale = Math.min(1, this.CANVAS_HEIGHT / 600);
+      parent.style.setProperty('--game-scale', scale.toFixed(3));
+    }
   }
 
   handleResize() {

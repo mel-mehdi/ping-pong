@@ -60,7 +60,7 @@ status:
 
 users:
 	@echo "👥 Creating test users..."
-	@NUM=$${NUM:-4}; \
+	@NUM=$${NUM:-8}; \
 	PASS=$${PASS:-testpass123}; \
 	echo "   Number of users: $$NUM"; \
 	echo "   Password: $$PASS"; \
