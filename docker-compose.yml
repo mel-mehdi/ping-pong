@@ -52,6 +52,7 @@ services:
     environment:
       - PORT=5173
       - VITE_BACKEND_ORIGIN=
+      - VITE_WS_ORIGIN=wss://backend:8001
       - VITE_DEV_BACKEND_TARGET=https://backend:8001
       - VITE_DEV_WS_TARGET=wss://backend:8001
       - VITE_DEBUG_WS=0

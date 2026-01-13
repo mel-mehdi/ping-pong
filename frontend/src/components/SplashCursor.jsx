@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 
 function SplashCursor({
   SIM_RESOLUTION = 128,
-  DYE_RESOLUTION = 1440,
+  // Lowered default from 1440 -> 720 to reduce GPU/CPU work on high-res screens
+  DYE_RESOLUTION = 720,
   CAPTURE_RESOLUTION = 512,
   DENSITY_DISSIPATION = 3.5,
   VELOCITY_DISSIPATION = 2,
@@ -687,7 +688,8 @@ function SplashCursor({
 
     updateKeywords();
     initFramebuffers();
-    let lastUpdateTime = Date.now();
+    // Use high-resolution timestamps for more accurate delta computation
+    let lastUpdateTime = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     let colorUpdateTimer = 0.0;
 
     function updateFrame() {
@@ -748,7 +750,7 @@ function SplashCursor({
     }
 
     function calcDeltaTime() {
-      let now = Date.now();
+      let now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
       let dt = (now - lastUpdateTime) / 1000;
       dt = Math.min(dt, 0.016666);
       lastUpdateTime = now;
@@ -846,7 +848,12 @@ function SplashCursor({
       pressureProgram.bind();
       gl.uniform2f(pressureProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
       gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence.attach(0));
-      for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+      // If the previous frame was slow, reduce the number of pressure iterations to save time
+      let pressureIterations = config.PRESSURE_ITERATIONS;
+      if (updateFrame._lastFrameDuration && updateFrame._lastFrameDuration > 30) {
+        pressureIterations = Math.max(4, Math.floor(pressureIterations / 2));
+      }
+      for (let i = 0; i < pressureIterations; i++) {
         gl.uniform1i(pressureProgram.uniforms.uPressure, pressure.read.attach(1));
         blit(pressure.write);
         pressure.swap();
@@ -1041,7 +1048,9 @@ function SplashCursor({
     }
 
     function scaleByPixelRatio(input) {
-      const pixelRatio = window.devicePixelRatio || 1;
+      const raw = window.devicePixelRatio || 1;
+      // Cap pixel ratio to avoid creating enormous canvases on high-DPI devices
+      const pixelRatio = Math.min(raw, 1.5);
       return Math.floor(input * pixelRatio);
     }
 

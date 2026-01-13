@@ -70,6 +70,39 @@ export default defineConfig({
         changeOrigin: false,
         secure: false,
       },
+
+      // Proxy top-level user management endpoints (friendships, profiles, notifications, achievements)
+      '/friendships': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+
+      '/profiles': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+
+      '/notifications': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+
+      '/achievements': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+
+      // Proxy chat endpoints to backend in dev so `/chat/...` requests hit Django
+      '/chat': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+
       '/admin': {
         target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
         changeOrigin: false,

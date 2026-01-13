@@ -5,6 +5,7 @@ import '../styles/game.css';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiClient from '../utils/api';
+import { buildWsUrl } from '../utils/wss';
 
 class PongGame {
   constructor(canvas, options = {}) {
@@ -493,8 +494,7 @@ const GamePage = () => {
 
     const connectToGame = (roomName) => {
       currentRoomRef.current = roomName;
-      const protocol = 'wss:'; // Force secure WebSocket
-      const wsUrl = `${protocol}//${window.location.host}/ws/game/${roomName}/`;
+      const wsUrl = buildWsUrl(`/ws/game/${roomName}/`);
       
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
