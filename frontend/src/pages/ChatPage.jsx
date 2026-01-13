@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
+import { buildWsUrl, wsLog } from '../utils/wss';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/chat.css';
@@ -36,47 +37,63 @@ const ChatPage = () => {
     }
 
     // Create WebSocket connection
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${currentConversationId}/`;
+    const wsUrl = buildWsUrl(`/ws/chat/${currentConversationId}/`);
     
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      wsLog('[WSS][Chat] open', wsUrl);
+    };
+
+    ws.onerror = (err) => {
+      wsLog('[WSS][Chat] error', err);
+    };
+
+    ws.onclose = (ev) => {
+      wsLog('[WSS][Chat] close', ev);
     };
 
     ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'chat_message' && data.message) {
-          const newMsg = {
-            id: data.message.id || Date.now(),
-            sender: data.message.sender?.username || data.message.sender_name || 'Unknown',
-            text: data.message.content || data.message.text || '',
-            time: new Date(data.message.created_at || Date.now()).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            }),
-            isOwn: data.message.sender?.id === userData.userId || data.message.sender_id === userData.userId,
-            created_at: data.message.created_at || new Date().toISOString(),
-          };
+      // Defer processing to avoid blocking the main thread
+      const processMessage = () => {
+        const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+        try {
+          const data = JSON.parse(event.data);
           
-          setMessages(prev => {
-            // Avoid duplicates
-            if (prev.some(m => m.id === newMsg.id)) return prev;
+          if (data.type === 'chat_message' && data.message) {
+            const newMsg = {
+              id: data.message.id || Date.now(),
+              sender: data.message.sender?.username || data.message.sender_name || 'Unknown',
+              text: data.message.content || data.message.text || '',
+              time: new Date(data.message.created_at || Date.now()).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }),
+              isOwn: data.message.sender?.id === userData.userId || data.message.sender_id === userData.userId,
+              created_at: data.message.created_at || new Date().toISOString(),
+            };
             
-            // Add new message and sort by created_at
-            const updated = [...prev, newMsg];
-            return updated.sort((a, b) => {
-              const timeA = new Date(a.created_at || 0).getTime();
-              const timeB = new Date(b.created_at || 0).getTime();
-              return timeA - timeB;
+            setMessages(prev => {
+              // Avoid duplicates - fast path
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              
+              // Append new message (assume chronological order from server)
+              return [...prev, newMsg];
             });
-          });
+          }
+        } catch (err) {
+          // Failed to parse WebSocket message
         }
-      } catch (err) {
-        // Failed to parse WebSocket message
+        const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+        if (typeof wsLog !== 'undefined' && (t1 - t0) > 50) wsLog('[WSS][Chat] processMessage took', (t1 - t0).toFixed(1), 'ms');
+      };
+      
+      // Use requestIdleCallback or setTimeout to defer heavy work
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(processMessage, { timeout: 50 });
+      } else {
+        setTimeout(processMessage, 0);
       }
     };
 
@@ -302,7 +319,7 @@ const ChatPage = () => {
                     {conversations.map((conv) => (
                       <div
                         key={conv.id}
-                        className={`chat-user-item ${selectedChatId === conv.id ? 'active' : ''}`}
+                        className={`chat-user-item ${selectedChat?.id === conv.id ? 'active' : ''}`}
                         onClick={() => setSelectedChat(conv)}
                       >
                         <div className="chat-user-avatar">

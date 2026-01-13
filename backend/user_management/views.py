@@ -175,7 +175,22 @@ class FriendshipViewSet(viewsets.ModelViewSet):
 			return Response({'error': 'You cannot send a friend request to yourself'}, status=status.HTTP_400_BAD_REQUEST)
 		
 		to_user = get_object_or_404(User, id=to_user_id)
-		if Friendship.objects.filter(Q(from_user=request.user, to_user=to_user) | Q(from_user=to_user, to_user=request.user)).exists():
+		
+		# Check for existing friendship (pending or accepted)
+		existing = Friendship.objects.filter(
+			Q(from_user=request.user, to_user=to_user) | 
+			Q(from_user=to_user, to_user=request.user)
+		).first()
+		
+		if existing:
+			# If rejected, allow resending by updating to pending
+			if existing.status == 'rejected':
+				existing.status = 'pending'
+				existing.from_user = request.user
+				existing.to_user = to_user
+				existing.save(update_fields=['status', 'from_user', 'to_user'])
+				return Response(self.get_serializer(existing).data, status=status.HTTP_200_OK)
+			# Otherwise block (pending or accepted)
 			return Response({'error': 'Friend request already exists or you are already friends'}, status=status.HTTP_400_BAD_REQUEST)
 		
 		friendship = Friendship.objects.create(from_user=request.user, to_user=to_user, status='pending')

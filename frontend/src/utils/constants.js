@@ -16,8 +16,12 @@ export const HTTP_STATUS = {
   NOT_FOUND: 404,
 };
 
+const BACKEND_ORIGIN = (typeof window !== 'undefined' && import.meta.env && import.meta.env.VITE_BACKEND_ORIGIN) ? import.meta.env.VITE_BACKEND_ORIGIN : '';
+
 export const API_ENDPOINTS = {
-  DJANGO_USER_BASE: '',
+  // User-related endpoints are registered at the application root
+  // (e.g. GET /users/me/). Public API endpoints live under /api/.
+  DJANGO_USER_BASE: `${BACKEND_ORIGIN}`,
   DJANGO_API_BASE: '/api',
 };
 

@@ -47,6 +47,7 @@
     "your_friends": "Tus amigos",
     "no_results": "No se encontraron usuarios",
     "no_friends": "No se encontraron amigos. ¡Añade algunos amigos primero!",
+    "no_friends_suggestion": "Prueba a buscar jugadores o invita a tus amigos a unirse.",
     "sending": "Enviando...",
     "invite_sent": "¡Invitación enviada!",
     "invite_failed": "Error al enviar la invitación",    "tournament_title": "Torneo",
@@ -132,7 +133,9 @@
   },
   "invite": {
     "invite": "Invitar",
-    "pending": "En espera"
+    "pending": "En espera",
+    "friends": "Amigos",
+    "friend": "Amigo"
   },
   "status": {
     "online": "en línea",
@@ -299,6 +302,7 @@
     "sign_in_with_google": "Sign in with Google",
     "user_not_found": "User not found",
     "invalid_password": "Invalid password",
+	"invalid_credentials": "Credenciales inválidas",
     "login_error": "An error occurred during login"
   }
 }

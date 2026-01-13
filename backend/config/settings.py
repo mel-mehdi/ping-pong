@@ -36,9 +36,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+	'django_prometheus',
 
 	# Third-party apps
-	'django_prometheus',
 	'rest_framework',
 	'corsheaders',
 	'drf_yasg',
@@ -51,7 +51,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django_prometheus.middleware.PrometheusBeforeMiddleware',
+	'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
 	'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -61,7 +61,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 	'public_api.middleware.APILoggingMiddleware',
-    'django_prometheus.middleware.PrometheusAfterMiddleware',
+	'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -170,12 +170,11 @@ AUTH_USER_MODEL = 'user_management.User'
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost",
-    "http://localhost:8000",
-    "http://localhost:8001",
     "https://localhost",
-    "https://localhost:8000",
+    "https://localhost:5173",
+    "https://localhost:5173",
     "https://localhost:8001",
+    "https://backend:8001",
     "https://accounts.google.com",
     "https://oauth2.googleapis.com",
 ]
@@ -183,23 +182,35 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost",
-    'http://localhost:8000',
-    'http://localhost:8001',
     "https://localhost",
-    'https://localhost:8000',
+    'https://localhost:5173',
     'https://localhost:8001',
+    'https://backend:8001',
     "https://accounts.google.com",
 ]
 
 # Security Headers Configuration
 # Allow window.postMessage for OAuth and cross-origin communication
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"  # Allow postMessage for OAuth
+SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = "unsafe-none"  # Keep COEP permissive for dev tools and postMessage
 SECURE_REFERRER_POLICY = 'same-origin'
 
 # Additional security settings
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Enforce HTTPS and secure cookies (enabled when DEBUG is False)
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# HSTS — nginx also sets this header, but enforce here as well for safety
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# When running behind a proxy (nginx), rely on X-Forwarded-Proto to detect HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # REST Framework Configuration
 REST_FRAMEWORK = {

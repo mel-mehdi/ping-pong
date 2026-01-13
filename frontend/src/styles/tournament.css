@@ -1055,6 +1055,23 @@ select.form-control {
   opacity: 0.7;
 }
 
+/* Search result: friend badge */
+.nav-btn-friend {
+  background: var(--muted-bg);
+  color: var(--text-muted);
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: default;
+}
+
+.nav-btn-invite.pending {
+  background: var(--text-muted);
+  cursor: not-allowed;
+}
+
+
 .search-loading,
 .search-no-results {
   padding: 1rem;

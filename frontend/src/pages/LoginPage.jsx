@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { validateRequired } from '../utils/validation';
@@ -19,28 +19,29 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [googleInitialized, setGoogleInitialized] = useState(false);
+  const [googlePrompting, setGooglePrompting] = useState(false);
+  const promptTimeoutRef = useRef(null);
   const { t } = useLanguage();
 
   useEffect(() => {
-    // Initialize Google Sign-In
+    // Initialize Google Sign-In without rendering the default button
     if (window.google && GOOGLE_CLIENT_ID) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
+        callback: (resp) => {
+          // Ensure any pending prompt loading state is cleared when a credential arrives
+          setGooglePrompting(false);
+          handleGoogleResponse(resp);
+        },
       });
-
-      window.google.accounts.id.renderButton(
-        document.getElementById('google-signin-button'),
-        { 
-          theme: 'outline', 
-          size: 'large', 
-          width: document.getElementById('google-signin-button')?.offsetWidth || 400,
-          text: 'signin_with',
-          shape: 'rectangular',
-          logo_alignment: 'left'
-        }
-      );
+      // mark initialization complete so prompt() is safe to call
+      setGoogleInitialized(true);
     }
+
+    return () => {
+      if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+    };
   }, []);
 
   const handleGoogleResponse = async (response) => {
@@ -116,16 +117,18 @@ const LoginPage = () => {
       navigate('/');
     } catch (error) {
       setLoading(false);
-      
-      if (error.message === 'Invalid credentials' || error.status === 401) {
-        setErrors({
-          password: t('auth.invalid_credentials') || 'Invalid credentials'
-        });
-      } else {
-        setErrors({
-          general: error.message || 'An error occurred during login'
-        });
+      console.error('Login failed', error);
+
+      // Handle 401/invalid credentials specifically
+      if (error.status === 401) {
+        const msg = error.detail || error.data?.detail || error.data?.error || t('auth.invalid_credentials') || 'Invalid credentials';
+        setErrors({ password: msg });
+        return;
       }
+
+      // Backend may return structured errors (e.g., non_field_errors)
+      const backendMsg = error.data?.non_field_errors?.[0] || error.data?.detail || error.data?.error || error.message;
+      setErrors({ general: backendMsg || t('auth.login_error') || 'An error occurred during login' });
     }
   };
 
@@ -195,17 +198,25 @@ const LoginPage = () => {
               <span>{t('auth.or')}</span>
             </div>
 
-            <div
-              id="google-signin-button"
-              className="google-signin-container"
-            ></div>
             <button
-              className="gsi-material-button"
+              className={`gsi-material-button ${googlePrompting ? 'loading' : ''}`}
               type="button"
-              id="manual-google-button"
-              style={{ display: 'none' }}
+              onClick={() => {
+                if (googleInitialized && window.google && !googlePrompting) {
+                  // show spinner while the Google prompt/UI appears
+                  setGooglePrompting(true);
+                  // Fallback: clear spinner after timeout if nothing happens
+                  if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+                  promptTimeoutRef.current = setTimeout(() => setGooglePrompting(false), 8000);
+
+                  window.google.accounts.id.prompt();
+                } else {
+                  console.warn('Google Sign-In not initialized yet.');
+                }
+              }}
+              disabled={!googleInitialized || loading || googlePrompting}
+              title={!googleInitialized ? t('auth.google_not_ready') || 'Google Sign-In not ready' : ''}
             >
-              <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">
                 <div className="gsi-material-button-icon">
                   <svg
@@ -236,6 +247,8 @@ const LoginPage = () => {
                 <span className="gsi-material-button-contents">
                   {t('auth.sign_in_with_google')}
                 </span>
+                {/* Spinner shown while waiting for Google prompt */}
+                <span className="gsi-spinner" aria-hidden={!googlePrompting} style={{ display: googlePrompting ? 'inline-block' : 'none' }}></span>
               </div>
             </button>
           </form>

@@ -1,3 +1,4 @@
+name: ft_trans
 
 services:
 
@@ -161,6 +162,7 @@ services:
     volumes:
       - ./backend:/app
       - django_static:/app/staticfiles
+      - ./nginx/ssl:/app/ssl:ro
     env_file:
       - .env
     depends_on:
@@ -181,10 +183,18 @@ services:
       dockerfile: Dockerfile
     container_name: react
     ports:
-      - "8000:8000"
+      - "5173:5173"
+    environment:
+      - PORT=5173
+      - VITE_BACKEND_ORIGIN=
+      - VITE_DEV_BACKEND_TARGET=https://backend:8001
+      - VITE_DEV_WS_TARGET=wss://backend:8001
+      - VITE_DEBUG_WS=0
+      - VITE_SILENT_CONSOLE=1
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - ./nginx/ssl:/nginx/ssl:ro
     depends_on:
       - backend
     restart: unless-stopped

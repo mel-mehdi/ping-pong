@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
 import apiClient from '../utils/api';
+import { buildWsUrl, wsLog } from '../utils/wss';
 
 const Navbar = () => {
     const { isAuthenticated, isBackendAuthenticated, userData, logout } = useAuth();
@@ -18,9 +19,27 @@ const Navbar = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchSource, setSearchSource] = useState('backend');
     const [pendingInvites, setPendingInvites] = useState([]);
+    const [friends, setFriends] = useState([]);
+    const [isLoadingFriendships, setIsLoadingFriendships] = useState(false);
     const searchInputRef = useRef(null);
     const [searchExpanded, setSearchExpanded] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const MAX_SEARCH_RESULTS = 8;
+
+    // Defer focus work to avoid long synchronous handlers on focus events
+    const handleSearchFocus = () => {
+        setTimeout(() => {
+            setSearchExpanded(true);
+            if (searchQuery.length >= 1) setShowSearchResults(true);
+        }, 0);
+    };
+
+    const handleSearchBlur = () => {
+        setTimeout(() => {
+            setShowSearchResults(false);
+            if (!searchQuery) setSearchExpanded(false);
+        }, 300);
+    };
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -44,20 +63,78 @@ const Navbar = () => {
                     id: req.id,
                     senderId: req.from_user?.id,
                     fromName: req.from_user?.username || req.from_user?.fullname || 'Unknown',
-                    type: 'friend_request'
+                    type: 'friend_request',
+                    backendType: 'friendship'
                 })),
                 ...(gameInvites || []).map(inv => ({
                     id: inv.id,
                     senderId: inv.sender?.id,
                     fromName: inv.sender?.username || inv.sender?.fullname || 'Unknown',
-                    type: 'game_invite'
+                    type: 'game_invite',
+                    backendType: 'game_invitation'
                 }))
             ];
+
+            // Debug: warn if ids collide across types which could confuse UI
+            try {
+              const idMap = {};
+              allNotifications.forEach(n => {
+                const key = `${n.id}`;
+                if (!idMap[key]) idMap[key] = new Set();
+                idMap[key].add(n.type);
+              });
+              Object.entries(idMap).forEach(([k, set]) => {
+                if (set.size > 1) {
+                  // eslint-disable-next-line no-console
+                  console.warn('[NOTIF] id collision across types for id', k, Array.from(set));
+                }
+              });
+            } catch (e) { /* ignore */ }
             
             setNotifications(allNotifications);
         } catch (err) {
             // Error loading notifications
             setNotifications([]);
+        }
+    }, [userData, isBackendAuthenticated]);
+
+    const loadFriendships = useCallback(async () => {
+        if (!userData?.userId || !isBackendAuthenticated) {
+            setPendingInvites([]);
+            setFriends([]);
+            setIsLoadingFriendships(false);
+            return;
+        }
+        
+        setIsLoadingFriendships(true);
+        try {
+            // Load sent friend requests and accepted friendships
+            const [sentRequests, friendships] = await Promise.all([
+                apiClient.getSentFriendRequests(),
+                apiClient.getMyFriends()
+            ]);
+            
+            // Add IDs of users we've sent requests to
+            const pendingUserIds = (sentRequests || []).map(req => req.to_user?.id).filter(Boolean);
+            
+            // Add IDs of users who are already friends
+            const friendUserIds = (friendships || []).map(fs => {
+                // If the API returns friendship objects (with from_user/to_user), derive the other user's id
+                if (fs && (fs.from_user || fs.to_user)) {
+                    const myId = userData.userId || userData.id;
+                    const otherUser = (fs.from_user?.id === myId || fs.from_user?.userId === myId) ? fs.to_user : fs.from_user;
+                    return otherUser?.id || otherUser?.userId;
+                }
+                // Otherwise, if the API returned user objects directly, use their id
+                return fs?.id || fs?.userId;
+            }).filter(Boolean);
+            
+            setPendingInvites(pendingUserIds);
+            setFriends(friendUserIds);
+        } catch (err) {
+            // Silently handle friendship loading errors during search
+        } finally {
+            setIsLoadingFriendships(false);
         }
     }, [userData, isBackendAuthenticated]);
 
@@ -69,13 +146,13 @@ const Navbar = () => {
             return;
         }
         loadNotifications();
-    }, [isAuthenticated, userData, isBackendAuthenticated, loadNotifications]);
+        loadFriendships();
+    }, [isAuthenticated, userData, isBackendAuthenticated, loadNotifications, loadFriendships]);
 
     useEffect(() => {
         if (!isAuthenticated || !userData?.userId || !isBackendAuthenticated) return;
 
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications/`;
+        const wsUrl = buildWsUrl('/ws/notifications/');
         
         let ws = null;
         let isClosed = false;
@@ -84,64 +161,94 @@ const Navbar = () => {
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                // WebSocket connected
+                wsLog('[WSS][Navbar] open', wsUrl);
+            };
+
+            ws.onerror = (err) => {
+                wsLog('[WSS][Navbar] error', err);
+            };
+
+            ws.onclose = (ev) => {
+                wsLog('[WSS][Navbar] close', ev);
             };
 
             ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    
-                    if (data.type === 'game_invite_accepted') {
-                        navigate('/game?mode=online');
-                        return;
-                    }
-
-                    if (data.type === 'new_notification') {
-                        const notif = data.notification;
+                // Defer processing to avoid blocking the main thread
+                const processMessage = () => {
+                    const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+                    try {
+                        const data = JSON.parse(event.data);
                         
-                        let newNotif = null;
-                        
-                        if (notif.game_invitation) {
-                            newNotif = {
-                                id: notif.game_invitation.id,
-                                senderId: notif.related_user?.id,
-                                fromName: notif.related_user?.username || 'Unknown',
-                                type: 'game_invite'
-                            };
-                        } else if (notif.friend_request_id || notif.type === 'friend_request_received') {
-                            newNotif = {
-                                id: notif.friend_request_id || notif.id,
-                                senderId: notif.related_user?.id,
-                                fromName: notif.related_user?.username || notif.from_user || 'Unknown',
-                                type: 'friend_request'
-                            };
-                        } else if (notif.type === 'achievement_unlocked' && notif.achievement) {
-                            newNotif = {
-                                id: notif.id,
-                                achievementName: notif.achievement.name,
-                                achievementDesc: notif.achievement.description,
-                                achievementIcon: notif.achievement.icon,
-                                xpReward: notif.achievement.xp_reward,
-                                type: 'achievement_unlocked',
-                                timestamp: Date.now()
-                            };
-                            // Trigger profile refresh event
-                            window.dispatchEvent(new Event('achievementUnlocked'));
-                            // Auto-dismiss achievement notifications after 5 seconds
-                            setTimeout(() => {
-                                setNotifications(prev => prev.filter(n => n.id !== notif.id));
-                            }, 5000);
+                        if (data.type === 'game_invite_accepted') {
+                            navigate('/game?mode=online');
+                            const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+                            if (typeof wsLog !== 'undefined' && (t1 - t0) > 50) wsLog('[WSS][Navbar] processMessage took', (t1 - t0).toFixed(1), 'ms');
+                            return;
                         }
 
-                        if (newNotif) {
-                            setNotifications(prev => {
-                                if (prev.some(n => n.id === newNotif.id && n.type === newNotif.type)) return prev;
-                                return [newNotif, ...prev];
-                            });
+                        if (data.type === 'new_notification') {
+                            const notif = data.notification;
+                            
+                            let newNotif = null;
+                            
+                            if (notif.game_invitation) {
+                                newNotif = {
+                                    id: notif.game_invitation.id,
+                                    senderId: notif.related_user?.id,
+                                    fromName: notif.related_user?.username || 'Unknown',
+                                    type: 'game_invite',
+                                    backendType: 'game_invitation'
+                                };
+                            } else if (notif.friend_request_id || notif.type === 'friend_request_received') {
+                                newNotif = {
+                                    id: notif.friend_request_id || notif.id,
+                                    senderId: notif.related_user?.id,
+                                    fromName: notif.related_user?.username || notif.from_user || 'Unknown',
+                                    type: 'friend_request',
+                                    backendType: 'friendship'
+                                };
+                            } else if (notif.type === 'friend_request_accepted') {
+                                // Friend request accepted - reload friendships to update UI
+                                loadFriendships();
+                                // Don't show as notification badge, just update state
+                                return;
+                            } else if (notif.type === 'achievement_unlocked' && notif.achievement) {
+                                newNotif = {
+                                    id: notif.id,
+                                    achievementName: notif.achievement.name,
+                                    achievementDesc: notif.achievement.description,
+                                    achievementIcon: notif.achievement.icon,
+                                    xpReward: notif.achievement.xp_reward,
+                                    type: 'achievement_unlocked',
+                                    timestamp: Date.now()
+                                };
+                                // Trigger profile refresh event
+                                window.dispatchEvent(new Event('achievementUnlocked'));
+                                // Auto-dismiss achievement notifications after 5 seconds
+                                setTimeout(() => {
+                                    setNotifications(prev => prev.filter(n => n.id !== notif.id));
+                                }, 5000);
+                            }
+
+                            if (newNotif) {
+                                setNotifications(prev => {
+                                    if (prev.some(n => n.id === newNotif.id && n.type === newNotif.type)) return prev;
+                                    return [newNotif, ...prev];
+                                });
+                            }
                         }
+                    } catch (err) {
+                        // Error processing notification
                     }
-                } catch (err) {
-                    // Error processing notification
+                    const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+                    if (typeof wsLog !== 'undefined' && (t1 - t0) > 50) wsLog('[WSS][Navbar] processMessage took', (t1 - t0).toFixed(1), 'ms');
+                };
+                
+                // Use requestIdleCallback to defer processing, or setTimeout as fallback
+                if (typeof requestIdleCallback !== 'undefined') {
+                    requestIdleCallback(processMessage, { timeout: 100 });
+                } else {
+                    setTimeout(processMessage, 0);
                 }
             };
 
@@ -205,7 +312,12 @@ const Navbar = () => {
         }
 
         setIsSearching(true);
-        try {
+        setShowSearchResults(true);
+        
+        try {        
+            // Refresh friendships when searching to ensure button states are accurate
+            await loadFriendships();
+            
             const results = await apiClient.searchUsers(query);
             const uid = userData?.userId || userData?.id;
             const filtered = (results || [])
@@ -228,32 +340,65 @@ const Navbar = () => {
     const handleSendInvite = async (userId, username) => {
         if (!userData || !isBackendAuthenticated) return;
         
+        // Don't send if already friends or already pending
+        if (friends.includes(userId) || pendingInvites.includes(userId)) {
+            return;
+        }
+        
         try {
             await apiClient.sendFriendRequest(userData.userId, userData.username, userId, username);
             setPendingInvites([...pendingInvites, userId]);
         } catch (error) {
-            // Error sending friend request - still mark as pending locally
-            setPendingInvites([...pendingInvites, userId]);
+            // Check if it's an "already exists" error (400)
+            if (error.status === 400) {
+                if (error.message?.includes('already friends')) {
+                    // Already friends - add to friends list and reload to sync
+                    setFriends([...friends, userId]);
+                    loadFriendships(); // Reload to ensure sync
+                } else if (error.message?.includes('already exists')) {
+                    // Already pending - mark as pending in UI and reload
+                    setPendingInvites([...pendingInvites, userId]);
+                    loadFriendships(); // Reload to ensure sync
+                }
+            } else {
+                // Other errors - silently ignore to avoid spamming console during search
+            }
         }
     };
 
     const handleAcceptRequest = async (notification) => {
+        // Debug log for investigation
+        // eslint-disable-next-line no-console
+        console.debug('[NOTIF] accept clicked', notification);
+
         if (!isBackendAuthenticated) return;
         
         try {
-            if (notification.type === 'game_invite') {
-                await apiClient.respondToInvitation(notification.id, 'accepted');
-                setShowNotifications(false);
-                navigate('/game?mode=online');
-            } else if (notification.type === 'friend_request') {
+            // Prefer the explicit backendType when branching (safer against naming mismatches)
+            if (notification.backendType === 'game_invitation' || notification.type === 'game_invite') {
+                const res = await apiClient.respondToInvitation(notification.id, 'accepted');
+                // Only navigate after the server confirms acceptance
+                if (res) {
+                    setShowNotifications(false);
+                    navigate('/game?mode=online');
+                }
+            } else if (notification.backendType === 'friendship' || notification.type === 'friend_request') {
                 await apiClient.acceptFriendRequest(notification.id);
                 // Trigger event to refresh friends list in chat
                 window.dispatchEvent(new Event('friendAccepted'));
+                // Reload friendships to update state (move from pending to friends)
+                await loadFriendships();
+            } else {
+                // Unknown notification type - don't take action
+                // eslint-disable-next-line no-console
+                console.warn('[NOTIF] unknown accept type', notification);
             }
             
             loadNotifications();
         } catch (err) {
             // Error accepting request
+            // eslint-disable-next-line no-console
+            console.error('[NOTIF] accept failed', err, notification);
         }
     };
 
@@ -265,6 +410,8 @@ const Navbar = () => {
                 await apiClient.respondToInvitation(notification.id, 'declined');
             } else if (notification.type === 'friend_request') {
                 await apiClient.rejectFriendRequest(notification.id);
+                // Reload friendships after rejecting
+                loadFriendships();
             }
             loadNotifications();
         } catch (err) {
@@ -368,12 +515,12 @@ const Navbar = () => {
                                     <input
                                         ref={searchInputRef}
                                         type="text"
-                                        className={`nav-search-input ${searchExpanded ? 'expanded' : ''}`}
+                                        className={`nav-search-input small ${searchExpanded ? 'expanded' : ''}`}
                                         placeholder={t('search.placeholder')}
                                         value={searchQuery}
                                         onChange={(e) => handleSearch(e.target.value)}
-                                        onFocus={() => { setSearchExpanded(true); searchQuery.length >= 1 && setShowSearchResults(true); }}
-                                        onBlur={() => setTimeout(() => { setShowSearchResults(false); if (!searchQuery) setSearchExpanded(false); }, 300)}
+                                        onFocus={handleSearchFocus}
+                                        onBlur={handleSearchBlur}
                                         onKeyDown={(e) => { if (e.key === 'Escape') { e.currentTarget.blur(); setShowSearchResults(false); setSearchExpanded(false); } }}
                                         autoComplete="off"
                                     />
@@ -399,7 +546,7 @@ const Navbar = () => {
                                         {!isSearching && searchResults.length > 0 && (
                                             <>
                                                 <div style={{ padding: '0.25rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{searchSource === 'backend' ? t('search.backend_results') : t('search.client_results')}</div>
-                                                {searchResults.filter(u => isValidUser(u) && (!userData || (u.username !== userData.username && (u.id || u.userId) !== (userData.userId || userData.id)))).map((user) => (
+                                                {searchResults.filter(u => isValidUser(u) && (!userData || (u.username !== userData.username && (u.id || u.userId) !== (userData.userId || userData.id)))).slice(0, MAX_SEARCH_RESULTS).map((user) => (
                                                     <div key={user.id} className="nav-search-result-item">
                                                     <div className="nav-search-result-info">
                                                         {(() => {
@@ -422,14 +569,20 @@ const Navbar = () => {
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        className={`nav-btn-invite ${pendingInvites.includes(user.id) ? 'pending' : ''}`}
-                                                        onClick={() => handleSendInvite(user.id, user.username)}
-                                                        onMouseDown={(e) => e.preventDefault()}
-                                                        disabled={pendingInvites.includes(user.id)}
-                                                    >
-                                                        {pendingInvites.includes(user.id) ? t('invite.pending') : t('invite.invite')}
-                                                    </button>
+                                                    {friends.includes(user.id) ? (
+                                                        <button className="nav-btn-friend" disabled>
+                                                            {t('invite.friend') || 'Friend'}
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            className={`nav-btn-invite ${pendingInvites.includes(user.id) ? 'pending' : ''}`}
+                                                            onClick={() => handleSendInvite(user.id, user.username)}
+                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            disabled={isLoadingFriendships || pendingInvites.includes(user.id)}
+                                                        >
+                                                            {isLoadingFriendships ? '...' : pendingInvites.includes(user.id) ? t('invite.pending') : t('invite.invite')}
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 ))}
                                             </>

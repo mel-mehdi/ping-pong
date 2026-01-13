@@ -26,7 +26,7 @@
     "accept": "Accept",
     "decline": "Decline"
   },
-  "invite": { "invite": "Invite", "pending": "Pending" },
+  "invite": { "invite": "Invite", "pending": "Pending", "friends": "Friends", "friend": "Friend" },
   "status": { "online": "online", "offline": "offline" },
   "tournaments": {
     "title": "Tournaments",
@@ -131,6 +131,7 @@
     "your_friends": "Your Friends",
     "no_results": "No users found",
     "no_friends": "No friends found. Add some friends first!",
+    "no_friends_suggestion": "Try searching players or invite your friends to join!",
     "sending": "Sending...",
     "invite_sent": "Invitation sent!",
     "invite_failed": "Failed to send invitation",
@@ -268,6 +269,7 @@
     "sign_in_with_google": "Sign in with Google",
     "user_not_found": "User not found",
     "invalid_password": "Invalid password",
+	"invalid_credentials": "Invalid credentials",
     "login_error": "An error occurred during login"
   }
 }

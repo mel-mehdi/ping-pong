@@ -2,8 +2,9 @@ import { API_ENDPOINTS, HTTP_STATUS } from './constants';
 import logger from './logger';
 
 const { DJANGO_USER_BASE, DJANGO_API_BASE } = API_ENDPOINTS;
-// Use relative path so nginx can proxy requests appropriately
-const BACKEND_BASE = typeof window !== 'undefined' ? '' : '';
+// Use configurable backend origin via `VITE_BACKEND_ORIGIN`. Default to relative path
+// so nginx can proxy requests appropriately when not set.
+const BACKEND_BASE = typeof window !== 'undefined' ? (import.meta.env.VITE_BACKEND_ORIGIN || '') : ''; 
 
 class ApiClient {
   // Helper methods
@@ -172,6 +173,60 @@ class ApiClient {
     });
   }
 
+  // Get user by id
+  async getUserById(id) {
+    return this._safeRequest(`${DJANGO_USER_BASE}/users/${id}/`, {}, null);
+  }
+
+  // Upload avatar (multipart PATCH)
+  async uploadAvatar(userId, file) {
+    if (!userId) throw new Error('Missing user id');
+    if (!file) throw new Error('Missing file');
+
+    const endpoint = `${DJANGO_USER_BASE}/users/${userId}/`;
+    const url = this._buildUrl(endpoint);
+
+    // Ensure CSRF token is present; attempt to fetch a safe endpoint to set cookie if not
+    if (!this._getCSRFToken()) {
+      try {
+        // Include credentials so the browser accepts Set-Cookie headers
+        await fetch(this._buildUrl('/admin/login/'), { credentials: 'include' });
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Re-read CSRF token after the fetch attempt
+    const csrfToken = this._getCSRFToken();
+
+    const form = new FormData();
+    form.append('avatar', file);
+
+    // Build headers but let browser set Content-Type for multipart
+    const headers = this._buildHeaders(endpoint, { method: 'PATCH' });
+    if (headers['Content-Type']) delete headers['Content-Type'];
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      body: form,
+      headers,
+      credentials: 'include',
+    });
+
+    const data = await this._parseResponse(response);
+
+    if (!response.ok) {
+      const err = new Error((data && (data.error || data.detail)) || `HTTP ${response.status}: ${response.statusText}`);
+      err.status = response.status;
+      err.data = data;
+      if (response.status === HTTP_STATUS.UNAUTHORIZED || response.status === HTTP_STATUS.FORBIDDEN) err.isAuthError = true;
+      this._logError(endpoint, err, false);
+      throw err;
+    }
+
+    return data;
+  }
+
   // Authentication
   async register(username, email, password, fullname = '') {
     try {
@@ -244,11 +299,8 @@ class ApiClient {
         { quiet: false }
       );
       
-      logger.debug(`Search results for "${query}":`, results);
-      
       if (Array.isArray(results)) {
         if (results.length === 0) {
-          logger.debug('Search returned empty results');
           return [];
         }
         
@@ -273,19 +325,16 @@ class ApiClient {
                    email.toLowerCase().includes(lowerQuery);
           });
         
-        logger.debug(`Filtered results: ${filtered.length} users`);
         return filtered;
       }
       
-      logger.debug('Search returned non-array result, returning empty');
-      return [];
+      return []; 
     } catch (err) {
       logger.error('searchUsers: backend search failed:', err);
       
       // Fallback: fetch all users then filter locally
       try {
         const all = await this.getAllUsers();
-        logger.debug(`Fallback: Got ${all.length} users, filtering locally`);
         const q = query.toLowerCase();
         return (all || []).filter(u =>
           u &&
@@ -350,17 +399,17 @@ class ApiClient {
         to_user_id: toId
       };
       
-      logger.debug('Sending friend request:', payload);
-      
       const result = await this.request('/friendships/send_request/', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
       
-      logger.debug('Friend request sent successfully:', result);
-      return result;
+      return result; 
     } catch (err) {
-      logger.error('Friend request failed:', err);
+      // Only log actual errors, not expected validations like "already exists"
+      if (err.status !== 400) {
+        logger.error('Friend request failed:', err);
+      }
       throw err;
     }
   }
@@ -369,6 +418,30 @@ class ApiClient {
     // Get pending friend requests received by current user
     try {
       const friendships = await this.request('/friendships/pending_requests/');
+      return friendships || [];
+    } catch {
+      return [];
+    }
+  }
+
+  async getSentFriendRequests() {
+    // Get all friendships where current user is the sender
+    try {
+      const friendships = await this.request('/friendships/');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      return (friendships || []).filter(fs => 
+        fs.from_user?.id === userData.userId && 
+        fs.status === 'pending'
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  async getMyFriends() {
+    // Get accepted friendships
+    try {
+      const friendships = await this.request('/friendships/my_friends/');
       return friendships || [];
     } catch {
       return [];
@@ -518,6 +591,20 @@ class ApiClient {
     } catch {
       // ignore
     }
+  }
+
+  async createApiKey({ name, rate_limit = 60, expires_at = null } = {}) {
+    return this.request('/api/keys/create_key/', {
+      method: 'POST',
+      body: JSON.stringify({ name, rate_limit, expires_at }),
+    });
+  }
+
+  async revokeApiKey(id) {
+    if (!id) throw new Error('Missing key id');
+    return this.request(`/api/keys/${id}/revoke/`, {
+      method: 'DELETE',
+    });
   }
 
   // Notifications (unused - reserved for future use) (unused - reserved for future use)
