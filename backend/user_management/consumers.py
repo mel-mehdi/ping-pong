@@ -6,6 +6,13 @@ from .models import Notification
 
 class NotificationConsumer(AsyncWebsocketConsumer):
 	async def connect(self):
+		# Log scope headers for debugging WS auth issues
+		try:
+			headers = {k.decode('latin1'): v.decode('latin1') for k, v in self.scope.get('headers', [])}
+			print('WS connect scope headers:', headers)
+		except Exception:
+			pass
+
 		self.user = self.scope['user']
 		
 		if self.user.is_authenticated:

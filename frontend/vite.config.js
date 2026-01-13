@@ -17,6 +17,13 @@ function loadHttpsConfig() {
   }
 }
 
+// HMR runtime overrides (read at module initialization)
+// Set VITE_HMR_HOST=auto to let the client use the current page hostname (good for IP access)
+// Set VITE_HMR_PROTOCOL to 'wss' or 'ws' if you need to override
+const vHmrHost = (typeof process.env.VITE_HMR_HOST !== 'undefined' && process.env.VITE_HMR_HOST !== '') ? process.env.VITE_HMR_HOST : undefined;
+const hmrHost = vHmrHost === 'auto' ? undefined : vHmrHost;
+const hmrProtocol = process.env.VITE_HMR_PROTOCOL || 'wss';
+
 export default defineConfig({
   plugins: [react()],
   base: '/',
@@ -30,9 +37,9 @@ export default defineConfig({
       usePolling: true,
     },
     hmr: {
-      protocol: 'wss',
-      host: 'localhost',
-      clientPort: 443,
+      protocol: process.env.VITE_HMR_PROTOCOL || 'wss',
+      host: (typeof process.env.VITE_HMR_HOST !== 'undefined' && process.env.VITE_HMR_HOST !== '') ? (process.env.VITE_HMR_HOST === 'auto' ? undefined : process.env.VITE_HMR_HOST) : undefined,
+      clientPort: process.env.VITE_HMR_PORT ? Number(process.env.VITE_HMR_PORT) : 443,
       path: '/@vite/client',
       // Add timeout and overlay options
       timeout: 30000,
@@ -64,11 +71,17 @@ export default defineConfig({
         target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
         changeOrigin: false,
         secure: false,
+        headers: {
+          'Host': 'localhost'
+        }
       },
       '/users': {
         target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
         changeOrigin: false,
         secure: false,
+        headers: {
+          'Host': 'localhost'
+        }
       },
 
       // Proxy top-level user management endpoints (friendships, profiles, notifications, achievements)
@@ -76,6 +89,9 @@ export default defineConfig({
         target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
         changeOrigin: false,
         secure: false,
+        headers: {
+          'Host': 'localhost'
+        }
       },
 
       '/profiles': {
