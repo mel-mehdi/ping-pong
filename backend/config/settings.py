@@ -167,11 +167,19 @@ AUTH_USER_MODEL = 'user_management.User'
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
+    # HTTP variants for local development (Vite / dev server)
+    "http://localhost",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8001",
+
+    # Docker / backend addresses (keep https variants too if used)
     "https://localhost",
-    "https://localhost:5173",
     "https://localhost:5173",
     "https://localhost:8001",
     "https://backend:8001",
+
+    # Google endpoints used by the client library
     "https://accounts.google.com",
     "https://oauth2.googleapis.com",
 ]
@@ -179,10 +187,18 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
+    # HTTP variants for local development
+    "http://localhost",
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8001',
+
+    # HTTPS / docker addresses
     "https://localhost",
     'https://localhost:5173',
     'https://localhost:8001',
     'https://backend:8001',
+
     "https://accounts.google.com",
 ]
 

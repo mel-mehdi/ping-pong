@@ -38,17 +38,27 @@ const RegisterPage = () => {
   useEffect(() => {
     // Initialize Google Sign-In (do not render the default button; use our custom button)
     if (window.google && GOOGLE_CLIENT_ID) {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (resp) => {
-          // clear prompting state when credential arrives
-          setGooglePrompting(false);
-          handleGoogleResponse(resp);
-        },
-      });
+      try {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (resp) => {
+            // clear prompting state when credential arrives
+            setGooglePrompting(false);
+            if (!resp || !resp.credential) {
+              console.error('Google callback received without credential', resp);
+              setErrors({ general: 'Google Sign-In failed to return a credential. Try again or use Incognito to rule out extensions.' });
+              return;
+            }
+            handleGoogleResponse(resp);
+          },
+        });
 
-      // Mark initialization complete so we can safely call prompt from our custom button
-      setGoogleInitialized(true);
+        // Mark initialization complete so we can safely call prompt from our custom button
+        setGoogleInitialized(true);
+      } catch (err) {
+        console.error('Failed to initialize Google Sign-In', err);
+        setErrors({ general: 'Google Sign-In initialization failed. Check browser extensions and that the Google client ID is configured.' });
+      }
     }
 
     return () => {
@@ -59,6 +69,14 @@ const RegisterPage = () => {
   const handleGoogleResponse = async (response) => {
     try {
       setLoading(true);
+
+      if (!response || !response.credential) {
+        setLoading(false);
+        console.error('Invalid Google response', response);
+        setErrors({ general: 'Invalid response from Google Sign-In.' });
+        return;
+      }
+
       const result = await apiClient.googleLogin(response.credential);
       const userPayload = result?.user || result || {};
 
@@ -75,9 +93,11 @@ const RegisterPage = () => {
       navigate('/');
     } catch (error) {
       setLoading(false);
-      setErrors({
-        general: 'Google Sign-In failed. Please try again.',
-      });
+      console.error('Google Sign-In error:', error);
+      const msg = (error?.status === 0 || /network|cors|failed/i.test(error?.message || ''))
+        ? 'Network or CORS error during Google Sign-In. Try Incognito or check OAuth origins and browser extensions.'
+        : 'Google Sign-In failed. Please try again.';
+      setErrors({ general: msg });
     }
   };
 
@@ -311,8 +331,17 @@ const RegisterPage = () => {
                 if (googleInitialized && window.google && !googlePrompting) {
                   setGooglePrompting(true);
                   if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
-                  promptTimeoutRef.current = setTimeout(() => setGooglePrompting(false), 8000);
-                  window.google.accounts.id.prompt();
+                  promptTimeoutRef.current = setTimeout(() => {
+                    setGooglePrompting(false);
+                    setErrors({ general: 'Google Sign-In took too long or was blocked. Try Incognito or disable extensions.' });
+                  }, 8000);
+                  try {
+                    window.google.accounts.id.prompt();
+                  } catch (err) {
+                    console.error('Google prompt failed', err);
+                    setGooglePrompting(false);
+                    setErrors({ general: 'Google Sign-In failed to open. Check that the Google scripts are reachable and not blocked.' });
+                  }
                 } else {
                   console.warn('Google Sign-In not initialized yet.');
                 }

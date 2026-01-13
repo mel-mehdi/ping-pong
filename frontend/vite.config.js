@@ -41,7 +41,7 @@ export default defineConfig({
     // Reduce client-side work and noise in dev tooling
     // Set lower log level to avoid excessive message handling
     logLevel: 'warn',
-    // Dev proxy: forward /api requests to the backend container on localhost:8001
+    // Dev proxy: forward important backend requests to the backend container
     proxy: {
       '/api': {
         // Point to the backend service inside Docker network so the dev server
@@ -58,6 +58,29 @@ export default defineConfig({
         },
         rewrite: (path) => path.replace(/^\/api/, '/api')
       },
+
+      // Proxy authentication, user, admin and media endpoints to backend in dev
+      '/auth': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+      '/users': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+      '/admin': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+      '/media': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+
       // Proxy WebSocket connections to backend
       '/ws': {
         target: process.env.VITE_DEV_WS_TARGET || 'wss://backend:8001',

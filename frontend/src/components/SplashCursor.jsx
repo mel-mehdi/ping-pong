@@ -699,6 +699,17 @@ function SplashCursor({
         return;
       }
 
+      // If the page is hidden, throttle to ~1 FPS to save CPU
+      if (document.hidden || document.visibilityState !== 'visible') {
+        if (!updateFrame._lastHidden || (now - updateFrame._lastHidden) >= 1000) {
+          updateFrame._lastHidden = now;
+          const dt = calcDeltaTime();
+          updateColors(dt);
+        }
+        requestAnimationFrame(updateFrame);
+        return;
+      }
+
       // When paused (e.g., typing or input focused), throttle rendering to a low rate
       if (pausedRef.current) {
         // throttle to ~10 FPS while paused to reduce CPU usage and avoid jank
@@ -712,12 +723,27 @@ function SplashCursor({
         return;
       }
 
+      // If previous frame was very slow, skip every other frame to reduce load
+      if (updateFrame._lastFrameDuration && updateFrame._lastFrameDuration > 50) {
+        updateFrame._skip = !updateFrame._skip;
+        if (updateFrame._skip) {
+          updateFrame._lastFrameDuration = now - (updateFrame._lastFrameTime || now);
+          requestAnimationFrame(updateFrame);
+          return;
+        }
+      }
+
       const dt = calcDeltaTime();
       if (resizeCanvas()) initFramebuffers();
       updateColors(dt);
       applyInputs();
       step(dt);
       render(null);
+
+      // measure frame duration
+      updateFrame._lastFrameDuration = performance.now() - now;
+      updateFrame._lastFrameTime = performance.now();
+
       requestAnimationFrame(updateFrame);
     }
 
@@ -729,12 +755,43 @@ function SplashCursor({
       return dt;
     }
 
+    // Cache element size and update only when ResizeObserver or window resize fires
+    let _cachedClientWidth = 0;
+    let _cachedClientHeight = 0;
+    let _needsResize = true;
+    let _resizeObserver = null;
+
+    function handleElementSizeChange() {
+      // Read layout only when an actual size change occurs (ResizeObserver or window resize)
+      try {
+        const w = scaleByPixelRatio(canvas.clientWidth);
+        const h = scaleByPixelRatio(canvas.clientHeight);
+        if (w !== _cachedClientWidth || h !== _cachedClientHeight) {
+          _cachedClientWidth = w;
+          _cachedClientHeight = h;
+          _needsResize = true;
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    if (typeof ResizeObserver !== 'undefined') {
+      _resizeObserver = new ResizeObserver(handleElementSizeChange);
+      _resizeObserver.observe(canvas);
+    } else {
+      window.addEventListener('resize', handleElementSizeChange, { passive: true });
+    }
+
+    // initialize cached size
+    handleElementSizeChange();
+
     function resizeCanvas() {
-      let width = scaleByPixelRatio(canvas.clientWidth);
-      let height = scaleByPixelRatio(canvas.clientHeight);
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
+      if (!_needsResize) return false;
+      _needsResize = false;
+      if (canvas.width !== _cachedClientWidth || canvas.height !== _cachedClientHeight) {
+        canvas.width = _cachedClientWidth;
+        canvas.height = _cachedClientHeight;
         return true;
       }
       return false;
@@ -1092,6 +1149,12 @@ function SplashCursor({
     const cleanup = () => {
       window.removeEventListener('focusin', handleFocusIn, true);
       window.removeEventListener('focusout', handleFocusOut, true);
+      // Disconnect resize observer if used
+      if (_resizeObserver) {
+        try { _resizeObserver.disconnect(); } catch (e) {}
+      } else {
+        window.removeEventListener('resize', handleElementSizeChange);
+      }
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
