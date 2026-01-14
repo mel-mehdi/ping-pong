@@ -130,6 +130,13 @@ export default defineConfig({
         secure: false,
       },
 
+      // Proxy game endpoints to backend (backend registers /game/ at root)
+      '/game': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+
       // Proxy WebSocket connections to backend
       '/ws': {
         target: process.env.VITE_DEV_WS_TARGET || 'wss://backend:8001',

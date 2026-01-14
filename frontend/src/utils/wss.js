@@ -50,3 +50,17 @@ export function wsLog(...args) {
     // ignore in environments that don't support import.meta
   }
 }
+
+export function safeCloseSocket(s) {
+  try {
+    if (!s) return;
+    if (s.readyState === WebSocket.OPEN) {
+      s.close();
+    } else if (s.readyState === WebSocket.CONNECTING) {
+      s.addEventListener('open', () => s.close(), { once: true });
+      s.addEventListener('error', () => s.close(), { once: true });
+    }
+  } catch (e) {
+    // ignore
+  }
+}

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
-import { buildWsUrl, wsLog } from '../utils/wss';
+import { buildWsUrl, wsLog, safeCloseSocket } from '../utils/wss';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/chat.css';
@@ -25,7 +25,7 @@ const ChatPage = () => {
   useEffect(() => {
     if (!currentConversationId || !isBackendAuthenticated) {
       if (wsRef.current) {
-        wsRef.current.close();
+        safeCloseSocket(wsRef.current);
         wsRef.current = null;
       }
       return;
@@ -33,7 +33,7 @@ const ChatPage = () => {
 
     // Close existing connection
     if (wsRef.current) {
-      wsRef.current.close();
+      safeCloseSocket(wsRef.current);
     }
 
     // Create WebSocket connection
@@ -106,9 +106,7 @@ const ChatPage = () => {
     };
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
+      safeCloseSocket(ws);
     };
   }, [currentConversationId, isBackendAuthenticated, userData]);
 

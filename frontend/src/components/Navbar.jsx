@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
 import apiClient from '../utils/api';
-import { buildWsUrl, wsLog } from '../utils/wss';
+import { buildWsUrl, wsLog, safeCloseSocket } from '../utils/wss';
 
 const Navbar = () => {
     const { isAuthenticated, isBackendAuthenticated, userData, logout } = useAuth();
@@ -267,12 +267,7 @@ const Navbar = () => {
             isClosed = true;
             if (ws) {
                 try {
-                    if (ws.readyState === WebSocket.OPEN) {
-                        ws.close();
-                    } else if (ws.readyState === WebSocket.CONNECTING) {
-                        // Wait for connection to open before closing
-                        ws.onopen = () => ws.close();
-                    }
+                    safeCloseSocket(ws);
                 } catch (err) {
                     // Silently handle close errors
                 }

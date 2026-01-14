@@ -489,6 +489,22 @@ const GamePage = () => {
   const [aiDifficulty, setAiDifficulty] = useState('MEDIUM');
 
   // WebSocket Connection Logic
+
+  const safeCloseSocket = (s) => {
+    try {
+      if (!s) return;
+      if (s.readyState === WebSocket.OPEN) {
+        s.close();
+      } else if (s.readyState === WebSocket.CONNECTING) {
+        // If still connecting, close when it opens or if it errors
+        s.addEventListener('open', () => s.close(), { once: true });
+        s.addEventListener('error', () => s.close(), { once: true });
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     if ((mode !== 'online' && mode !== 'tournament') || !isBackendAuthenticated) return;
 
@@ -525,7 +541,7 @@ const GamePage = () => {
               // For matchmaking, reconnect to specific room
               if (mode === 'online' && !matchId) {
                 if (data.room_id !== currentRoomRef.current) {
-                  socket.close();
+                  safeCloseSocket(socket);
                   connectToGame(data.room_id);
                   // Update socket reference in existing game if it exists
                   setTimeout(() => {
@@ -607,7 +623,7 @@ const GamePage = () => {
 
     return () => {
       if (socketRef.current) {
-        socketRef.current.close();
+        safeCloseSocket(socketRef.current);
       }
     };
   }, [mode, matchId, isBackendAuthenticated, t, playerRole]);
