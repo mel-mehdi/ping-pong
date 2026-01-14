@@ -500,7 +500,7 @@ Before running the project, ensure you have the following installed:
    ```bash
    npm run dev
    ```
-   Frontend will run on `https://localhost:5173`.
+   Frontend will run on `https://localhost:8443` (host-mapped HTTPS port).
 
    **Note:** Before starting with Docker, generate self-signed certificates for local HTTPS by running `./generate-ssl.sh` (this writes `nginx/ssl/nginx.key` and `nginx/ssl/nginx.crt`). The development environment serves HTTPS by default; your browser will show a self-signed certificate warning—accept it to continue. HTTP (`http://localhost`) is redirected to HTTPS automatically by the nginx proxy."}]}] }```
 
