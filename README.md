@@ -1,6 +1,6 @@
 # PingPong
 
-*This project has been created as part of the 42 curriculum by mel-mehdi.*
+*This project has been created as part of the 42 curriculum by mel-mehdi, szeroual*
 
 ## Description
 
@@ -16,6 +16,9 @@
 - **Responsive Design**: Fully responsive UI that works on all devices
 - **Dark Mode**: Complete dark mode support with smooth transitions
 - **Accessibility**: Keyboard navigation, ARIA labels, and semantic HTML
+- **AI Opponent System**: Play against intelligent CPU opponents with three difficulty levels
+- **Advanced AI**: Ball trajectory prediction, error modeling, and reaction time simulation
+
 
 ## Team Information
 
@@ -24,6 +27,7 @@
 | Name | Login | Role(s) | Responsibilities |
 |------|-------|---------|------------------|
 | Mehdi | mel-mehdi | Product Owner, Tech Lead, Full-stack Developer | Architecture design, technical decisions, game engine, frontend views, backend API, database schema, deployment, module implementation |
+| Sanaa | szeroual | AI Developer | AI opponent system, ball trajectory prediction, difficulty levels, error modeling, reaction time simulation |
 
 ### Project Management
 
@@ -265,11 +269,21 @@
 - GDPR-aware data handling
 - User data export capabilities (planned)
 
+### 11. AI Opponent System
+**Implemented by**: szeroual
+- Three difficulty levels: Easy, Medium, Hard
+- Ball trajectory prediction algorithm
+- AI error modeling for realistic mistakes
+- Reaction time simulation
+- Adaptive paddle movement based on difficulty
+- Integration with game engine for single-player mode
+- Configurable AI parameters (speed, error amount, reaction value, prediction strength)
+
 ## Modules
 
 ### Total Points Calculation
 **Target**: 14 points (minimum)  
-**Achieved**: 14 points
+**Achieved**: 16 points
 
 ### Major Modules (2 points each)
 
@@ -305,9 +319,19 @@
 - Friend request notifications
 - **Implemented by**: mel-mehdi
 
+#### 5. Implement AI opponent (2 pt) 
+**Status**: ✅ Implemented
+- Three difficulty levels (Easy, Medium, Hard)
+- Ball trajectory prediction algorithm
+- Error modeling for realistic AI behavior
+- Reaction time simulation
+- Adaptive AI with configurable parameters
+- **Requirement**: Requires game module (Pong) - ✅ Met
+- **Implemented by**: szeroual
+
 ### Minor Modules (1 point each)
 
-#### 5. Game statistics and match history (1 pt)
+#### 6. Game statistics and match history (1 pt)
 **Status**: ✅ Implemented
 - Track user game statistics (wins, losses, games played)
 - Display match history (1v1 games with dates, scores, opponents)
@@ -316,7 +340,7 @@
 - **Requirement**: Requires game module (Pong) - ✅ Met
 - **Implemented by**: mel-mehdi
 
-#### 6. Use a backend framework (1 pt)
+#### 7. Use a backend framework (1 pt)
 **Status**: ✅ Implemented
 - Express.js for Node.js
 - RESTful API endpoints
@@ -324,7 +348,7 @@
 - Structured routing
 - **Implemented by**: mel-mehdi
 
-#### 7. Implement a tournament system (1 pt)
+#### 8. Implement a tournament system (1 pt)
 **Status**: ✅ Implemented
 - Clear bracket system for 4, 8, or 16 players
 - Match progression tracking
@@ -334,7 +358,7 @@
 - **Requirement**: Requires game module (Pong) - ✅ Met
 - **Implemented by**: mel-mehdi
 
-#### 8. Game customization options (1 pt)
+#### 9. Game customization options (1 pt)
 **Status**: ✅ Implemented
 - Customizable player names
 - Configurable winning score
@@ -344,7 +368,7 @@
 - **Requirement**: Requires game module (Pong) - ✅ Met
 - **Implemented by**: mel-mehdi
 
-#### 9. Support for multiple browsers (1 pt)
+#### 10. Support for multiple browsers (1 pt)
 **Status**: ✅ Implemented
 - Tested on Google Chrome (required)
 - Full compatibility with Firefox
@@ -353,11 +377,12 @@
 - Consistent UI/UX across all browsers
 - **Implemented by**: mel-mehdi
 
-#### 10. Support for multiple languages (1 pt)
+#### 11. Support for multiple languages (1 pt)
 **Status**: 🔄 Partial (Not counted toward score)
 - Currently English only
 - i18n structure prepared for future expansion
 - **Note**: Not claiming points for this module
+
 
 ## Individual Contributions
 
@@ -484,11 +509,11 @@ Before running the project, ensure you have the following installed:
    ```bash
    python manage.py runserver 0.0.0.0:8001
    ```
-   Backend will run on `http://localhost:8001`.
+   Backend will run on `https://localhost:8001`.
 
    Note: The frontend defaults to making API requests using the **same origin** (e.g., `/api/...`).
    To explicitly point the frontend to a different backend host/port (for local dev), set
-   `VITE_BACKEND_URL` in `frontend/.env` (e.g. `VITE_BACKEND_URL=http://localhost:8001`).
+   `VITE_BACKEND_URL` in `frontend/.env` (e.g. `VITE_BACKEND_URL=https://localhost:8001`).
 
 3. **Install frontend dependencies** (in a new terminal):
    ```bash
@@ -500,7 +525,9 @@ Before running the project, ensure you have the following installed:
    ```bash
    npm run dev
    ```
-   Frontend will run on `http://localhost:5173`.
+   Frontend will run on `https://localhost:5173`.
+
+   **Note:** Before starting with Docker, generate self-signed certificates for local HTTPS by running `./generate-ssl.sh` (this writes `nginx/ssl/nginx.key` and `nginx/ssl/nginx.crt`). The development environment serves HTTPS by default; your browser will show a self-signed certificate warning—accept it to continue. HTTP (`http://localhost`) is redirected to HTTPS automatically by the nginx proxy."}]}] }```
 
    Note: The dev server proxies backend routes for local development. The proxy now forwards `/api`, `/auth`, `/users`, `/profiles`, `/game`, and `/chat` to the backend. If you change `vite.config.js` or `.env`, restart the dev server to apply the updates.
 
@@ -594,6 +621,11 @@ docker-compose logs -f
 - [HTML5 Canvas Tutorial](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial)
 - [Docker Documentation](https://docs.docker.com/)
 - [Node.js Best Practices](https://github.com/goldbergyoni/nodebestpractices)
+- **How to make a simple Game AI for Pong** ([YouTube link](https://www.youtube.com/watch?v=_evDO_Xvir4))  
+- **Tutorial covering building a Pong game with AI in Python and Pygame** ([Toolify.ai link](https://www.toolify.ai/ai-news/learn-to-code-pong-game-in-10-mins-with-ai-python-pygame-tutorial-783877?utm_source=chatgpt.com))  
+- Python Official Documentation: [https://docs.python.org/3/](https://docs.python.org/3/) — Used for understanding Python classes, modules, and the `random` module for AI logic.  
+- Python Random Module Documentation: [https://docs.python.org/3/library/random.html](https://docs.python.org/3/library/random.html) — Used to simulate AI reaction delays and human-like errors.  
+
 
 ### Project Requirements
 - [42 School ft_transcendence Subject](https://cdn.intra.42.fr/pdf/pdf/xxxxx/en.subject.pdf)
@@ -607,6 +639,9 @@ docker-compose logs -f
 - [Can I Use](https://caniuse.com/)
 
 ### AI Usage
+
+
+#### AI Tools Used for Other Project Parts
 
 AI tools (GitHub Copilot, ChatGPT) were used in the following capacities:
 
