@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Status - ft_transcendence</title>
+  <title>Status - PingPong</title>
   <style>
     * {
       margin: 0;
@@ -167,7 +167,7 @@
   <div class="status-container">
     <div class="header-info">
       <div>
-        <h1>🟢 System Status</h1>
+        <h1 id="system-status">🟢 System Status</h1>
         <p class="last-update">Last updated: <span id="last-update">Never</span></p>
       </div>
       <button class="refresh-btn" onclick="checkStatus()">🔄 Refresh</button>
@@ -183,9 +183,9 @@
 
   <script>
     const serviceConfig = [
-      { name: 'Backend API', url: '/api/health', type: 'backend' },
-      { name: 'Database', url: '/api/health/db', type: 'database' },
-      { name: 'Frontend', url: '/health', type: 'frontend' }
+      { name: 'Backend API', url: '/api/', type: 'backend' },
+      { name: 'Database', url: '/api/', type: 'database' },
+      { name: 'Frontend', url: '/', type: 'frontend' }
     ];
 
     async function checkStatus() {
@@ -200,34 +200,40 @@
 
         try {
           const startTime = performance.now();
-          const response = await fetch(service.url);
+          const response = await fetch(service.url, {
+            mode: 'cors',
+            credentials: 'omit'
+          });
           const endTime = performance.now();
           const responseTime = (endTime - startTime).toFixed(2);
           
-          const data = await response.json();
-          const isUp = response.ok && (data.status === 'OK' || data.status === 'UP');
+          let data;
+          try {
+            data = await response.json();
+          } catch {
+            data = { status: 'OK' }; // If not JSON, assume OK if response was successful
+          }
+          
+          const isUp = response.ok;
           
           card.classList.add(isUp ? 'status-up' : 'status-down');
           card.innerHTML = `
             <h3>${service.name}</h3>
             <p>Status: <strong>${isUp ? '🟢 UP' : '🔴 DOWN'}</strong></p>
             <p>Response time: <strong>${responseTime}ms</strong></p>
-            ${data.uptime ? `<p>Uptime: <strong>${formatUptime(data.uptime)}</strong></p>` : ''}
-            ${data.timestamp ? `<p>Server time: <strong>${new Date(data.timestamp).toLocaleString()}</strong></p>` : ''}
           `;
           
           results.push({
             name: service.name,
             status: isUp,
-            responseTime: responseTime,
-            uptime: data.uptime
+            responseTime: responseTime
           });
         } catch (error) {
           card.classList.add('status-down');
           card.innerHTML = `
             <h3>${service.name}</h3>
             <p>Status: <strong>🔴 DOWN</strong></p>
-            <p class="error-message">Error: ${error.message}</p>
+            <p class="error-message">Service unavailable</p>
           `;
           
           results.push({
@@ -241,7 +247,22 @@
       }
 
       updateMetrics(results);
+      updateStatusIndicator(results);
       document.getElementById('last-update').textContent = new Date().toLocaleString();
+    }
+
+    function updateStatusIndicator(results) {
+      const upServices = results.filter(r => r.status).length;
+      const totalServices = results.length;
+      const statusElement = document.getElementById('system-status');
+      
+      if (upServices === totalServices) {
+        statusElement.textContent = '🟢 System Status';
+      } else if (upServices > 0) {
+        statusElement.textContent = '🟡 System Status';
+      } else {
+        statusElement.textContent = '🔴 System Status';
+      }
     }
 
     function updateMetrics(results) {
@@ -271,16 +292,6 @@
           <div class="value">${upServices === totalServices ? '✅ Healthy' : '⚠️ Issues'}</div>
         </div>
       `;
-    }
-
-    function formatUptime(seconds) {
-      const days = Math.floor(seconds / 86400);
-      const hours = Math.floor((seconds % 86400) / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      
-      if (days > 0) return `${days}d ${hours}h`;
-      if (hours > 0) return `${hours}h ${minutes}m`;
-      return `${minutes}m`;
     }
 
     // Auto-refresh every 30 seconds

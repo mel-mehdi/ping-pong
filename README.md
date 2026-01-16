@@ -61,11 +61,12 @@
 - **Redis**: Session storage and caching
 
 ### DevOps
-- **Docker + Docker Compose**: 12 services running together
+- **Docker + Docker Compose**: 13 services running together
 - **nginx**: Reverse proxy and SSL
 - **Prometheus**: Collects metrics from everything
 - **Grafana**: Makes pretty dashboards
-- **postgres_exporter, node_exporter, cAdvisor**: Various metric collectors
+- **Alertmanager**: Alert routing and notification system
+- **Exporters**: postgres_exporter, redis_exporter, node_exporter, cAdvisor
 - **Automated backups**: Daily at 3 AM with 7-day retention
 
 ## Database
@@ -134,8 +135,9 @@ All tables use proper foreign keys and indexes. Check `backend/*/models.py` for 
 - Leaderboards and rankings
 
 ### DevOps (amabchou)
-- Docker setup (12 services)
-- Prometheus + Grafana monitoring
+- Docker setup (13 services)
+- Prometheus + Grafana + Alertmanager monitoring
+- Alert rules and notification system
 - Automated daily backups
 - Health checks and status page
 - Disaster recovery docs
@@ -225,7 +227,7 @@ All tables use proper foreign keys and indexes. Check `backend/*/models.py` for 
 ### Assia (amabchou) - DevOps
 
 **Infrastructure:**
-- Docker Compose with 12 services
+- Docker Compose with 13 services
 - PostgreSQL and Redis setup
 - nginx config with SSL
 - Environment variables
@@ -233,7 +235,8 @@ All tables use proper foreign keys and indexes. Check `backend/*/models.py` for 
 **Monitoring:**
 - Prometheus setup
 - Grafana dashboards
-- Multiple exporters (postgres, node, cadvisor)
+- Alertmanager configuration
+- Multiple exporters (postgres, redis, node, cadvisor)
 - Alert rules
 
 **Backups:**
@@ -253,46 +256,112 @@ All tables use proper foreign keys and indexes. Check `backend/*/models.py` for 
 ### Requirements
 - Docker & Docker Compose
 - Modern browser (Chrome recommended)
+- Git
 
 ### Quick Start
 
-1. Clone it:
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/mel-mehdi/ft_mohsinine.git
    cd ft_mohsinine
    ```
 
-2. Start everything:
+2. **Set up environment variables:**
    ```bash
-   docker-compose up --build
+   # Copy the example file
+   cp .env.example .env
+   
+   # Edit .env and replace all "CHANGE_ME_" placeholders with secure values
+   # IMPORTANT: Use strong passwords (minimum 16 characters)
+   nano .env  # or use your preferred editor
    ```
 
-3. Access:
-   - Frontend: https://localhost
-   - Backend API: https://localhost/api
-   - Prometheus: http://localhost:9090
-   - Grafana: http://localhost:3001 (admin/admin)
-
-4. Stop:
+3. **Build and start the application:**
    ```bash
-   docker-compose down
+   # Generate SSL certificates, build containers, and start all services
+   make
+
+   # Or run individual steps:
+   # make ssl       # Generate SSL certificates
+   # make build     # Build Docker containers
+   # make up        # Start all services
    ```
+
+4. **Access the application:**
+   - **Frontend**: https://localhost
+   - **Backend API**: https://localhost/api
+   - **Prometheus**: http://localhost:9090 (localhost access only)
+   - **Grafana**: http://localhost:3001 (localhost access only)
+     - Login with credentials from .env (GRAFANA_ADMIN_USER / GRAFANA_PASSWORD)
+   - **Status Page**: https://localhost/status
+
+5. **Stop services:**
+   ```bash
+   make down
+   ```
+
+### Available Make Commands
+
+```bash
+# Setup & Deployment
+make          # Generate SSL, build, and start everything
+make ssl      # Generate SSL certificates
+make build    # Build Docker containers
+make up       # Start all services
+make down     # Stop all services
+make restart  # Restart all services
+
+# Logs
+make logs              # Show all logs
+make logs-backend      # Show backend logs only
+make logs-frontend     # Show frontend logs only
+make logs-nginx        # Show nginx logs only
+
+# Status & Health
+make status   # Show service status and volumes
+make health   # Run health checks
+
+# Database
+make migrate       # Apply database migrations
+make migrations    # Create new migrations
+make shell-db      # Open PostgreSQL shell
+
+# Utilities
+make users         # Create test users (NUM=4 PASS=testpass123)
+make shell-backend # Open backend shell
+make backup        # Create manual database backup
+
+# Cleanup
+make clean    # Remove containers and volumes
+make fclean   # Full cleanup (containers, volumes, images, SSL, backups)
+make re       # Full rebuild (fclean + all)
+```
+
+### Security Notes
+
+⚠️ **IMPORTANT**: 
+- Never commit the `.env` file to git (it's in .gitignore)
+- Change all default passwords in `.env` before deployment
+- Use strong passwords (minimum 16 characters with letters, numbers, symbols)
+- For production: Set `DEBUG=False` and update `ALLOWED_HOSTS` in `.env`
 
 ### If Something Breaks
 
 ```bash
 # Rebuild everything
-docker-compose down -v
-docker-compose up --build
+make fclean
+make
 
 # Check logs
-docker-compose logs -f
+make logs
+# Or specific service
+make logs-backend
 
 # Run health check
-./scripts/health-check.sh
+make health
 ```
 
-Check DISASTER_RECOVERY.md if you need to restore backups.
+Check [devops/DISASTER_RECOVERY.md](devops/DISASTER_RECOVERY.md) if you need to restore backups.
 
 ## Resources
 
@@ -326,5 +395,5 @@ All AI-generated content was reviewed, understood, and tested before integration
 ---
 
 **Status**: ✅ 19/14 points  
-**Updated**: January 8, 2026  
+**Updated**: January 15, 2026  
 **Team**: mel-mehdi, ael-bouz, amabchou, szeroual

@@ -3,13 +3,13 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    monitor: 'ft-transcendence'
-    environment: 'production'
+    monitor: 'pingpong'
+    environment: 'development'
 
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: []
+        - targets: ['alertmanager:9093']
 
 rule_files:
   - "alerts.yml"

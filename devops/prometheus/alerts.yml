@@ -11,17 +11,7 @@ groups:
           severity: critical
         annotations:
           summary: "Service {{ $labels.job }} is down"
-          description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute."
-
-      # slow response times
-      - alert: HighResponseTime
-        expr: http_request_duration_seconds > 1
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High response time on {{ $labels.job }}"
-          description: "{{ $labels.job }} is experiencing high response times (> 1s) for more than 5 minutes."
+          description: "The {{ $labels.job }} service ({{ $labels.instance }}) has been unreachable for more than 1 minute."
 
       # CPU usage too high
       - alert: HighCPUUsage
@@ -31,7 +21,7 @@ groups:
           severity: warning
         annotations:
           summary: "High CPU usage on {{ $labels.job }}"
-          description: "{{ $labels.job }} is using more than 80% CPU for more than 5 minutes."
+          description: "The {{ $labels.job }} service is using more than 80% CPU continuously for 5 minutes."
 
       # High Memory Usage
       - alert: HighMemoryUsage
@@ -41,7 +31,7 @@ groups:
           severity: warning
         annotations:
           summary: "High memory usage on {{ $labels.job }}"
-          description: "{{ $labels.job }} is using more than 500MB of memory."
+          description: "The {{ $labels.job }} service is consuming more than 500MB of memory for 5 minutes."
 
       # Database Connection Issues
       - alert: DatabaseConnectionFailed
@@ -51,37 +41,67 @@ groups:
           severity: critical
         annotations:
           summary: "Database connection failed"
-          description: "Cannot connect to PostgreSQL database for more than 1 minute."
+          description: "The PostgreSQL database is unreachable or not responding for more than 1 minute."
 
-      # Container Restart Alert
-      - alert: ContainerRestarted
-        expr: rate(container_last_seen[5m]) > 0
+      # Redis is down (checked by redis_exporter)
+      - alert: RedisDown
+        expr: redis_up == 0
         for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "The Redis cache service is not responding or unreachable for more than 1 minute."
+
+      # Backend (Django) is down or not responding
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend service is down"
+          description: "The Django backend service is not responding to health checks for more than 1 minute."
+
+      # Disk space is running low
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} / node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"}) < 0.1
+        for: 2m
         labels:
           severity: warning
         annotations:
-          summary: "Container {{ $labels.name }} has restarted"
-          description: "Container {{ $labels.name }} has been restarted."
+          summary: "Low disk space on {{ $labels.device }}"
+          description: "The disk {{ $labels.device }} has less than 10% free space remaining."
 
   - name: performance_alerts
     interval: 30s
     rules:
       # High Request Rate
       - alert: HighRequestRate
-        expr: rate(http_requests_total[5m]) > 100
+        expr: rate(django_http_requests_total_by_method_total[5m]) > 100
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "High request rate on {{ $labels.job }}"
-          description: "{{ $labels.job }} is receiving more than 100 requests per second."
+          description: "The {{ $labels.job }} service is receiving more than 100 requests per second for 5 minutes."
 
-      # Error Rate Too High
+      # Error Rate Too High (Django 5xx responses)
       - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        expr: rate(django_http_responses_total_by_status_total{status=~"5.."}[5m]) > 0.05
         for: 5m
         labels:
           severity: critical
         annotations:
           summary: "High error rate on {{ $labels.job }}"
-          description: "{{ $labels.job }} has an error rate above 5% for more than 5 minutes."
+          description: "The {{ $labels.job }} service has an error rate above 5% (5xx responses) for more than 5 minutes."
+
+      # Backend slow response time
+      - alert: SlowResponseTime
+        expr: rate(django_http_request_duration_seconds_sum[5m]) / rate(django_http_request_duration_seconds_count[5m]) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow response time on backend"
+          description: "The backend service has an average response time above 2 seconds for more than 5 minutes."

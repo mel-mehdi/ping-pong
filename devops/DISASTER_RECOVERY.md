@@ -2,9 +2,9 @@
 
 ## Overview
 
-So basically this doc is here for when stuff goes wrong (and it will). I've tested most of these procedures but some I only ran through once so if you're reading this during an actual disaster, good luck! 
+This document covers what to do when things break (and they will eventually). I've tested most of these procedures, though some only once, so if you're reading this during an actual emergency... good luck!
 
-The main idea is we have backups and ways to restore them, plus procedures for different scenarios that might happen.
+We have automated backups and restore procedures for common failure scenarios. Everything should be straightforward but definitely test the restore process once before you actually need it.
 
 ## Backup Setup
 
@@ -40,7 +40,7 @@ du -h backups/backup_transcendence_20260101_030000.sql.gz
 
 1. Stop everything first
    ```bash
-   docker compose down
+   make down
    ```
 
 2. Find your most recent backup
@@ -60,36 +60,36 @@ du -h backups/backup_transcendence_20260101_030000.sql.gz
 
 5. Wait a bit for it to be ready
    ```bash
-   docker compose exec database pg_isready -U postgres
-   # wait until it says "accepting connections"
+   docker compose exec database pg_isready -U $POSTGRES_USER
+   # keep running this until it says "accepting connections"
    ```
 
 6. Drop the broken database and make a new one
    ```bash
-   docker compose exec database psql -U postgres -c "DROP DATABASE IF EXISTS transcendence;"
-   docker compose exec database psql -U postgres -c "CREATE DATABASE transcendence;"
+   docker compose exec database psql -U $POSTGRES_USER -d postgres -c "DROP DATABASE IF EXISTS transcendence;"
+   docker compose exec database psql -U $POSTGRES_USER -d postgres -c "CREATE DATABASE transcendence;"
    ```
 
 7. Restore from backup
    ```bash
-   docker compose exec -T database psql -U postgres transcendence < /tmp/restore.sql
+   docker compose exec -T database psql -U $POSTGRES_USER transcendence < /tmp/restore.sql
    ```
 
 8. Check if it worked
    ```bash
-   docker compose exec database psql -U postgres transcendence -c "\dt"
+   docker compose exec database psql -U $POSTGRES_USER transcendence -c "\dt"
    # you should see your tables
    ```
 
 9. Start everything back up
    ```bash
-   docker compose up -d
+   make up
    ```
 
 10. Test if the app works
     ```bash
-    curl http://localhost:8001/
-    curl http://localhost:8000/
+    curl -k https://localhost:8001/
+    curl https://localhost/
     ```
 
 **Time:** Usually takes 5-10 minutes depending on backup size
@@ -105,46 +105,46 @@ du -h backups/backup_transcendence_20260101_030000.sql.gz
 
 **Recovery:**
 
-1. Get the code on a new server
+1. Clone the repo on the new server
    ```bash
    git clone <your-repo-url>
-   cd proga
+   cd ft_mohsinine
    ```
 
-2. Copy your backups from the old server (if you can access them)
+2. Copy backups from the old server (if you can still access it)
    ```bash
    scp -r user@old-server:/path/to/backups ./backups
-   # or just copy them however you can
+   # or use whatever method works - USB drive, cloud storage, etc
    ```
 
-3. Set up the .env file
+3. Set up environment variables
    ```bash
    cp .env.example .env
    nano .env
-   # put in your actual passwords and stuff
+   # fill in your actual credentials
    ```
 
 4. Build and start everything
    ```bash
-   docker compose up -d --build
+   make
    ```
 
 5. Give it a minute to start up
    ```bash
    sleep 30
-   docker compose ps
+   make status
    ```
 
 6. If you have backups, restore the database (follow the database restore steps above)
 
 7. Make sure everything's working
    ```bash
-   ./scripts/health-check.sh
+   make health
    ```
 
 8. Check monitoring
-   - Go to http://your-server-ip:9090 (Prometheus)
-   - Go to http://your-server-ip:3001 (Grafana)
+   - Go to http://localhost:9090 (Prometheus)
+   - Go to http://localhost:3001 (Grafana)
 
 **Time:** Probably 15-30 minutes if everything goes smoothly
 
@@ -153,36 +153,36 @@ du -h backups/backup_transcendence_20260101_030000.sql.gz
 ### One Service Keeps Crashing
 
 **Symptoms:**
-- One container won't stay up
-- Errors in just one service
+- Container won't stay up
+- One service showing errors while others are fine
 
 **What to do:**
 
-1. See which one is broken
+1. Check which service is having issues
    ```bash
-   docker compose ps
+   make status
    ```
 
-2. Check the logs
+2. Look at the logs
    ```bash
-   docker compose logs backend --tail=50
-   # or whatever service is broken
+   make logs-backend
+   # or logs-frontend, logs-nginx depending on what's broken
    ```
 
 3. Try restarting it
    ```bash
-   docker compose restart backend
+   make restart-backend
    ```
 
-4. If that doesn't work, rebuild it
+4. If that doesn't help, rebuild it
    ```bash
    docker compose up -d --build backend
    ```
 
-5. Check if it's happy now
+5. Verify it's working now
    ```bash
-   docker compose ps backend
-   docker compose logs backend
+   make status
+   make logs-backend
    ```
 
 **Time:** Usually 2-5 minutes
@@ -192,28 +192,28 @@ du -h backups/backup_transcendence_20260101_030000.sql.gz
 ### Config Files Got Messed Up
 
 **When:**
-- You changed docker-compose.yml or some config and now nothing works
+- Modified docker-compose.yml or other config and now things are broken
 - Services won't start
-- Syntax errors
+- Getting syntax errors
 
 **Fix:**
 
-1. Just revert to the last working version
+1. Revert to last working version
    ```bash
    git log --oneline
-   git checkout <the-hash-that-worked> -- docker-compose.yml
-   # or whatever file you broke
+   git checkout <commit-hash> -- docker-compose.yml
+   # replace with whatever file you broke
    ```
 
-2. Restart
+2. Restart everything
    ```bash
-   docker compose down
-   docker compose up -d
+   make down
+   make up
    ```
 
-3. Make sure it's working
+3. Verify services are running
    ```bash
-   docker compose ps
+   make status
    ```
 
 **Time:** 2-3 minutes
@@ -230,22 +230,22 @@ du -h backups/backup_transcendence_20260101_030000.sql.gz
 
 1. Stop everything
    ```bash
-   docker compose down
+   make down
    ```
 
 2. Check your volumes
    ```bash
-   docker volume ls | grep proga
+   docker volume ls | grep ft_trans
    ```
 
 3. Try to backup the volume first (if possible)
    ```bash
-   docker run --rm -v proga_postgres-data:/data -v $(pwd):/backup alpine tar czf /backup/volume-backup.tar.gz /data
+   docker run --rm -v ft_trans_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/volume-backup.tar.gz /data
    ```
 
 4. Remove the bad volume
    ```bash
-   docker volume rm proga_postgres-data
+   docker volume rm ft_trans_postgres_data
    ```
 
 5. Start fresh and restore from backup
@@ -263,27 +263,27 @@ du -h backups/backup_transcendence_20260101_030000.sql.gz
 If you want to make a backup right now instead of waiting for the automatic one:
 
 ```bash
-# easiest way: just run the backup script
-docker compose exec backup /backup.sh
+# easiest way
+make backup
 
-# or make a one-off backup
-docker compose exec database pg_dump -U postgres transcendence | gzip > backups/manual_backup_$(date +%Y%m%d_%H%M%S).sql.gz
+# or do it manually
+docker compose exec database pg_dump -U $POSTGRES_USER transcendence | gzip > backups/manual_backup_$(date +%Y%m%d_%H%M%S).sql.gz
 ```
 
-## Testing This Stuff
+## Testing Backups
 
-You should probably test the restore process at least once to make sure it actually works. I tested it a few times but it's good to verify in your own setup.
+Test the restore process at least once before you actually need it. Just because backups are running doesn't mean restores will work.
 
-1. Make a test backup
-2. Try restoring it in a dev environment or on your local machine
-3. Make sure the data is all there
-4. Write down any issues
+1. Create a test backup with `make backup`
+2. Try restoring it on your local setup
+3. Verify all the data is there
+4. Document any problems you run into
 
 ## Monitoring
 
 ### Running Health Checks
 ```bash
-./scripts/health-check.sh
+make health
 ```
 
 This checks if all services are responding.
@@ -292,19 +292,19 @@ This checks if all services are responding.
 Go to http://localhost:9090/alerts to see if anything is firing
 
 ### Grafana
-Check the dashboards at http://localhost:3001 (login with admin/admin)
+Check the dashboards at http://localhost:3001 (login with your credentials from .env)
 
 ## After You Fix Something
 
 Make sure to check:
-- [ ] All services are running (`docker compose ps`)
+- [ ] All services are running (`make status`)
 - [ ] Database works and has data
-- [ ] Frontend loads (http://localhost:8000)
-- [ ] Backend responds (http://localhost:8001)
-- [ ] Nginx works if you're using it (http://localhost:8888)
+- [ ] Frontend loads (https://localhost/)
+- [ ] Backend responds (https://localhost:8001/ with -k flag)
+- [ ] Nginx works (https://localhost/)
 - [ ] Prometheus is collecting metrics (http://localhost:9090)
 - [ ] Grafana shows data (http://localhost:3001)
-- [ ] Health check passes (`./scripts/health-check.sh`)
+- [ ] Health check passes (`make health`)
 - [ ] Backups are running again
 - [ ] Tell the team what happened
 
@@ -320,5 +320,5 @@ Make sure to check:
 
 - PostgreSQL backup docs: https://www.postgresql.org/docs/current/backup.html
 - Docker volumes: https://docs.docker.com/storage/volumes/
-- Our backup script: `scripts/backup.sh`
-- Health check: `scripts/health-check.sh`
+- Our backup script: `devops/scripts/backup.sh`
+- Health check: `devops/scripts/health-check.sh`

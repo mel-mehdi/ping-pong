@@ -13,7 +13,7 @@ services:
     networks:
       - transcendence_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -21,8 +21,6 @@ services:
   redis:
     image: redis:8-alpine
     container_name: redis
-    ports:
-      - "6379:6379"
     restart: unless-stopped
     networks:
       - transcendence_network
@@ -64,7 +62,7 @@ services:
       - ./devops/prometheus/alerts.yml:/etc/prometheus/alerts.yml
       - prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     networks:
       - transcendence_network
     restart: unless-stopped
@@ -75,18 +73,34 @@ services:
     env_file:
       - .env
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
       - ./devops/grafana/provisioning:/etc/grafana/provisioning
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     networks:
       - transcendence_network
     depends_on:
       - prometheus
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    env_file:
+      - .env
+    volumes:
+      - ./devops/alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+    ports:
+      - "127.0.0.1:9093:9093"
+    networks:
+      - transcendence_network
     restart: unless-stopped
 
   node_exporter:
@@ -141,17 +155,6 @@ services:
       - database
     restart: unless-stopped
 
-  status_page:
-    image: nginx:alpine
-    container_name: status_page
-    volumes:
-      - ./status-page:/usr/share/nginx/html:ro
-    ports:
-      - "8080:80"
-    networks:
-      - transcendence_network
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
@@ -201,7 +204,7 @@ services:
     networks:
       - transcendence_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -217,6 +220,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - django_static:/app/static:ro
       - ./backend/media:/app/media:ro
+      - ./devops/status-page:/usr/share/nginx/html/status:ro
     depends_on:
       - backend
       - frontend

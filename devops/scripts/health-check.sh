@@ -3,8 +3,8 @@
 echo "Checking system health..."
 
 services=(
-    "http://localhost:8000/"            # frontend
-    "http://localhost:8001/"            # backend
+    "https://localhost/"                # frontend (via nginx)
+    "https://localhost/api/"            # backend (via nginx)
     "http://localhost:9090/-/healthy"   # prometheus
     "http://localhost:3001/api/health"  # grafana
 )
@@ -12,8 +12,8 @@ services=(
 all_good=true
 
 for service in "${services[@]}"; do
-    response=$(curl -s -o /dev/null -w "%{http_code}" $service)
-    if [ $response -eq 200 ]; then
+    response=$(curl -sk -o /dev/null -w "%{http_code}" "$service")
+    if [ "$response" -eq 200 ]; then
         echo "✓ $service is up"
     else
         echo "✗ $service is down (got HTTP $response)"
