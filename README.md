@@ -2,6 +2,8 @@
 
 ## Description
 
+# PingPong - Multiplayer Tournament Platform
+
 **PingPong** is our take on the classic Pong game, but we took it way beyond just bouncing a ball. We built a complete web platform with multiplayer tournaments, real-time chat, user profiles, and professional monitoring. This is our final project for the 42 curriculum where we got to use everything we learned about web development, databases, real-time features, and DevOps.
 
 ### What We Built
@@ -261,7 +263,7 @@ All tables use proper foreign keys and indexes. Check `backend/*/models.py` for 
 - Getting Grafana's auto-provisioning to work correctly
 - Setting up truly automated backups that run reliably
 
-## How to Run
+## Instructions
 
 ### Requirements
 - Docker & Docker Compose
@@ -387,9 +389,20 @@ Check [devops/DISASTER_RECOVERY.md](devops/DISASTER_RECOVERY.md) if you need to 
 
 ### AI Usage
 
-We kept AI use to a minimum throughout this project. Mostly we used it when we hit ambiguous documentation or needed to look up something we couldn't find online easily. Sometimes we'd ask ChatGPT to clarify a concept or check our understanding of how something works, especially when official docs were unclear.
+We used AI assistance minimally throughout this project, primarily for:
+- **Documentation clarification**: When official docs were ambiguous (Django Channels WebSocket setup, Prometheus configuration)
+- **Concept verification**: Checking our understanding of complex topics
+- **Quick lookups**: Syntax references and troubleshooting Docker networking issues
 
-Everything important we built ourselves. The game physics, tournament logic, database design, backend architecture, and DevOps setup are all our own work. We wrote the code, designed the systems, and figured out the solutions. AI was just there for quick lookups and the occasional "wait, how does this work again?" moment.
+**What we built ourselves** (no AI assistance):
+- Game physics engine and collision detection
+- Tournament bracket algorithm and logic
+- Database schema design and relationships
+- Backend API architecture and endpoints
+- DevOps infrastructure and monitoring setup
+- AI opponent prediction algorithm
+
+AI was used as a reference tool, not for code generation or system design.
 
 ---
 
