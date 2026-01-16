@@ -20,9 +20,12 @@ function loadHttpsConfig() {
 // HMR runtime overrides (read at module initialization)
 // Set VITE_HMR_HOST=auto to let the client use the current page hostname (good for IP access)
 // Set VITE_HMR_PROTOCOL to 'wss' or 'ws' if you need to override
+// Set VITE_SKIP_HTTPS=true to run the dev server without TLS (useful for IP access or devices with untrusted certs)
 const vHmrHost = (typeof process.env.VITE_HMR_HOST !== 'undefined' && process.env.VITE_HMR_HOST !== '') ? process.env.VITE_HMR_HOST : undefined;
 const hmrHost = vHmrHost === 'auto' ? undefined : vHmrHost;
-const hmrProtocol = process.env.VITE_HMR_PROTOCOL || 'wss';
+const skipHttps = process.env.VITE_SKIP_HTTPS === 'true' || process.env.VITE_SKIP_HTTPS === '1';
+const defaultHmrProtocol = skipHttps ? (process.env.VITE_HMR_PROTOCOL || 'ws') : (process.env.VITE_HMR_PROTOCOL || 'wss');
+const defaultHmrClientPort = process.env.VITE_HMR_PORT ? Number(process.env.VITE_HMR_PORT) : (skipHttps ? (process.env.PORT ? Number(process.env.PORT) : 5173) : 443);
 
 export default defineConfig({
   plugins: [react()],
@@ -30,16 +33,16 @@ export default defineConfig({
   server: {
     port: Number(process.env.PORT) || 5173,
     host: '0.0.0.0',
-    https: loadHttpsConfig(),
+    https: skipHttps ? false : loadHttpsConfig(),
     open: false,
     strictPort: false,
     watch: {
       usePolling: true,
     },
     hmr: {
-      protocol: process.env.VITE_HMR_PROTOCOL || 'wss',
+      protocol: defaultHmrProtocol,
       host: (typeof process.env.VITE_HMR_HOST !== 'undefined' && process.env.VITE_HMR_HOST !== '') ? (process.env.VITE_HMR_HOST === 'auto' ? undefined : process.env.VITE_HMR_HOST) : undefined,
-      clientPort: process.env.VITE_HMR_PORT ? Number(process.env.VITE_HMR_PORT) : 443,
+      clientPort: defaultHmrClientPort,
       path: '/@vite/client',
       // Add timeout and overlay options
       timeout: 30000,

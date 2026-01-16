@@ -3,14 +3,13 @@ import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 function SplashCursor({
-  SIM_RESOLUTION = 128,
-  // Lowered default from 1440 -> 720 to reduce GPU/CPU work on high-res screens
-  DYE_RESOLUTION = 720,
+  SIM_RESOLUTION,
+  DYE_RESOLUTION,
   CAPTURE_RESOLUTION = 512,
   DENSITY_DISSIPATION = 3.5,
   VELOCITY_DISSIPATION = 2,
   PRESSURE = 0.1,
-  PRESSURE_ITERATIONS = 20,
+  PRESSURE_ITERATIONS,
   CURL = 3,
   SPLAT_RADIUS = 0.2,
   SPLAT_FORCE = 6000,
@@ -20,6 +19,15 @@ function SplashCursor({
   TRANSPARENT = true,
   paused = false
 }) {
+  // Dynamic resolution calculation based on screen size
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  const maxDimension = Math.max(screenWidth, screenHeight);
+  
+  // Set defaults dynamically
+  SIM_RESOLUTION = SIM_RESOLUTION || Math.min(128, Math.max(64, maxDimension / 15));
+  DYE_RESOLUTION = DYE_RESOLUTION || Math.min(512, Math.max(256, maxDimension / 4));
+  PRESSURE_ITERATIONS = PRESSURE_ITERATIONS || Math.min(10, Math.max(5, maxDimension / 200));
   const canvasRef = useRef(null);
   const { isAuthenticated } = useAuth();
   const authRef = useRef(isAuthenticated);
@@ -785,8 +793,9 @@ function SplashCursor({
       window.addEventListener('resize', handleElementSizeChange, { passive: true });
     }
 
-    // initialize cached size
-    handleElementSizeChange();
+    // initialize cached size (deferred to rAF to avoid forced reflow during other synchronous JS)
+    if (typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(handleElementSizeChange);
+    else handleElementSizeChange();
 
     function resizeCanvas() {
       if (!_needsResize) return false;

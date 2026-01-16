@@ -187,9 +187,10 @@ CSRF_TRUSTED_ORIGINS = [
 
     # HTTPS / docker addresses
     "https://localhost",
-    'https://localhost:5173',    "https://192.168.11.155:5173",    'https://localhost:8001',
     'https://backend:8001',
     "https://accounts.google.com",
+    "https://localhost:8443",
+    "https://192.168.11.155:8443",
 ]
 
 # Security Headers Configuration
