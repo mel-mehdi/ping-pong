@@ -4,18 +4,18 @@
 
 ## Description
 
-**PingPong** is our take on the classic Pong game, but way bigger - we built a full web platform with multiplayer tournaments, real-time chat, user profiles, and production monitoring. This is our final project for the 42 curriculum, where we got to combine everything we learned about web development, databases, real-time communication, and DevOps.
+**PingPong** is our take on the classic Pong game, but we took it way beyond just bouncing a ball. We built a complete web platform with multiplayer tournaments, real-time chat, user profiles, and professional monitoring. This is our final project for the 42 curriculum where we got to use everything we learned about web development, databases, real-time features, and DevOps.
 
 ### What We Built
 
 - **Pong Game**: Classic gameplay with smooth controls and physics
-- **Tournaments**: 4, 8, or 16 player brackets
-- **User System**: Profiles, stats, avatars, friends
-- **Chat**: Real-time messaging between players
-- **Leaderboards**: Rankings and match history
-- **Monitoring**: Prometheus + Grafana for keeping an eye on everything
-- **Responsive**: Works on desktop and mobile
-- **Dark Mode**: Because who doesn't like dark mode?
+- **Tournaments**: 4, 8, or 16 player tournament brackets
+- **User System**: Full profiles with stats, avatars, and friends
+- **Real-time Chat**: Live messaging between players
+- **Leaderboards**: Rankings and complete match history
+- **Production Monitoring**: Prometheus + Grafana keeping everything healthy
+- **Responsive Design**: Works great on desktop and mobile
+- **Dark Mode**: Because everyone loves dark mode
 
 ## Team Information
 
@@ -31,34 +31,30 @@
 ### Project Management
 
 #### Organization
-- **Task Distribution**: GitHub Issues and project boards for tracking features and bugs
-- **Meetings**: Regular check-ins via Discord for progress updates and problem-solving
-- **Communication**: Discord server for real-time team communication
-- **Code Review**: Pull requests reviewed before merging to main branch
-- **Version Control**: Git with clear commit messages and branch strategy
+We organized our work using GitHub for everything - Issues for tracking tasks, Projects for the big picture, and pull requests for code review. We met regularly on Discord to sync up, solve problems together, and make sure everyone was on track. Every piece of code went through review before merging to keep quality high.
 
-#### Tools Used
+#### Tools We Used
 - **Project Management**: GitHub Projects, GitHub Issues
-- **Communication**: Discord
-- **Version Control**: Git, GitHub
+- **Team Communication**: Discord for daily chat and video calls
+- **Version Control**: Git and GitHub with a clear branching strategy
 - **Development**: VS Code, Chrome DevTools
-- **Deployment**: Docker, Docker Compose
+- **Deployment**: Docker and Docker Compose
 
 ## Tech Stack
 
 ### Frontend
-- **React + TypeScript**: For the UI (type safety is nice)
-- **Vite**: Fast dev server and builds
-- **Bootstrap 5**: Makes responsive design easier
-- **HTML5 Canvas**: For rendering the game
-- **CSS3**: Custom styling with dark mode variables
+- **React**: For building the UI with modern hooks and features
+- **Vite**: Lightning-fast dev server and builds
+- **Bootstrap 5**: Makes responsive design much easier
+- **HTML5 Canvas**: For rendering the game graphics
+- **CSS3**: Custom styling with dark mode support
 
 ### Backend
-- **Django 5.1.4**: Python web framework with built-in everything
-- **Django REST Framework**: For the API
-- **Django Channels**: WebSocket support for real-time chat
-- **PostgreSQL 18**: Database (because PostgreSQL is solid)
-- **Redis**: Session storage and caching
+- **Django 6.0.0**: Python web framework (comes with almost everything we need)
+- **Django REST Framework**: For building our API
+- **Django Channels**: WebSocket support for real-time chat and game features
+- **PostgreSQL**: Our database (reliable and powerful)
+- **Redis**: For session storage and caching
 
 ### DevOps
 - **Docker + Docker Compose**: 13 services running together
@@ -71,45 +67,61 @@
 
 ## Database
 
-We use PostgreSQL with Django ORM. Main tables:
+We're using PostgreSQL with Django's ORM for database management. Here are the main tables and what they store:
 
 ### Schema Overview
 
-**Users** (`user_management_customuser`)
+**Users** (`users`)
 - Login credentials and profile (username, email, hashed password)
-- Stats: wins, losses, games played
-- Avatar and full name
+- Profile stats via UserProfile: wins, losses, rank, level, XP
+- Avatar, fullname, and online status
+- Google OAuth integration
 - Created/updated timestamps
 
 **Sessions** (`django_session`)
 - User sessions managed by Django + Redis
 - Session keys and expiration
 
-**Matches** (`game_match`)
-- Game records with player1, player2
+**Matches** (stored in game app)
+- Game records with player references
 - Scores and winner
-- Game mode (local/online/tournament)
+- Game mode and tournament reference
+- Match history tracking
 - Timestamps
 
-**Tournaments** (`game_tournament`)
-- Tournament name and status
-- Players list (JSONB array)
-- Matches and winner
-- Tournament brackets
+**Tournaments** (`tournaments`)
+- Tournament name, prize pool, and status
+- Creator reference and max_players (4/8/16/32)
+- Start/end dates
+- Status (pending/ongoing/completed/canceled)
 
-**Friend Requests** (`user_management_friendrequest`)
-- Sender and receiver
+**Tournament Participants** (`tournament_participants`)
+- Links users to tournaments
+- Joined timestamp and placement
+- Unique per tournament
+
+**Friendships** (stored in user_management)
+- From user and to user
 - Status (pending/accepted/rejected)
+- Bidirectional friendship tracking
 - Created timestamps
 
-**Messages** (`chat_message`)
-- Chat messages between users
-- Read/unread status
-- Message content and timestamps
+**Conversations** (`conversations`)
+- Private or group conversations
+- Participants (many-to-many)
+- Created/updated timestamps
 
-**Game Invitations** (`game_gameinvitation`)
-- Game invites between players
-- Status and game mode
+**Messages** (in `conversations`)
+- Belongs to a conversation
+- Sender reference
+- Message content and type
+- Timestamps
+
+**Invitations** (stored in game app)
+- Tournament invitations between players
+- Sender and receiver
+- Status (pending/accepted/declined)
+- Associated tournament reference
 
 All tables use proper foreign keys and indexes. Check `backend/*/models.py` for full details.
 
@@ -180,9 +192,9 @@ All tables use proper foreign keys and indexes. Check `backend/*/models.py` for 
 - Profile pages, leaderboards, chat UI
 
 **Challenges:**
-- Had to figure out canvas resizing on different screens
-- Tournament bracket logic was tricky
-- Making dark mode work everywhere
+- Figuring out canvas resizing for different screen sizes was tricky
+- Tournament bracket logic took some time to get right
+- Making dark mode consistent across all components
 
 ### Abdellatif (ael-bouz) - Backend
 
@@ -200,9 +212,9 @@ All tables use proper foreign keys and indexes. Check `backend/*/models.py` for 
 - Query optimization
 
 **Challenges:**
-- Getting Django Channels to work properly
-- Redis session management
-- Optimizing database queries (select_related saved us)
+- Getting Django Channels and WebSockets working properly took some debugging
+- Redis session management had a learning curve
+- Database query optimization (using select_related helped a lot)
 
 ### Sanaa (szeroual) - AI Developer
 
@@ -220,9 +232,9 @@ All tables use proper foreign keys and indexes. Check `backend/*/models.py` for 
 - Set up difficulty configuration system
 
 **Challenges:**
-- Balancing AI difficulty (not too easy, not unbeatable)
-- Making AI feel human with reaction delays and errors
-- Optimizing prediction algorithm for real-time performance
+- Finding the right balance for AI difficulty (not too easy, not impossible to beat)
+- Making the AI feel human-like with realistic reaction times and occasional mistakes
+- Optimizing the prediction algorithm to work smoothly in real-time
 
 ### Assia (amabchou) - DevOps
 
@@ -246,10 +258,10 @@ All tables use proper foreign keys and indexes. Check `backend/*/models.py` for 
 - Disaster recovery docs
 
 **Challenges:**
-- DNS issues in Docker
-- Port conflicts with Apache
-- Getting Grafana auto-provisioning to work
-- Making backups actually automated
+- Dealing with DNS issues inside Docker containers
+- Port conflicts with other services (like Apache)
+- Getting Grafana's auto-provisioning to work correctly
+- Setting up truly automated backups that run reliably
 
 ## How to Run
 
@@ -377,20 +389,9 @@ Check [devops/DISASTER_RECOVERY.md](devops/DISASTER_RECOVERY.md) if you need to 
 
 ### AI Usage
 
-We used AI tools (ChatGPT, GitHub Copilot) for:
-- **Boilerplate code**: Generating repetitive structures
-- **CSS styling**: Help with responsive design
-- **Debugging**: Finding solutions to errors
-- **Documentation**: Structuring README sections
+We kept AI use to a minimum throughout this project. Mostly we used it when we hit ambiguous documentation or needed to look up something we couldn't find online easily. Sometimes we'd ask ChatGPT to clarify a concept or check our understanding of how something works, especially when official docs were unclear.
 
-What we **did NOT** use AI for:
-- **Game physics and collision detection**: Custom implementation
-- **Tournament bracket logic**: Original algorithm
-- **Backend API design**: Architecture decisions
-- **Database schema**: Data structure design
-- **DevOps infrastructure**: Manual setup (AI only reviewed configs)
-
-All AI-generated content was reviewed, understood, and tested before integration. No code was used without comprehension.
+Everything important we built ourselves. The game physics, tournament logic, database design, backend architecture, and DevOps setup are all our own work. We wrote the code, designed the systems, and figured out the solutions. AI was just there for quick lookups and the occasional "wait, how does this work again?" moment.
 
 ---
 
