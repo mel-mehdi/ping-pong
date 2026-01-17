@@ -58,20 +58,25 @@ const Navbar = () => {
             const friendRequests = await apiClient.getPendingFriendRequests();
             const gameInvites = await apiClient.getPendingGameInvitations();
             
+            // Get read status from localStorage
+            const readNotifications = JSON.parse(localStorage.getItem(`read_notifications_${userData.userId}`) || '[]');
+            
             const allNotifications = [
                 ...(friendRequests || []).map(req => ({ 
                     id: req.id,
                     senderId: req.from_user?.id,
                     fromName: req.from_user?.username || req.from_user?.fullname || 'Unknown',
                     type: 'friend_request',
-                    backendType: 'friendship'
+                    backendType: 'friendship',
+                    read: readNotifications.includes(`friend_request_${req.id}`)
                 })),
                 ...(gameInvites || []).map(inv => ({
                     id: inv.id,
                     senderId: inv.sender?.id,
                     fromName: inv.sender?.username || inv.sender?.fullname || 'Unknown',
                     type: 'game_invite',
-                    backendType: 'game_invitation'
+                    backendType: 'game_invitation',
+                    read: readNotifications.includes(`game_invite_${inv.id}`)
                 }))
             ];
 
@@ -97,6 +102,14 @@ const Navbar = () => {
             setNotifications([]);
         }
     }, [userData, isBackendAuthenticated]);
+
+    const toggleNotifications = () => {
+        setShowNotifications(!showNotifications);
+        if (!showNotifications) {
+            // Mark as read when opening
+            markNotificationsAsRead();
+        }
+    };
 
     const loadFriendships = useCallback(async () => {
         if (!userData?.userId || !isBackendAuthenticated) {
@@ -197,7 +210,8 @@ const Navbar = () => {
                                     senderId: notif.related_user?.id,
                                     fromName: notif.related_user?.username || 'Unknown',
                                     type: 'game_invite',
-                                    backendType: 'game_invitation'
+                                    backendType: 'game_invitation',
+                                    read: false
                                 };
                             } else if (notif.friend_request_id || notif.type === 'friend_request_received') {
                                 newNotif = {
@@ -205,7 +219,8 @@ const Navbar = () => {
                                     senderId: notif.related_user?.id,
                                     fromName: notif.related_user?.username || notif.from_user || 'Unknown',
                                     type: 'friend_request',
-                                    backendType: 'friendship'
+                                    backendType: 'friendship',
+                                    read: false
                                 };
                             } else if (notif.type === 'friend_request_accepted') {
                                 // Friend request accepted - reload friendships to update UI
@@ -220,7 +235,8 @@ const Navbar = () => {
                                     achievementIcon: notif.achievement.icon,
                                     xpReward: notif.achievement.xp_reward,
                                     type: 'achievement_unlocked',
-                                    timestamp: Date.now()
+                                    timestamp: Date.now(),
+                                    read: false
                                 };
                                 // Trigger profile refresh event
                                 window.dispatchEvent(new Event('achievementUnlocked'));
@@ -620,7 +636,7 @@ const Navbar = () => {
                         {isAuthenticated && (
                             <button
                                 className="nav-icon-btn"
-                                onClick={() => setShowNotifications(!showNotifications)}
+                                onClick={toggleNotifications}
                                 title="Notifications"
                                 aria-label="Notifications"
                             >
@@ -628,8 +644,8 @@ const Navbar = () => {
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                                 </svg>
-                                {notifications.length > 0 && (
-                                    <span className="notification-badge">{notifications.length}</span>
+                                {notifications.filter(n => !n.read).length > 0 && (
+                                    <span className="notification-badge">{notifications.filter(n => !n.read).length}</span>
                                 )}
                             </button>
                         )}
@@ -753,7 +769,7 @@ const Navbar = () => {
                             <p className="text-center">{t('notifications.no_notifications')}</p>
                         ) : (
                             notifications.map((notif) => (
-                                <div key={`${notif.type}-${notif.id}`} className={`notification-item ${notif.type === 'achievement_unlocked' ? 'achievement-notification' : ''}`}>
+                                <div key={`${notif.type}-${notif.id}`} className={`notification-item ${notif.type === 'achievement_unlocked' ? 'achievement-notification' : ''} ${notif.read ? 'read' : 'unread'}`}>
                                     <div className="notification-text">
                                         {notif.type === 'achievement_unlocked' ? (
                                             <div className="achievement-content">

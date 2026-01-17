@@ -49,7 +49,7 @@ services:
     container_name: react
     environment:
       - PORT=5173
-      - VITE_HMR_HOST=10.11.6.9
+      - VITE_HMR_HOST=auto
       - VITE_HMR_PROTOCOL=wss
       - VITE_HMR_PORT=8443
       - VITE_BACKEND_ORIGIN=

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, startTransition } from 'react';
+import { FixedSizeList as List } from 'react-window';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
@@ -6,6 +7,17 @@ import { buildWsUrl, wsLog, safeCloseSocket } from '../utils/wss';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/chat.css';
+
+const MessageItem = React.memo(({ msg, style }) => (
+  <div style={style}>
+    <div className={`chat-message ${msg.isOwn ? 'own-message' : 'other-message'} ${msg.isNotification ? 'notification-message' : ''}`}>
+      <div className="chat-message-content">
+        <div className="chat-message-text">{msg.text}</div>
+        <div className="chat-message-time">{msg.time}</div>
+      </div>
+    </div>
+  </div>
+));
 
 const ChatPage = () => {
   const { userData, isBackendAuthenticated } = useAuth();
@@ -18,6 +30,7 @@ const ChatPage = () => {
   const [newMessage, setNewMessage] = useState('');
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const wsRef = useRef(null);
+  const listRef = useRef(null);
   const [pageAlert, setPageAlert] = useState(null);
   const [pageAlertType, setPageAlertType] = useState('danger');
 
@@ -55,8 +68,9 @@ const ChatPage = () => {
     };
 
     ws.onmessage = (event) => {
-      // Defer processing to avoid blocking the main thread
-      const processMessage = () => {
+      // Use MessageChannel to defer processing to the next microtask
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => {
         const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
         try {
           const data = JSON.parse(event.data);
@@ -74,12 +88,14 @@ const ChatPage = () => {
               created_at: data.message.created_at || new Date().toISOString(),
             };
             
-            setMessages(prev => {
-              // Avoid duplicates - fast path
-              if (prev.some(m => m.id === newMsg.id)) return prev;
-              
-              // Append new message (assume chronological order from server)
-              return [...prev, newMsg];
+            startTransition(() => {
+              setMessages(prev => {
+                // Avoid duplicates - fast path
+                if (prev.some(m => m.id === newMsg.id)) return prev;
+                
+                // Append new message (assume chronological order from server)
+                return [...prev, newMsg];
+              });
             });
           }
         } catch (err) {
@@ -88,13 +104,7 @@ const ChatPage = () => {
         const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
         if (typeof wsLog !== 'undefined' && (t1 - t0) > 50) wsLog('[WSS][Chat] processMessage took', (t1 - t0).toFixed(1), 'ms');
       };
-      
-      // Use requestIdleCallback or setTimeout to defer heavy work
-      if (typeof requestIdleCallback !== 'undefined') {
-        requestIdleCallback(processMessage, { timeout: 50 });
-      } else {
-        setTimeout(processMessage, 0);
-      }
+      channel.port2.postMessage(null);
     };
 
     ws.onerror = () => {
@@ -266,6 +276,12 @@ const ChatPage = () => {
     })();
   }, [selectedChat, userData, isBackendAuthenticated]);
 
+  useEffect(() => {
+    if (listRef.current && messages.length > 0) {
+      listRef.current.scrollToItem(messages.length - 1, 'end');
+    }
+  }, [messages]);
+
   const sendGameInvite = async () => {
     if (!selectedChat || !isBackendAuthenticated) return;
     
@@ -375,18 +391,17 @@ const ChatPage = () => {
                 </div>
                 <div className="card-body">
                   <div className="chat-messages-body">
-                    {messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`chat-message ${msg.isOwn ? 'own-message' : 'other-message'} ${msg.isNotification ? 'notification-message' : ''}`}
-                      >
-                        <div className="chat-message-content">
-                          <div className="chat-message-text">{msg.text}</div>
-                          <div className="chat-message-time">{msg.time}</div>
-                        </div>
-                      </div>
-                    ))}
-
+                    <List
+                      ref={listRef}
+                      height={400}
+                      itemCount={messages.length}
+                      itemSize={60}
+                      width="100%"
+                    >
+                      {({ index, style }) => (
+                        <MessageItem key={messages[index].id} msg={messages[index]} style={style} />
+                      )}
+                    </List>
                   </div>
                 </div>
                 <div className="card-footer">

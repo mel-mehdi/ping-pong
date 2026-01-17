@@ -525,12 +525,11 @@ const GamePage = () => {
       };
 
       socket.onmessage = (event) => {
-        // Defer ALL processing to avoid blocking the message handler
-        const rawData = event.data;
-        
-        setTimeout(() => {
+        // Use MessageChannel to defer processing to the next microtask
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => {
           try {
-            const data = JSON.parse(rawData);
+            const data = JSON.parse(event.data);
             
             if (data.type === 'match_found') {
               // Store player info
@@ -604,7 +603,8 @@ const GamePage = () => {
           } catch (err) {
             // ignore malformed messages
           }
-        }, 0);
+        };
+        channel.port2.postMessage(null);
       };
 
       socket.onclose = () => {

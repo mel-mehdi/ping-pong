@@ -20,11 +20,11 @@ up:
 	@sleep 3
 	@echo ""
 	@echo "✅ Services started!"
-	@echo "🌐 Application: https://localhost (HTTPS)"
+	@echo "🌐 Application: https://localhost:8443 (HTTPS)"
 	@echo "⚠️  Note: Accept the self-signed certificate warning in your browser"
 	@echo ""
 	@echo "📊 Backend API: https://localhost/api"
-	@echo "💬 Frontend: https://localhost"
+	@echo "💬 Frontend: https://localhost:8443"
 
 down:
 	@echo "🛑 Stopping services..."
