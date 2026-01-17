@@ -17,7 +17,7 @@ services:
     image: redis:8-alpine
     container_name: redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
     restart: unless-stopped
     networks:
       - transcendence_network
@@ -49,7 +49,7 @@ services:
     container_name: react
     environment:
       - PORT=5173
-      - VITE_HMR_HOST=192.168.11.155
+      - VITE_HMR_HOST=10.11.6.9
       - VITE_HMR_PROTOCOL=wss
       - VITE_HMR_PORT=8443
       - VITE_BACKEND_ORIGIN=

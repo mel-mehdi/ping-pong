@@ -23,7 +23,7 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'nginx', 'django', 'backend', '192.168.11.155']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'nginx', 'django', 'backend', '10.11.6.9']
 
 
 # Application definition
@@ -171,7 +171,7 @@ CORS_ALLOWED_ORIGINS = [
     # Docker / backend addresses (keep https variants too if used)
     "https://localhost",
     "https://localhost:8443",
-    "https://192.168.11.155:8443",
+    "https://10.11.6.9:8443",
     "https://localhost:8001",
     "https://backend:8001",
 
@@ -190,7 +190,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://backend:8001',
     "https://accounts.google.com",
     "https://localhost:8443",
-    "https://192.168.11.155:8443",
+    "https://10.11.6.9:8443",
 ]
 
 # Security Headers Configuration
