@@ -105,10 +105,6 @@ const Navbar = () => {
 
     const toggleNotifications = () => {
         setShowNotifications(!showNotifications);
-        if (!showNotifications) {
-            // Mark as read when opening
-            markNotificationsAsRead();
-        }
     };
 
     const loadFriendships = useCallback(async () => {

@@ -632,7 +632,6 @@ class ApiClient {
     });
   }
 
-  // Notifications (unused - reserved for future use) (unused - reserved for future use)
   // Achievements (unused - reserved for future use)
 }
 
