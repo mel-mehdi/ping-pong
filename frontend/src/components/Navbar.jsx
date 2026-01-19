@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
 import apiClient from '../utils/api';
 import { buildWsUrl, wsLog, safeCloseSocket } from '../utils/wss';
+import { getAvatarUrl } from '../utils/avatar';
 
 const Navbar = () => {
     const { isAuthenticated, isBackendAuthenticated, userData, logout } = useAuth();
@@ -557,12 +558,11 @@ const Navbar = () => {
                                                     <div key={user.id} className="nav-search-result-item">
                                                     <div className="nav-search-result-info">
                                                         {(() => {
-                                                            const avatar = user.avatar;
-                                                            const isImage = typeof avatar === 'string' && (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('//'));
-                                                            const fallback = typeof avatar === 'string' && avatar.length <= 3 ? avatar : (user.username ? user.username.slice(0, 2).toUpperCase() : '🙂');
+                                                            const avatarUrl = getAvatarUrl(user.avatar);
+                                                            const fallback = user.username ? user.username.slice(0, 2).toUpperCase() : '🙂';
                                                             return (
-                                                                <span className="nav-user-avatar">{isImage ? (
-                                                                    <img src={avatar} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                                                                <span className="nav-user-avatar">{avatarUrl ? (
+                                                                    <img src={avatarUrl} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                                                                 ) : (
                                                                     <span className="nav-avatar-fallback">{fallback}</span>
                                                                 )}</span>

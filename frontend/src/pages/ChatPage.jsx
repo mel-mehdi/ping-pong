@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
 import { buildWsUrl, wsLog, safeCloseSocket } from '../utils/wss';
+import { getAvatarUrl } from '../utils/avatar';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/chat.css';
@@ -11,6 +12,15 @@ import '../styles/chat.css';
 const MessageItem = React.memo(({ msg, style }) => (
   <div style={style}>
     <div className={`chat-message ${msg.isOwn ? 'own-message' : 'other-message'} ${msg.isNotification ? 'notification-message' : ''}`}>
+      {!msg.isOwn && !msg.isNotification && (
+        <div className="chat-message-avatar">
+          {msg.avatar ? (
+            <img src={getAvatarUrl(msg.avatar)} alt={msg.sender} className="avatar-img" />
+          ) : (
+            <div className="avatar-circle">{msg.sender ? msg.sender[0] : '?'}</div>
+          )}
+        </div>
+      )}
       <div className="chat-message-content">
         <div className="chat-message-text">{msg.text}</div>
         <div className="chat-message-time">{msg.time}</div>
@@ -86,6 +96,7 @@ const ChatPage = () => {
               }),
               isOwn: data.message.sender?.id === userData.userId || data.message.sender_id === userData.userId,
               created_at: data.message.created_at || new Date().toISOString(),
+              avatar: data.message.sender?.avatar || null,
             };
             
             startTransition(() => {
@@ -258,6 +269,7 @@ const ChatPage = () => {
             time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isOwn: m.sender?.id === userData.userId,
             created_at: m.created_at || new Date().toISOString(),
+            avatar: m.sender?.avatar || null,
           })).sort((a, b) => {
             // Sort by created_at timestamp
             const timeA = new Date(a.created_at).getTime();
@@ -337,7 +349,11 @@ const ChatPage = () => {
                         onClick={() => setSelectedChat(conv)}
                       >
                         <div className="chat-user-avatar">
-                          <div className="avatar-circle">{conv.name[0]}</div>
+                          {conv.avatar ? (
+                            <img src={getAvatarUrl(conv.avatar)} alt={conv.name} className="avatar-img" />
+                          ) : (
+                            <div className="avatar-circle">{conv.name[0]}</div>
+                          )}
                           {conv.online && <span className="online-status"></span>}
                         </div>
                         <div className="chat-user-info">
@@ -363,9 +379,13 @@ const ChatPage = () => {
                   <div className="d-flex align-items-center justify-content-between">
                     <div className="d-flex align-items-center">
                       <div className="chat-user-avatar me-3">
-                        <div className="avatar-circle">
-                          {selectedChat?.name ? selectedChat.name[0] : ''}
-                        </div>
+                        {selectedChat?.avatar ? (
+                          <img src={getAvatarUrl(selectedChat.avatar)} alt={selectedChat.name} className="avatar-img" />
+                        ) : (
+                          <div className="avatar-circle">
+                            {selectedChat?.name ? selectedChat.name[0] : ''}
+                          </div>
+                        )}
                         {selectedChat?.online && <span className="online-status"></span>}
                       </div>
                       <div>
