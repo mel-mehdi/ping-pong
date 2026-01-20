@@ -40,6 +40,10 @@ const LoginPage = () => {
             }
             handleGoogleResponse(resp);
           },
+          // Disable FedCM to avoid CORS issues with Google's id assertion endpoint
+          // This falls back to the popup-based OAuth flow which works better with
+          // self-signed certificates and non-standard ports (localhost:8443)
+          use_fedcm_for_prompt: false,
         });
         // mark initialization complete so prompt() is safe to call
         setGoogleInitialized(true);
