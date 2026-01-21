@@ -9,6 +9,7 @@ services:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+      - ./devops/postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
     restart: unless-stopped
     networks:
       - transcendence_network
