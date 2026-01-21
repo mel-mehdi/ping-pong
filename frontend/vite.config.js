@@ -115,8 +115,13 @@ export default defineConfig({
         secure: false,
       },
 
-      // Proxy chat endpoints to backend in dev so `/chat/...` requests hit Django
-      '/chat': {
+      // Proxy chat API endpoints to backend in dev (only specific sub-paths, not /chat itself)
+      '/chat/conversations': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+      '/chat/messages': {
         target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
         changeOrigin: false,
         secure: false,
@@ -133,8 +138,28 @@ export default defineConfig({
         secure: false,
       },
 
-      // Proxy game endpoints to backend (backend registers /game/ at root)
-      '/game': {
+      // Proxy game API endpoints to backend (only specific sub-paths, not /game itself)
+      '/game/tournaments': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+      '/game/invitations': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+      '/game/matches': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+      '/game/leaderboard': {
+        target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
+        changeOrigin: false,
+        secure: false,
+      },
+      '/game/ai': {
         target: process.env.VITE_DEV_BACKEND_TARGET || 'https://backend:8001',
         changeOrigin: false,
         secure: false,
