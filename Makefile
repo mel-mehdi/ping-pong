@@ -23,7 +23,7 @@ up:
 	@echo "🌐 Application: https://localhost:8443 (HTTPS)"
 	@echo "⚠️  Note: Accept the self-signed certificate warning in your browser"
 	@echo ""
-	@echo "📊 Backend API: https://localhost/api"
+	@echo "📊 Backend API: https://localhost:8443/api/docs"
 	@echo "💬 Frontend: https://localhost:8443"
 
 down:
