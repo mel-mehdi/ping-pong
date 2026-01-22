@@ -37,7 +37,7 @@ up:
 	@echo "$(GREEN)📈 Grafana:$(RESET)    http://localhost:3001"
 	@echo "$(GREEN)🔥 Prometheus:$(RESET) http://localhost:9090"
 	@echo "$(YELLOW)⚠️  Note: Accept the self-signed certificate warning in your browser$(RESET)"
-	@echo "$(BLUE)📊 Backend API:$(RESET) https://localhost/api"
+	@echo "$(BLUE)📊 Backend API:$(RESET) https://localhost:8443/api"
 	@echo "$(BLUE)💬 Frontend:$(RESET)    https://localhost:8443"
 	@echo ""
 
