@@ -5,11 +5,21 @@
 
 export function buildWsUrl(path) {
   // path should start with a leading slash (e.g. "/ws/chat/123/")
-  const envOrigin = (typeof window !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_WS_ORIGIN || import.meta.env.VITE_BACKEND_ORIGIN || '') : '';
+  // Try multiple environment variables (support docker-compose and local dev)
+  const envOrigin = (typeof window !== 'undefined' && import.meta.env) ? (
+    import.meta.env.VITE_WS_ORIGIN || import.meta.env.VITE_BACKEND_ORIGIN || import.meta.env.VITE_DEV_WS_TARGET || ''
+  ) : '';
 
   if (envOrigin && envOrigin.length > 0) {
     // Normalize env origin to a WS(S) URL and trim trailing slash
     let origin = envOrigin.replace(/\/$/, '');
+
+    // If running the frontend on the host (not inside Docker) and env points to the docker
+    // service name `backend`, rewrite it to `localhost` so the browser can resolve it.
+    // This helps developer workflows where the frontend dev server runs on the host.
+    if (typeof window !== 'undefined' && /\bbackend\b/.test(origin) && window.location.hostname !== 'backend') {
+      origin = origin.replace(/\bbackend\b/g, 'localhost');
+    }
 
     // If origin starts with http(s)://, convert to ws(s)://
     origin = origin.replace(/^https?:\/\//i, (m) => (m.toLowerCase().startsWith('https') ? 'wss://' : 'ws://'));
@@ -38,5 +48,19 @@ export function wsLog(...args) {
     }
   } catch (e) {
     // ignore in environments that don't support import.meta
+  }
+}
+
+export function safeCloseSocket(s) {
+  try {
+    if (!s) return;
+    if (s.readyState === WebSocket.OPEN) {
+      s.close();
+    } else if (s.readyState === WebSocket.CONNECTING) {
+      s.addEventListener('open', () => s.close(), { once: true });
+      s.addEventListener('error', () => s.close(), { once: true });
+    }
+  } catch (e) {
+    // ignore
   }
 }

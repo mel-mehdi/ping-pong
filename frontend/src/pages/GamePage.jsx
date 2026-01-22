@@ -5,6 +5,7 @@ import '../styles/game.css';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiClient from '../utils/api';
+import { buildWsUrl } from '../utils/wss';
 
 class PongGame {
   constructor(canvas, options = {}) {
@@ -86,42 +87,48 @@ class PongGame {
   }
 
   setupCanvasDimensions(fullscreen = false) {
-    // If fullscreen requested, use exact window inner size (no margins)
-    if (fullscreen) {
-      const canvasWidth = window.innerWidth;
-      const canvasHeight = window.innerHeight;
-      this.CANVAS_WIDTH = Math.floor(canvasWidth);
-      this.CANVAS_HEIGHT = Math.floor(canvasHeight);
-    } else {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const availableHeight = viewportHeight - 240;
-      const availableWidth = viewportWidth - 60;
-      const aspectRatio = 1.6;
+    const ASPECT = 1.6;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-      let canvasWidth = availableWidth;
-      let canvasHeight = canvasWidth / aspectRatio;
+    const maxW = fullscreen ? vw : Math.max(320, vw - 40);
+    const maxH = fullscreen ? vh : Math.max(300, vh - 160);
 
-      if (canvasHeight > availableHeight) {
-        canvasHeight = availableHeight;
-        canvasWidth = canvasHeight * aspectRatio;
-      }
-
-      this.CANVAS_WIDTH = Math.floor(canvasWidth);
-      this.CANVAS_HEIGHT = Math.floor(canvasHeight);
+    let cw = maxW;
+    let ch = Math.floor(cw / ASPECT);
+    if (ch > maxH) {
+      ch = maxH;
+      cw = Math.floor(ch * ASPECT);
     }
 
-    // element sizes derived from final canvas dimensions
-    this.PADDLE_WIDTH = Math.floor(this.CANVAS_WIDTH * 0.012);
-    this.PADDLE_HEIGHT = Math.floor(this.CANVAS_HEIGHT * 0.2);
-    this.PADDLE_SPEED = this.CANVAS_HEIGHT * 0.016;
-    this.BALL_SIZE = Math.floor(this.CANVAS_HEIGHT * 0.025);
-    this.BALL_SPEED = this.CANVAS_WIDTH * 0.0075;
+    // enforce minimums
+    cw = Math.max(320, cw);
+    ch = Math.max(300, ch);
+
+    this.CANVAS_WIDTH = Math.floor(cw);
+    this.CANVAS_HEIGHT = Math.floor(ch);
+
+    // compact size calculations with sensible minima
+    this.PADDLE_WIDTH = Math.max(8, Math.round(this.CANVAS_WIDTH * 0.012));
+    this.PADDLE_HEIGHT = Math.max(28, Math.round(this.CANVAS_HEIGHT * 0.18));
+    this.PADDLE_SPEED = Math.max(4, this.CANVAS_HEIGHT * 0.016);
+    this.BALL_SIZE = Math.max(6, Math.round(this.CANVAS_HEIGHT * 0.025));
+    this.BALL_SPEED = Math.max(1, this.CANVAS_WIDTH * 0.0075);
     this.WINNING_SCORE = 5;
     this.MAX_BALL_SPEED = this.BALL_SPEED * 2;
 
-    this.canvas.width = this.CANVAS_WIDTH;
-    this.canvas.height = this.CANVAS_HEIGHT;
+    if (this.canvas) {
+      this.canvas.width = this.CANVAS_WIDTH;
+      this.canvas.height = this.CANVAS_HEIGHT;
+      this.canvas.style.maxWidth = '100%';
+      this.canvas.style.height = 'auto';
+      this.canvas.style.display = 'block';
+
+      // expose a scale var for small-screen tweaks (used by CSS)
+      const parent = this.canvas.parentElement || document.documentElement;
+      const scale = Math.min(1, this.CANVAS_HEIGHT / 600);
+      parent.style.setProperty('--game-scale', scale.toFixed(3));
+    }
   }
 
   handleResize() {
@@ -482,13 +489,28 @@ const GamePage = () => {
   const [aiDifficulty, setAiDifficulty] = useState('MEDIUM');
 
   // WebSocket Connection Logic
+
+  const safeCloseSocket = (s) => {
+    try {
+      if (!s) return;
+      if (s.readyState === WebSocket.OPEN) {
+        s.close();
+      } else if (s.readyState === WebSocket.CONNECTING) {
+        // If still connecting, close when it opens or if it errors
+        s.addEventListener('open', () => s.close(), { once: true });
+        s.addEventListener('error', () => s.close(), { once: true });
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     if ((mode !== 'online' && mode !== 'tournament') || !isBackendAuthenticated) return;
 
     const connectToGame = (roomName) => {
       currentRoomRef.current = roomName;
-      const protocol = 'wss:'; // Force secure WebSocket
-      const wsUrl = `${protocol}//${window.location.host}/ws/game/${roomName}/`;
+      const wsUrl = buildWsUrl(`/ws/game/${roomName}/`);
       
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
@@ -503,12 +525,11 @@ const GamePage = () => {
       };
 
       socket.onmessage = (event) => {
-        // Defer ALL processing to avoid blocking the message handler
-        const rawData = event.data;
-        
-        setTimeout(() => {
+        // Use MessageChannel to defer processing to the next microtask
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => {
           try {
-            const data = JSON.parse(rawData);
+            const data = JSON.parse(event.data);
             
             if (data.type === 'match_found') {
               // Store player info
@@ -519,7 +540,7 @@ const GamePage = () => {
               // For matchmaking, reconnect to specific room
               if (mode === 'online' && !matchId) {
                 if (data.room_id !== currentRoomRef.current) {
-                  socket.close();
+                  safeCloseSocket(socket);
                   connectToGame(data.room_id);
                   // Update socket reference in existing game if it exists
                   setTimeout(() => {
@@ -582,7 +603,8 @@ const GamePage = () => {
           } catch (err) {
             // ignore malformed messages
           }
-        }, 0);
+        };
+        channel.port2.postMessage(null);
       };
 
       socket.onclose = () => {
@@ -601,7 +623,7 @@ const GamePage = () => {
 
     return () => {
       if (socketRef.current) {
-        socketRef.current.close();
+        safeCloseSocket(socketRef.current);
       }
     };
   }, [mode, matchId, isBackendAuthenticated, t, playerRole]);
@@ -823,7 +845,7 @@ const GamePage = () => {
               <div className="player-avatar-pro">P1</div>
               <div className="player-info-pro">
                 <div className="player-name-pro">
-                  {isVsAI ? (userData?.username || t('game.player1')) : (mode === 'online' || mode === 'tournament') ? (myName || t('game.player1')) : t('game.player1')}
+                  {isVsAI ? (userData?.username || t('game.player1')) : (mode === 'online' || mode === 'tournament') ? (playerRole === 1 ? myName : opponentName) || t('game.player1') : t('game.player1')}
                 </div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
@@ -839,7 +861,7 @@ const GamePage = () => {
               <div className="player-score-pro">{player2Score}</div>
               <div className="player-info-pro">
                 <div className="player-name-pro">
-                  {isVsAI ? 'AI' : (mode === 'online' || mode === 'tournament') ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2')}
+                  {isVsAI ? 'AI' : (mode === 'online' || mode === 'tournament') ? (playerRole === 1 ? opponentName : myName) || t('game.opponent') || 'Opponent' : t('game.player2')}
                 </div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>

@@ -2,10 +2,20 @@ from rest_framework import serializers
 from .models import User, UserProfile, Friendship, Achievement, UserAchievement, Notification
 
 
+class RelativeImageField(serializers.ImageField):
+	"""Custom ImageField that returns relative URLs instead of absolute URLs"""
+	def to_representation(self, value):
+		if not value:
+			return None
+		return value.url
+
+
 class UserSerializer(serializers.ModelSerializer):
 	"""
 	Serializer for User model
 	"""
+	avatar = RelativeImageField(required=False, allow_null=True)
+	
 	class Meta:
 		model = User
 		fields = [

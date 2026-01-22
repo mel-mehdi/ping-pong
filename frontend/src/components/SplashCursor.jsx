@@ -3,13 +3,13 @@ import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 function SplashCursor({
-  SIM_RESOLUTION = 128,
-  DYE_RESOLUTION = 1440,
+  SIM_RESOLUTION,
+  DYE_RESOLUTION,
   CAPTURE_RESOLUTION = 512,
   DENSITY_DISSIPATION = 3.5,
   VELOCITY_DISSIPATION = 2,
   PRESSURE = 0.1,
-  PRESSURE_ITERATIONS = 20,
+  PRESSURE_ITERATIONS,
   CURL = 3,
   SPLAT_RADIUS = 0.2,
   SPLAT_FORCE = 6000,
@@ -19,6 +19,15 @@ function SplashCursor({
   TRANSPARENT = true,
   paused = false
 }) {
+  // Dynamic resolution calculation based on screen size
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  const maxDimension = Math.max(screenWidth, screenHeight);
+  
+  // Set defaults dynamically
+  SIM_RESOLUTION = SIM_RESOLUTION || Math.min(128, Math.max(64, maxDimension / 15));
+  DYE_RESOLUTION = DYE_RESOLUTION || Math.min(512, Math.max(256, maxDimension / 4));
+  PRESSURE_ITERATIONS = PRESSURE_ITERATIONS || Math.min(10, Math.max(5, maxDimension / 200));
   const canvasRef = useRef(null);
   const { isAuthenticated } = useAuth();
   const authRef = useRef(isAuthenticated);
@@ -687,7 +696,8 @@ function SplashCursor({
 
     updateKeywords();
     initFramebuffers();
-    let lastUpdateTime = Date.now();
+    // Use high-resolution timestamps for more accurate delta computation
+    let lastUpdateTime = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     let colorUpdateTimer = 0.0;
 
     function updateFrame() {
@@ -695,6 +705,17 @@ function SplashCursor({
 
       // always keep looping so we can respond quickly to pause/unpause events
       if (authRef.current) {
+        requestAnimationFrame(updateFrame);
+        return;
+      }
+
+      // If the page is hidden, throttle to ~1 FPS to save CPU
+      if (document.hidden || document.visibilityState !== 'visible') {
+        if (!updateFrame._lastHidden || (now - updateFrame._lastHidden) >= 1000) {
+          updateFrame._lastHidden = now;
+          const dt = calcDeltaTime();
+          updateColors(dt);
+        }
         requestAnimationFrame(updateFrame);
         return;
       }
@@ -712,29 +733,76 @@ function SplashCursor({
         return;
       }
 
+      // If previous frame was very slow, skip every other frame to reduce load
+      if (updateFrame._lastFrameDuration && updateFrame._lastFrameDuration > 50) {
+        updateFrame._skip = !updateFrame._skip;
+        if (updateFrame._skip) {
+          updateFrame._lastFrameDuration = now - (updateFrame._lastFrameTime || now);
+          requestAnimationFrame(updateFrame);
+          return;
+        }
+      }
+
       const dt = calcDeltaTime();
       if (resizeCanvas()) initFramebuffers();
       updateColors(dt);
       applyInputs();
       step(dt);
       render(null);
+
+      // measure frame duration
+      updateFrame._lastFrameDuration = performance.now() - now;
+      updateFrame._lastFrameTime = performance.now();
+
       requestAnimationFrame(updateFrame);
     }
 
     function calcDeltaTime() {
-      let now = Date.now();
+      let now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
       let dt = (now - lastUpdateTime) / 1000;
       dt = Math.min(dt, 0.016666);
       lastUpdateTime = now;
       return dt;
     }
 
+    // Cache element size and update only when ResizeObserver or window resize fires
+    let _cachedClientWidth = 0;
+    let _cachedClientHeight = 0;
+    let _needsResize = true;
+    let _resizeObserver = null;
+
+    function handleElementSizeChange() {
+      // Read layout only when an actual size change occurs (ResizeObserver or window resize)
+      try {
+        const w = scaleByPixelRatio(canvas.clientWidth);
+        const h = scaleByPixelRatio(canvas.clientHeight);
+        if (w !== _cachedClientWidth || h !== _cachedClientHeight) {
+          _cachedClientWidth = w;
+          _cachedClientHeight = h;
+          _needsResize = true;
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    if (typeof ResizeObserver !== 'undefined') {
+      _resizeObserver = new ResizeObserver(handleElementSizeChange);
+      _resizeObserver.observe(canvas);
+    } else {
+      window.addEventListener('resize', handleElementSizeChange, { passive: true });
+    }
+
+    // initialize cached size (deferred to rAF to avoid forced reflow during other synchronous JS)
+    if (typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(handleElementSizeChange);
+    else handleElementSizeChange();
+
     function resizeCanvas() {
-      let width = scaleByPixelRatio(canvas.clientWidth);
-      let height = scaleByPixelRatio(canvas.clientHeight);
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
+      if (!_needsResize) return false;
+      _needsResize = false;
+      if (canvas.width !== _cachedClientWidth || canvas.height !== _cachedClientHeight) {
+        canvas.width = _cachedClientWidth;
+        canvas.height = _cachedClientHeight;
         return true;
       }
       return false;
@@ -789,7 +857,12 @@ function SplashCursor({
       pressureProgram.bind();
       gl.uniform2f(pressureProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
       gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence.attach(0));
-      for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+      // If the previous frame was slow, reduce the number of pressure iterations to save time
+      let pressureIterations = config.PRESSURE_ITERATIONS;
+      if (updateFrame._lastFrameDuration && updateFrame._lastFrameDuration > 30) {
+        pressureIterations = Math.max(4, Math.floor(pressureIterations / 2));
+      }
+      for (let i = 0; i < pressureIterations; i++) {
         gl.uniform1i(pressureProgram.uniforms.uPressure, pressure.read.attach(1));
         blit(pressure.write);
         pressure.swap();
@@ -984,7 +1057,9 @@ function SplashCursor({
     }
 
     function scaleByPixelRatio(input) {
-      const pixelRatio = window.devicePixelRatio || 1;
+      const raw = window.devicePixelRatio || 1;
+      // Cap pixel ratio to avoid creating enormous canvases on high-DPI devices
+      const pixelRatio = Math.min(raw, 1.5);
       return Math.floor(input * pixelRatio);
     }
 
@@ -1092,6 +1167,12 @@ function SplashCursor({
     const cleanup = () => {
       window.removeEventListener('focusin', handleFocusIn, true);
       window.removeEventListener('focusout', handleFocusOut, true);
+      // Disconnect resize observer if used
+      if (_resizeObserver) {
+        try { _resizeObserver.disconnect(); } catch (e) {}
+      } else {
+        window.removeEventListener('resize', handleElementSizeChange);
+      }
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps

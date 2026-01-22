@@ -25,7 +25,6 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'nginx', 'django', 'backend']
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -36,7 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-	'django_prometheus',
+    'django_prometheus',
 
 	# Third-party apps
 	'rest_framework',
@@ -51,7 +50,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-	'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
 	'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -61,7 +60,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 	'public_api.middleware.APILoggingMiddleware',
-	'django_prometheus.middleware.PrometheusAfterMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -156,7 +155,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Media files (for user avatars, etc.)
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
@@ -171,10 +170,11 @@ AUTH_USER_MODEL = 'user_management.User'
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     "https://localhost",
-    "https://localhost:5173",
-    "https://localhost:5173",
+    "https://localhost:8443",
+    "http://frontend:5173",
     "https://localhost:8001",
     "https://backend:8001",
+    # Google endpoints used by the client library
     "https://accounts.google.com",
     "https://oauth2.googleapis.com",
 ]
@@ -183,12 +183,11 @@ CORS_ALLOW_CREDENTIALS = True
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
     "https://localhost",
-    'https://localhost:5173',
-    'https://localhost:8001',
-    'https://backend:8001',
+    "https://localhost:8443",
+    "http://frontend:5173",
+    "https://backend:8001",
     "https://accounts.google.com",
 ]
-
 # Security Headers Configuration
 # Allow window.postMessage for OAuth and cross-origin communication
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"  # Allow postMessage for OAuth

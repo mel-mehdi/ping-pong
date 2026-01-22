@@ -302,6 +302,9 @@ body {
 
 /* === NAVBAR === */
 .navbar {
+  display: flex;
+  align-items: center;
+  width: 100%;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -611,6 +614,7 @@ body {
 }
 
 .nav-search-toggle:hover {
+  /* match mobile menu button animation: subtle lift and highlight */
   background: rgba(99, 102, 241, 0.08);
   color: var(--primary);
   transform: translateY(-2px);
@@ -623,7 +627,8 @@ body {
 }
 
 .nav-search-toggle:hover svg {
-  transform: scale(1.1) rotate(90deg);
+  /* keep icon static, but allow hover transition if desired */
+  transform: none;
 }
 
 .nav-search-toggle:focus {
@@ -835,6 +840,41 @@ body {
   }
   50% {
     opacity: 0.5;
+  }
+}
+
+/* Narrow window / tablet adjustments (fixes layout around 760px width) */
+@media (max-width: 820px) {
+  /* Constrain dropdown to viewport with small margins */
+  .nav-search-results {
+    position: fixed;
+    top: 56px; /* beneath navbar */
+    left: 12px;
+    right: 12px;
+    min-width: auto;
+    width: calc(100% - 24px);
+    max-width: none;
+    border-radius: 12px;
+    max-height: 55vh;
+    overflow-y: auto;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    z-index: 1005;
+    padding: 0.25rem 0;
+  }
+
+  /* Make items a bit tighter to fit more on screen */
+  .nav-search-result-item {
+    padding: 0.6rem 0.9rem;
+    gap: 0.6rem;
+  }
+
+  /* Slightly reduce avatar and button sizes */
+  .nav-user-avatar { width: 40px; height: 40px; }
+  .nav-btn-invite { padding: 0.45rem 0.7rem; font-size: 0.78rem; }
+
+  /* Expand compact search input to use available width */
+  .nav-search-input.small {
+    width: calc(100% - 64px);
   }
 }
 
@@ -1226,6 +1266,7 @@ body {
   .nav-container {
     padding: 0.5rem 1rem;
     gap: 1rem;
+    position: relative; /* anchor the absolute mobile menu */
   }
 
   .nav-brand {
@@ -1245,14 +1286,27 @@ body {
     display: none;
   }
 
+  /* Ensure mobile menu button is always visible and above other elements */
   .nav-mobile-menu-btn {
     display: flex;
+    z-index: 2500;
   }
 
+  /* Make actions wrap and avoid overflow on small widths */
   .nav-actions {
     gap: 0.375rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    min-width: 0;
+    justify-content: flex-end;
   }
 
+  .nav-actions > * {
+    flex: 0 0 auto;
+  }
+
+  /* Reduce icon button sizes and ensure tappable area */
   .nav-icon-btn {
     width: 38px;
     height: 38px;
@@ -1265,23 +1319,41 @@ body {
     height: 16px;
   }
 
-  .nav-search-input {
-    width: 80px;
-    font-size: 0.75rem;
-    padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  /* Hide the expanded search input to save space; toggle still works */
+  .nav-search-wrapper .nav-search-input {
+    display: none;
+  }
+  .nav-search-wrapper .nav-search-toggle {
+    display: inline-flex;
+  }
+  .nav-search-input.expanded {
+    display: inline-block; /* when user explicitly expands it */
   }
 
   .nav-search-results {
-    min-width: 300px;
-    right: -1rem;
+    min-width: 90vw;
+    right: 0;
+    left: 0;
+    margin: 0 auto;
+  }
+
+  /* Make mobile menu full width and anchored under the navbar */
+  .nav-mobile-menu {
+    display: flex;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    width: 100%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+
+  .nav-mobile-link {
+    padding: 0.75rem 1rem;
   }
 
   .notification-panel {
     width: calc(100vw - 2rem);
-    max-width: 380px;
-    right: 1rem;
-    left: 1rem;
-    top: 70px;
   }
 
   .notification-badge {
@@ -1294,19 +1366,58 @@ body {
 @media (max-width: 480px) {
   .nav-container {
     padding: 0.5rem 0.75rem;
+    justify-content: space-between;
   }
 
-  .nav-search-wrapper {
-    position: static;
+  /* Compact navbar - keep everything on one line */
+  .nav-brand-text { display: none; }
+  .nav-brand-icon { width: 20px; height: 20px; }
+
+  .nav-actions {
+    gap: 0.25rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap; /* prevent wrapping */
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .nav-actions > * {
+    flex: 0 0 auto;
+  }
+
+  .nav-icon-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0.4rem;
+  }
+
+  .nav-icon-btn svg,
+  .theme-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Hide inline search input entirely to avoid reserved space; expand overlay when used */
+  .nav-search-wrapper .nav-search-input {
+    display: none !important;
+    width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   .nav-search-input-wrapper.search-expanded .nav-search-input {
+    display: block !important;
     position: fixed;
-    top: 70px;
+    /* place directly under navbar and above all overlays */
+    top: 64px;
     left: 0.75rem;
     right: 0.75rem;
     width: calc(100vw - 1.5rem);
-    z-index: 1003;
+    z-index: 9999 !important; /* ensure visible */
     transform: scaleX(1);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   }

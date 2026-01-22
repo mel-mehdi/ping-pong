@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
 import apiClient from '../utils/api';
-import { buildWsUrl, wsLog } from '../utils/wss';
+import { buildWsUrl, wsLog, safeCloseSocket } from '../utils/wss';
+import { getAvatarUrl } from '../utils/avatar';
 
 const Navbar = () => {
     const { isAuthenticated, isBackendAuthenticated, userData, logout } = useAuth();
@@ -58,20 +59,25 @@ const Navbar = () => {
             const friendRequests = await apiClient.getPendingFriendRequests();
             const gameInvites = await apiClient.getPendingGameInvitations();
             
+            // Get read status from localStorage
+            const readNotifications = JSON.parse(localStorage.getItem(`read_notifications_${userData.userId}`) || '[]');
+            
             const allNotifications = [
                 ...(friendRequests || []).map(req => ({ 
                     id: req.id,
                     senderId: req.from_user?.id,
                     fromName: req.from_user?.username || req.from_user?.fullname || 'Unknown',
                     type: 'friend_request',
-                    backendType: 'friendship'
+                    backendType: 'friendship',
+                    read: readNotifications.includes(`friend_request_${req.id}`)
                 })),
                 ...(gameInvites || []).map(inv => ({
                     id: inv.id,
                     senderId: inv.sender?.id,
                     fromName: inv.sender?.username || inv.sender?.fullname || 'Unknown',
                     type: 'game_invite',
-                    backendType: 'game_invitation'
+                    backendType: 'game_invitation',
+                    read: readNotifications.includes(`game_invite_${inv.id}`)
                 }))
             ];
 
@@ -97,6 +103,10 @@ const Navbar = () => {
             setNotifications([]);
         }
     }, [userData, isBackendAuthenticated]);
+
+    const toggleNotifications = () => {
+        setShowNotifications(!showNotifications);
+    };
 
     const loadFriendships = useCallback(async () => {
         if (!userData?.userId || !isBackendAuthenticated) {
@@ -197,7 +207,8 @@ const Navbar = () => {
                                     senderId: notif.related_user?.id,
                                     fromName: notif.related_user?.username || 'Unknown',
                                     type: 'game_invite',
-                                    backendType: 'game_invitation'
+                                    backendType: 'game_invitation',
+                                    read: false
                                 };
                             } else if (notif.friend_request_id || notif.type === 'friend_request_received') {
                                 newNotif = {
@@ -205,7 +216,8 @@ const Navbar = () => {
                                     senderId: notif.related_user?.id,
                                     fromName: notif.related_user?.username || notif.from_user || 'Unknown',
                                     type: 'friend_request',
-                                    backendType: 'friendship'
+                                    backendType: 'friendship',
+                                    read: false
                                 };
                             } else if (notif.type === 'friend_request_accepted') {
                                 // Friend request accepted - reload friendships to update UI
@@ -220,7 +232,8 @@ const Navbar = () => {
                                     achievementIcon: notif.achievement.icon,
                                     xpReward: notif.achievement.xp_reward,
                                     type: 'achievement_unlocked',
-                                    timestamp: Date.now()
+                                    timestamp: Date.now(),
+                                    read: false
                                 };
                                 // Trigger profile refresh event
                                 window.dispatchEvent(new Event('achievementUnlocked'));
@@ -267,12 +280,7 @@ const Navbar = () => {
             isClosed = true;
             if (ws) {
                 try {
-                    if (ws.readyState === WebSocket.OPEN) {
-                        ws.close();
-                    } else if (ws.readyState === WebSocket.CONNECTING) {
-                        // Wait for connection to open before closing
-                        ws.onopen = () => ws.close();
-                    }
+                    safeCloseSocket(ws);
                 } catch (err) {
                     // Silently handle close errors
                 }
@@ -550,12 +558,11 @@ const Navbar = () => {
                                                     <div key={user.id} className="nav-search-result-item">
                                                     <div className="nav-search-result-info">
                                                         {(() => {
-                                                            const avatar = user.avatar;
-                                                            const isImage = typeof avatar === 'string' && (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('//'));
-                                                            const fallback = typeof avatar === 'string' && avatar.length <= 3 ? avatar : (user.username ? user.username.slice(0, 2).toUpperCase() : '🙂');
+                                                            const avatarUrl = getAvatarUrl(user.avatar);
+                                                            const fallback = user.username ? user.username.slice(0, 2).toUpperCase() : '🙂';
                                                             return (
-                                                                <span className="nav-user-avatar">{isImage ? (
-                                                                    <img src={avatar} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                                                                <span className="nav-user-avatar">{avatarUrl ? (
+                                                                    <img src={avatarUrl} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                                                                 ) : (
                                                                     <span className="nav-avatar-fallback">{fallback}</span>
                                                                 )}</span>
@@ -625,7 +632,7 @@ const Navbar = () => {
                         {isAuthenticated && (
                             <button
                                 className="nav-icon-btn"
-                                onClick={() => setShowNotifications(!showNotifications)}
+                                onClick={toggleNotifications}
                                 title="Notifications"
                                 aria-label="Notifications"
                             >
@@ -633,8 +640,8 @@ const Navbar = () => {
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                                 </svg>
-                                {notifications.length > 0 && (
-                                    <span className="notification-badge">{notifications.length}</span>
+                                {notifications.filter(n => !n.read).length > 0 && (
+                                    <span className="notification-badge">{notifications.filter(n => !n.read).length}</span>
                                 )}
                             </button>
                         )}
@@ -758,7 +765,7 @@ const Navbar = () => {
                             <p className="text-center">{t('notifications.no_notifications')}</p>
                         ) : (
                             notifications.map((notif) => (
-                                <div key={`${notif.type}-${notif.id}`} className={`notification-item ${notif.type === 'achievement_unlocked' ? 'achievement-notification' : ''}`}>
+                                <div key={`${notif.type}-${notif.id}`} className={`notification-item ${notif.type === 'achievement_unlocked' ? 'achievement-notification' : ''} ${notif.read ? 'read' : 'unread'}`}>
                                     <div className="notification-text">
                                         {notif.type === 'achievement_unlocked' ? (
                                             <div className="achievement-content">

@@ -27,16 +27,30 @@ const LoginPage = () => {
   useEffect(() => {
     // Initialize Google Sign-In without rendering the default button
     if (window.google && GOOGLE_CLIENT_ID) {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (resp) => {
-          // Ensure any pending prompt loading state is cleared when a credential arrives
-          setGooglePrompting(false);
-          handleGoogleResponse(resp);
-        },
-      });
-      // mark initialization complete so prompt() is safe to call
-      setGoogleInitialized(true);
+      try {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (resp) => {
+            // Ensure any pending prompt loading state is cleared when a credential arrives
+            setGooglePrompting(false);
+            if (!resp || !resp.credential) {
+              console.error('Google callback received without credential', resp);
+              setErrors({ general: 'Google Sign-In failed to return a credential. Try again or use Incognito to rule out extensions.' });
+              return;
+            }
+            handleGoogleResponse(resp);
+          },
+          // Disable FedCM to avoid CORS issues with Google's id assertion endpoint
+          // This falls back to the popup-based OAuth flow which works better with
+          // self-signed certificates and non-standard ports (localhost:8443)
+          use_fedcm_for_prompt: false,
+        });
+        // mark initialization complete so prompt() is safe to call
+        setGoogleInitialized(true);
+      } catch (err) {
+        console.error('Failed to initialize Google Sign-In', err);
+        setErrors({ general: 'Google Sign-In initialization failed. Check browser extensions and that the Google client ID is configured.' });
+      }
     }
 
     return () => {
@@ -47,6 +61,13 @@ const LoginPage = () => {
   const handleGoogleResponse = async (response) => {
     try {
       setLoading(true);
+      if (!response || !response.credential) {
+        setLoading(false);
+        console.error('Invalid Google response', response);
+        setErrors({ general: 'Invalid response from Google Sign-In.' });
+        return;
+      }
+
       const result = await apiClient.googleLogin(response.credential);
       const userPayload = result?.user || result || {};
 
@@ -63,9 +84,14 @@ const LoginPage = () => {
       navigate('/');
     } catch (error) {
       setLoading(false);
-      setErrors({
-        general: 'Google Sign-In failed. Please try again.',
-      });
+      console.error('Google Sign-In error:', error);
+
+      // Network / CORS errors often don't surface as structured errors; give actionable advice
+      const msg = (error?.status === 0 || /network|cors|failed/i.test(error?.message || ''))
+        ? 'Network or CORS error during Google Sign-In. Try Incognito or check OAuth origins and browser extensions.'
+        : 'Google Sign-In failed. Please try again.';
+
+      setErrors({ general: msg });
     }
   };
 
@@ -205,11 +231,20 @@ const LoginPage = () => {
                 if (googleInitialized && window.google && !googlePrompting) {
                   // show spinner while the Google prompt/UI appears
                   setGooglePrompting(true);
-                  // Fallback: clear spinner after timeout if nothing happens
+                  // Fallback: clear spinner after timeout if nothing happens and show actionable error
                   if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
-                  promptTimeoutRef.current = setTimeout(() => setGooglePrompting(false), 8000);
+                  promptTimeoutRef.current = setTimeout(() => {
+                    setGooglePrompting(false);
+                    setErrors({ general: 'Google Sign-In took too long or was blocked. Try Incognito or disable extensions.' });
+                  }, 8000);
 
-                  window.google.accounts.id.prompt();
+                  try {
+                    window.google.accounts.id.prompt();
+                  } catch (err) {
+                    console.error('Google prompt failed', err);
+                    setGooglePrompting(false);
+                    setErrors({ general: 'Google Sign-In failed to open. Check that the Google scripts are reachable and not blocked.' });
+                  }
                 } else {
                   console.warn('Google Sign-In not initialized yet.');
                 }

@@ -21,7 +21,6 @@ const ProfilePage = () => {
     username: userData?.username || '',
     fullname: userData?.fullname || '',
     email: userData?.email || '',
-    bio: userData?.bio || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -334,7 +333,6 @@ const ProfilePage = () => {
       username: userData?.username || '',
       fullname: userData?.fullname || '',
       email: userData?.email || '',
-      bio: userData?.bio || '',
     });
     setShowEditModal(true);
   };
@@ -370,7 +368,6 @@ const ProfilePage = () => {
           username: editForm.username,
           fullname: editForm.fullname,
           email: editForm.email,
-          bio: editForm.bio,
           avatar: regeneratedAvatar,
         };
         if (updateUser) updateUser(localUpdated);
@@ -406,26 +403,6 @@ const ProfilePage = () => {
         }
       } catch (e) {
         // ignore optimistic merge errors
-      }
-
-      // If profile bio needs updating, update the profile object via profiles endpoint
-      if (profile && profile.id && (editForm.bio !== undefined && editForm.bio !== profile.bio)) {
-        try {
-          await apiClient.updateProfile(profile.id, { bio: editForm.bio });
-
-          // Optimistically update local profile.bio so UI reflects change immediately
-          setProfile(prev => ({ ...(prev || {}), bio: editForm.bio }));
-        } catch (e) {
-          console.error('Failed updating profile bio', e);
-          if (e?.status === 403) {
-            setApiMessage('Session expired. You have been logged out.');
-            setTimeout(() => setApiMessage(null), 3000);
-            if (logout) logout();
-            return;
-          }
-          setApiMessage('Failed to update profile bio');
-          setTimeout(() => setApiMessage(null), 3000);
-        }
       }
 
       if (updated) {
@@ -1189,16 +1166,6 @@ const ProfilePage = () => {
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                   />
-                </div>
-                <div className="form-group">
-                  <label>{t('profile.bio')}</label>
-                  <textarea
-                    className="form-input"
-                    rows="3"
-                    placeholder={t('profile.bio_placeholder')}
-                    value={editForm.bio}
-                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                  ></textarea>
                 </div>
               </div>
               <div className="modal-footer">

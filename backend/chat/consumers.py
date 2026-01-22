@@ -36,8 +36,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 		await self.accept()
 
-		await self.set_user_online(True)
-
+		# Note: Online status is now managed by NotificationConsumer globally
+		# Just notify chat room participants about user joining
 		await self.channel_layer.group_send(
 			self.room_group_name,
 			{
@@ -55,8 +55,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 			self.channel_name
 		)
 
-		await self.set_user_online(False)
-
+		# Note: Online status is now managed by NotificationConsumer globally
+		# Just notify chat room participants about user leaving
 		await self.channel_layer.group_send(
 			self.room_group_name,
 			{
@@ -208,8 +208,3 @@ class ChatConsumer(AsyncWebsocketConsumer):
 		).exclude(
 			sender=self.user
 		).update(is_read=True)
-
-	@database_sync_to_async
-	def set_user_online(self, is_online):
-		"""Update user online status"""
-		User.objects.filter(id=self.user.id).update(online_status=is_online)

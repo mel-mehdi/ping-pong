@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
+import { getAvatarUrl } from '../utils/avatar';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/home.css';
@@ -861,8 +862,12 @@ const HomePage = () => {
                         {searchResults.map(user => (
                           <div key={user.id} className="friend-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <div className={`avatar-circle ${user.online_status ? 'online' : 'offline'}`} style={{ width: '40px', height: '40px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '1.2rem' }}>
-                                {user.username?.charAt(0).toUpperCase()}
+                              <div className={`avatar-circle ${user.online_status ? 'online' : 'offline'}`} style={{ width: '40px', height: '40px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '1.2rem', overflow: 'hidden' }}>
+                                {getAvatarUrl(user.avatar) ? (
+                                  <img src={getAvatarUrl(user.avatar)} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  user.username?.charAt(0).toUpperCase()
+                                )}
                               </div>
                               <div>
                                 <div style={{ fontWeight: '600' }}>{user.username}</div>
@@ -891,8 +896,12 @@ const HomePage = () => {
                             {suggestedUsers.map(user => (
                               <div key={user.id} className="friend-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                  <div className={`avatar-circle ${user.online_status ? 'online' : 'offline'}`} style={{ width: '40px', height: '40px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '1.2rem' }}>
-                                    {user.username?.charAt(0).toUpperCase()}
+                                  <div className={`avatar-circle ${user.online_status ? 'online' : 'offline'}`} style={{ width: '40px', height: '40px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '1.2rem', overflow: 'hidden' }}>
+                                    {getAvatarUrl(user.avatar) ? (
+                                      <img src={getAvatarUrl(user.avatar)} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                      user.username?.charAt(0).toUpperCase()
+                                    )}
                                   </div>
                                   <div>
                                     <div style={{ fontWeight: '600' }}>{user.username}</div>
@@ -917,8 +926,12 @@ const HomePage = () => {
                         {friends.map(friend => (
                           <div key={friend.id} className="friend-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <div className={`avatar-circle ${friend.online_status ? 'online' : 'offline'}`} style={{ width: '40px', height: '40px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '1.2rem' }}>
-                                {friend.username?.charAt(0).toUpperCase()}
+                              <div className={`avatar-circle ${friend.online_status ? 'online' : 'offline'}`} style={{ width: '40px', height: '40px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '1.2rem', overflow: 'hidden' }}>
+                                {getAvatarUrl(friend.avatar) ? (
+                                  <img src={getAvatarUrl(friend.avatar)} alt={friend.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  friend.username?.charAt(0).toUpperCase()
+                                )}
                               </div>
                               <div>
                                 <div style={{ fontWeight: '600' }}>{friend.username}</div>

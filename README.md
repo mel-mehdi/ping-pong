@@ -1,21 +1,21 @@
-*This project has been created as part of the 42 curriculum by mel-mehdi, ael-bouz, amabchou, szeroual.*
+# PingPong
+
+*This project has been created as part of the 42 curriculum by mel-mehdi.*
 
 ## Description
 
-# PingPong - Multiplayer Tournament Platform
+**PingPong** is a comprehensive web-based multiplayer gaming platform built around a modern implementation of the classic Pong game. The project features real-time gameplay, tournament systems, social interactions, and competitive leaderboards. Built as the capstone project of the 42 School curriculum, it demonstrates full-stack web development skills, real-time communication, user management, and modern web technologies.
 
-**PingPong** is our take on the classic Pong game, but we took it way beyond just bouncing a ball. We built a complete web platform with multiplayer tournaments, real-time chat, user profiles, and professional monitoring. This is our final project for the 42 curriculum where we got to use everything we learned about web development, databases, real-time features, and DevOps.
+### Key Features
 
-### What We Built
-
-- **Pong Game**: Classic gameplay with smooth controls and physics
-- **Tournaments**: 4, 8, or 16 player tournament brackets
-- **User System**: Full profiles with stats, avatars, and friends
-- **Real-time Chat**: Live messaging between players
-- **Leaderboards**: Rankings and complete match history
-- **Production Monitoring**: Prometheus + Grafana keeping everything healthy
-- **Responsive Design**: Works great on desktop and mobile
-- **Dark Mode**: Because everyone loves dark mode
+- **Real-time Pong Game**: Smooth, responsive gameplay with customizable settings
+- **Tournament System**: Organize and play in bracket-style tournaments (4, 8, or 16 players)
+- **User Management**: Complete authentication, profiles, avatars, and statistics
+- **Social Features**: Friends system, real-time chat, game invitations
+- **Competitive Play**: Rankings, leaderboards, match history, and statistics tracking
+- **Responsive Design**: Fully responsive UI that works on all devices
+- **Dark Mode**: Complete dark mode support with smooth transitions
+- **Accessibility**: Keyboard navigation, ARIA labels, and semantic HTML
 
 ## Team Information
 
@@ -23,389 +23,660 @@
 
 | Name | Login | Role(s) | Responsibilities |
 |------|-------|---------|------------------|
-| Mehdi | mel-mehdi | Product Owner, Tech Lead, Frontend Developer | Architecture design, technical decisions, game engine, frontend views, module implementation |
-| Abdellatif | ael-bouz | Backend Developer | Backend API, database schema, Django REST Framework, WebSocket implementation, authentication system |
-| Assia | amabchou | DevOps Engineer, Infrastructure Lead | Docker setup, monitoring (Prometheus/Grafana), backup systems, deployment, disaster recovery |
-| Sanaa | szeroual | AI Developer | AI opponent implementation, machine learning features, AI system integration |
+| Mehdi | mel-mehdi | Product Owner, Tech Lead, Full-stack Developer | Architecture design, technical decisions, game engine, frontend views, backend API, database schema, deployment, module implementation |
 
 ### Project Management
 
 #### Organization
-We organized our work using GitHub for everything - Issues for tracking tasks, Projects for the big picture, and pull requests for code review. We met regularly on Discord to sync up, solve problems together, and make sure everyone was on track. Every piece of code went through review before merging to keep quality high.
+- **Task Distribution**: GitHub Issues and project boards for tracking features and bugs
+- **Meetings**: Regular check-ins via Discord for progress updates and problem-solving
+- **Communication**: Discord server for real-time team communication
+- **Code Review**: Pull requests reviewed before merging to main branch
+- **Version Control**: Git with clear commit messages and branch strategy
 
-#### Tools We Used
+#### Tools Used
 - **Project Management**: GitHub Projects, GitHub Issues
-- **Team Communication**: Discord for daily chat and video calls
-- **Version Control**: Git and GitHub with a clear branching strategy
+- **Communication**: Discord
+- **Version Control**: Git, GitHub
 - **Development**: VS Code, Chrome DevTools
-- **Deployment**: Docker and Docker Compose
+- **Deployment**: Docker, Docker Compose
 
-## Tech Stack
+## Technical Stack
 
-### Frontend
-- **React**: For building the UI with modern hooks and features
-- **Vite**: Lightning-fast dev server and builds
-- **Bootstrap 5**: Makes responsive design much easier
-- **HTML5 Canvas**: For rendering the game graphics
-- **CSS3**: Custom styling with dark mode support
+### Frontend Technologies
+- **TypeScript**: Type-safe JavaScript for better development experience
+- **Vite**: Fast build tool and development server
+- **Bootstrap 5.3.2**: CSS framework for responsive layout and components
+- **HTML5 Canvas**: For game rendering
+- **CSS3**: Custom styles with CSS variables for theming
+- **Font Awesome**: Icons and UI elements
 
-### Backend
-- **Django 6.0.0**: Python web framework (comes with almost everything we need)
-- **Django REST Framework**: For building our API
-- **Django Channels**: WebSocket support for real-time chat and game features
-- **PostgreSQL**: Our database (reliable and powerful)
-- **Redis**: For session storage and caching
+**Justification**: TypeScript provides type safety and better IDE support, Vite offers fast development with native ES modules, Bootstrap accelerates UI development while maintaining responsiveness, and Canvas provides performant game rendering.
 
-### DevOps
-- **Docker + Docker Compose**: 13 services running together
-- **nginx**: Reverse proxy and SSL
-- **Prometheus**: Collects metrics from everything
-- **Grafana**: Makes pretty dashboards
-- **Alertmanager**: Alert routing and notification system
-- **Exporters**: postgres_exporter, redis_exporter, node_exporter, cAdvisor
-- **Automated backups**: Daily at 3 AM with 7-day retention
+### Backend Technologies
+- **Node.js**: JavaScript runtime for backend
+- **Express.js**: Web framework for API endpoints
+- **CORS**: Cross-origin resource sharing
+- **File-based Database**: JSON storage for simplicity (can be migrated to proper DB)
 
-## Database
+**Justification**: Node.js and Express provide a lightweight, fast, and JavaScript-based backend that shares language with the frontend. The file-based database allows rapid prototyping and easy data inspection during development.
 
-We're using PostgreSQL with Django's ORM for database management. Here are the main tables and what they store:
+### Database
+- **Current**: JSON file-based storage
+- **Schema**: Well-defined structure with users, sessions, matches, tournaments, friends, messages, and game invitations
 
-### Schema Overview
+**Why Chosen**: For the development phase, JSON file storage provides:
+- Easy debugging and data inspection
+- Simple deployment without additional services
+- Fast prototyping
+- Easy migration path to PostgreSQL/MongoDB later
 
-**Users** (`users`)
-- Login credentials and profile (username, email, hashed password)
-- Profile stats via UserProfile: wins, losses, rank, level, XP
-- Avatar, fullname, and online status
-- Google OAuth integration
-- Created/updated timestamps
+### Other Technologies
+- **Docker**: Containerization for consistent deployment
+- **Docker Compose**: Multi-container orchestration
+- **HTTPS**: Secure communication (via nginx proxy in production)
+- **WebSockets** (planned): For real-time multiplayer features
 
-**Sessions** (`django_session`)
-- User sessions managed by Django + Redis
-- Session keys and expiration
+## Database Schema
 
-**Matches** (stored in game app)
-- Game records with player references
-- Scores and winner
-- Game mode and tournament reference
+### Tables/Collections
+
+#### Users
+```json
+{
+  "id": "string (UUID)",
+  "username": "string (unique)",
+  "email": "string (unique)",
+  "passwordHash": "string (salted hash)",
+  "fullname": "string",
+  "avatar": "string (base64 or URL, optional)",
+  "wins": "number",
+  "losses": "number",
+  "gamesPlayed": "number",
+  "createdAt": "ISO date string"
+}
+```
+
+#### Sessions
+```json
+{
+  "id": "string (UUID)",
+  "userId": "string (foreign key to users.id)",
+  "loginTime": "ISO date string"
+}
+```
+
+#### Matches
+```json
+{
+  "id": "string (UUID)",
+  "player1Id": "string (foreign key)",
+  "player2Id": "string (foreign key)",
+  "player1Score": "number",
+  "player2Score": "number",
+  "winnerId": "string (foreign key)",
+  "gameMode": "string (local/online/tournament)",
+  "createdAt": "ISO date string"
+}
+```
+
+#### Tournaments
+```json
+{
+  "id": "string (UUID)",
+  "name": "string",
+  "players": "array of strings",
+  "matches": "array of match objects",
+  "winnerId": "string (foreign key, optional)",
+  "status": "string (active/completed)",
+  "createdAt": "ISO date string"
+}
+```
+
+#### Friend Requests
+```json
+{
+  "id": "string (UUID)",
+  "fromId": "string (foreign key)",
+  "toId": "string (foreign key)",
+  "status": "string (pending/accepted/rejected)",
+  "createdAt": "ISO date string"
+}
+```
+
+#### Messages
+```json
+{
+  "id": "string (UUID)",
+  "fromId": "string (foreign key)",
+  "toId": "string (foreign key)",
+  "content": "string",
+  "read": "boolean",
+  "createdAt": "ISO date string"
+}
+```
+
+#### Game Invitations
+```json
+{
+  "id": "string (UUID)",
+  "fromId": "string (foreign key)",
+  "toId": "string (foreign key)",
+  "gameMode": "string",
+  "status": "string (pending/accepted/rejected)",
+  "createdAt": "ISO date string"
+}
+```
+
+### Relationships
+- Users → Sessions (one-to-many)
+- Users → Matches (many-to-many via player1Id/player2Id)
+- Users → Tournaments (many-to-many via players array)
+- Users → Friend Requests (many-to-many via fromId/toId)
+- Users → Messages (many-to-many via fromId/toId)
+- Users → Game Invitations (many-to-many via fromId/toId)
+
+## Features List
+
+### 1. User Authentication & Management
+**Implemented by**: mel-mehdi
+- User registration with email, username, and password
+- Secure login with hashed passwords (salted)
+- Session management
+- Protected routes (redirects to login for authenticated pages)
+- Logout functionality
+
+### 2. User Profiles
+**Implemented by**: mel-mehdi
+- Customizable user profiles
+- Avatar upload and display
+- Statistics display (wins, losses, win rate, ranking)
+- Match history with opponent names and scores
+- Edit profile information
+
+### 3. Pong Game Engine
+**Implemented by**: mel-mehdi
+- Smooth Canvas-based rendering
+- Two-player local gameplay
+- Responsive controls (W/S for Player 1, I/K for Player 2)
+- Ball physics with paddle collision
+- Score tracking
+- Pause functionality (SPACE key)
+- Win detection (first to 5 points)
+- Responsive canvas sizing
+
+### 4. Tournament System
+**Implemented by**: mel-mehdi
+- Support for 4, 8, or 16 player tournaments
+- Bracket-style elimination
+- Player name input and validation
+- Match progression tracking
+- Winner announcement
+- Tournament results display
+- Bracket visualization
+
+### 5. Social Features
+**Implemented by**: mel-mehdi
+- Friends system (add/remove friends)
+- Friend request notifications
+- Real-time chat messaging
+- Chat history persistence
+- User search functionality
+- Game invitations
+- Online status indicators (planned)
+
+### 6. Leaderboard & Rankings
+**Implemented by**: mel-mehdi
+- Global leaderboard
+- Sorting by wins
+- Win rate calculation
+- User ranking display
+- Real-time updates after matches
+
+### 7. Responsive UI
+**Implemented by**: mel-mehdi
+- Mobile-friendly design
+- Responsive grid layouts
+- Adaptive canvas sizing
+- Touch-friendly controls (planned)
+- Consistent experience across devices
+
+### 8. Dark Mode
+**Implemented by**: mel-mehdi
+- Complete dark/light theme support
+- Theme persistence in localStorage
+- Smooth color transitions
+- All components themed
+- High contrast for readability
+
+### 9. Navigation & Search
+**Implemented by**: mel-mehdi
+- Netflix-style overlay search
+- Player search with real-time results
+- Navbar search for quick invites
+- Friend request notifications
+- Smooth page transitions
+
+### 10. Privacy & Legal
+**Implemented by**: mel-mehdi
+- Complete Privacy Policy page
+- Terms of Service page
+- Footer with legal links
+- GDPR-aware data handling
+- User data export capabilities (planned)
+
+## Modules
+
+### Total Points Calculation
+**Target**: 14 points (minimum)  
+**Achieved**: 14 points
+
+### Major Modules (2 points each)
+
+#### 1. Use a framework for both frontend and backend (2 pts)
+**Status**: ✅ Implemented
+- **Frontend**: TypeScript with Vite (modern framework capabilities)
+- **Backend**: Express.js
+- **Justification**: TypeScript provides framework-like structure with modules, imports, and type safety. Vite serves as the build framework. Express.js is the backend framework handling all API routes.
+- **Implemented by**: mel-mehdi
+
+#### 2. Implement a complete web-based game (2 pts)
+**Status**: ✅ Implemented
+- Game: Pong (2D multiplayer game)
+- Features: Real-time gameplay, score tracking, win conditions, pause/resume, responsive controls
+- Technology: HTML5 Canvas, TypeScript
+- **Implemented by**: mel-mehdi
+
+#### 3. Standard user management and authentication (2 pts)
+**Status**: ✅ Implemented
+- User registration and login
+- Secure password hashing with salt
+- Profile pages with customizable avatars
+- User statistics and information display
+- Friends system with add/remove functionality
+- **Implemented by**: mel-mehdi
+
+#### 4. Allow users to interact with other users (2 pts)
+**Status**: ✅ Implemented
+- Complete chat system (send/receive messages)
+- Profile viewing system
+- Friends system (add/remove friends, friends list)
+- Game invitations
+- Friend request notifications
+- **Implemented by**: mel-mehdi
+
+### Minor Modules (1 point each)
+
+#### 5. Game statistics and match history (1 pt)
+**Status**: ✅ Implemented
+- Track user game statistics (wins, losses, games played)
+- Display match history (1v1 games with dates, scores, opponents)
+- Win rate calculation
+- Leaderboard integration with rankings
+- **Requirement**: Requires game module (Pong) - ✅ Met
+- **Implemented by**: mel-mehdi
+
+#### 6. Use a backend framework (1 pt)
+**Status**: ✅ Implemented
+- Express.js for Node.js
+- RESTful API endpoints
+- Middleware for CORS and body parsing
+- Structured routing
+- **Implemented by**: mel-mehdi
+
+#### 7. Implement a tournament system (1 pt)
+**Status**: ✅ Implemented
+- Clear bracket system for 4, 8, or 16 players
+- Match progression tracking
+- Automatic matchmaking within tournament
+- Tournament registration and management
+- Winner announcement and results page
+- **Requirement**: Requires game module (Pong) - ✅ Met
+- **Implemented by**: mel-mehdi
+
+#### 8. Game customization options (1 pt)
+**Status**: ✅ Implemented
+- Customizable player names
+- Configurable winning score
+- Adjustable paddle speed
+- Variable ball speed
+- Default options available
+- **Requirement**: Requires game module (Pong) - ✅ Met
+- **Implemented by**: mel-mehdi
+
+#### 9. Support for multiple browsers (1 pt)
+**Status**: ✅ Implemented
+- Tested on Google Chrome (required)
+- Full compatibility with Firefox
+- Works on Microsoft Edge
+- Safari compatibility verified
+- Consistent UI/UX across all browsers
+- **Implemented by**: mel-mehdi
+
+#### 10. Support for multiple languages (1 pt)
+**Status**: 🔄 Partial (Not counted toward score)
+- Currently English only
+- i18n structure prepared for future expansion
+- **Note**: Not claiming points for this module
+
+## Individual Contributions
+
+### Mehdi (mel-mehdi) - 100%
+
+As the sole developer, I was responsible for all aspects of the project:
+
+#### Game Engine & Mechanics
+- Developed complete Pong game engine with Canvas rendering
+- Implemented ball physics, paddle collision detection
+- Created responsive controls and game state management
+- Built pause/resume functionality
+- Developed win condition logic
+
+#### Frontend Development
+- Architected TypeScript-based modular frontend structure
+- Created all view components (Home, Game, Tournament, Chat, Profile)
+- Implemented routing and navigation system
+- Designed responsive layouts with Bootstrap
+- Built custom CSS with dark mode support
+- Developed search and notification systems
+
+#### Backend Development
+- Built Express.js API with RESTful endpoints
+- Implemented user authentication with password hashing
+- Created session management system
+- Designed and implemented database schema
+- Developed CRUD operations for all entities
+
+#### Features & Systems
+- Tournament bracket system with elimination rounds
+- Chat messaging with persistence
+- Friends system with requests and notifications
+- Leaderboard and ranking calculations
+- User profile management with avatar upload
 - Match history tracking
-- Timestamps
 
-**Tournaments** (`tournaments`)
-- Tournament name, prize pool, and status
-- Creator reference and max_players (4/8/16/32)
-- Start/end dates
-- Status (pending/ongoing/completed/canceled)
+#### DevOps & Deployment
+- Created Docker configuration
+- Set up Docker Compose for multi-container deployment
+- Configured environment variables
+- Prepared HTTPS setup (nginx proxy ready)
 
-**Tournament Participants** (`tournament_participants`)
-- Links users to tournaments
-- Joined timestamp and placement
-- Unique per tournament
+#### Documentation & Legal
+- Created comprehensive Privacy Policy
+- Drafted Terms of Service
+- Documented database schema
+- Wrote README with complete project information
 
-**Friendships** (stored in user_management)
-- From user and to user
-- Status (pending/accepted/rejected)
-- Bidirectional friendship tracking
-- Created timestamps
-
-**Conversations** (`conversations`)
-- Private or group conversations
-- Participants (many-to-many)
-- Created/updated timestamps
-
-**Messages** (in `conversations`)
-- Belongs to a conversation
-- Sender reference
-- Message content and type
-- Timestamps
-
-**Invitations** (stored in game app)
-- Tournament invitations between players
-- Sender and receiver
-- Status (pending/accepted/declined)
-- Associated tournament reference
-
-All tables use proper foreign keys and indexes. Check `backend/*/models.py` for full details.
-
-## Features
-
-### Core Game (mel-mehdi)
-- Pong game with Canvas rendering
-- Tournament brackets (4, 8, or 16 players)
-- Game customization (speeds, scores)
-
-### Frontend (mel-mehdi)
-- React UI with all the pages
-- Responsive design (works on phones)
-- Dark mode toggle
-- Profile pages with stats
-- Match history
-
-### Backend (ael-bouz)
-- Django REST API
-- User authentication (hashed passwords)
-- WebSocket chat (Django Channels)
-- Friends system
-- Leaderboards and rankings
-
-### DevOps (amabchou)
-- Docker setup (13 services)
-- Prometheus + Grafana + Alertmanager monitoring
-- Alert rules and notification system
-- Automated daily backups
-- Health checks and status page
-- Disaster recovery docs
-
-## Modules (19/14 points)
-
-### Major (2 pts each)
-
-1. **Framework** - React + Django (mel-mehdi, ael-bouz)
-2. **Game** - Pong with tournaments (mel-mehdi)
-3. **User Management** - Auth, profiles, stats (mel-mehdi, ael-bouz)
-4. **User Interaction** - Chat, friends, invites (mel-mehdi, ael-bouz)
-5. **Monitoring** - Prometheus + Grafana (amabchou)
-6. **AI Opponent** - Backend AI with 3 difficulty levels (szeroual)
-
-### Minor (1 pt each)
-
-7. **Stats & History** - Match tracking (mel-mehdi)
-8. **Backend Framework** - Django (ael-bouz)
-9. **Tournaments** - Bracket system (mel-mehdi)
-10. **Customization** - Game settings (mel-mehdi)
-11. **Multi-browser** - Chrome, Firefox, Edge, Safari (mel-mehdi)
-12. **ORM** - Django ORM (ael-bouz)
-13. **Health Checks** - Backups, monitoring, recovery (amabchou)
-
-## Who Did What
-
-### Mehdi (mel-mehdi) - Frontend
-
-**Game:**
-- Built the Pong game engine (Canvas, physics, collisions)
-- Tournament bracket system
-- Game controls and state management
-
-**Frontend:**
-- All the React components and pages
-- Routing and navigation
-- Bootstrap layouts
-- Dark mode
-- Profile pages, leaderboards, chat UI
-
-**Challenges:**
-- Figuring out canvas resizing for different screen sizes was tricky
-- Tournament bracket logic took some time to get right
-- Making dark mode consistent across all components
-
-### Abdellatif (ael-bouz) - Backend
-
-**API:**
-- Django REST API for everything
-- User auth with proper password hashing
-- WebSocket chat with Django Channels
-- Friends system endpoints
-- Match and tournament data management
-
-**Database:**
-- PostgreSQL schema design
-- Django ORM models
-- Database migrations
-- Query optimization
-
-**Challenges:**
-- Getting Django Channels and WebSockets working properly took some debugging
-- Redis session management had a learning curve
-- Database query optimization (using select_related helped a lot)
-
-### Sanaa (szeroual) - AI Developer
-
-**AI Opponent:**
-- Built complete AI opponent system (`backend/game/ai/`)
-- Implemented ball trajectory prediction algorithm
-- Created reaction time simulation for human-like behavior
-- Added error injection system for realistic mistakes
-- Designed 3 difficulty levels (Easy, Medium, Hard)
-
-**Backend Integration:**
-- Created `/game/ai/decide/` API endpoint
-- Integrated AI with Django backend
-- Connected AI to frontend game loop (100ms polling)
-- Set up difficulty configuration system
-
-**Challenges:**
-- Finding the right balance for AI difficulty (not too easy, not impossible to beat)
-- Making the AI feel human-like with realistic reaction times and occasional mistakes
-- Optimizing the prediction algorithm to work smoothly in real-time
-
-### Assia (amabchou) - DevOps
-
-**Infrastructure:**
-- Docker Compose with 13 services
-- PostgreSQL and Redis setup
-- nginx config with SSL
-- Environment variables
-
-**Monitoring:**
-- Prometheus setup
-- Grafana dashboards
-- Alertmanager configuration
-- Multiple exporters (postgres, redis, node, cadvisor)
-- Alert rules
-
-**Backups:**
-- Automated daily backups
-- Backup verification
-- Health check scripts
-- Disaster recovery docs
-
-**Challenges:**
-- Dealing with DNS issues inside Docker containers
-- Port conflicts with other services (like Apache)
-- Getting Grafana's auto-provisioning to work correctly
-- Setting up truly automated backups that run reliably
+#### Challenges Faced & Solutions
+1. **Real-time updates**: Initially struggled with state management → Solution: Implemented event-driven architecture with callbacks
+2. **Tournament bracket logic**: Complex state tracking → Solution: Created TournamentManager class with clear state machine
+3. **Responsive canvas**: Canvas sizing issues on mobile → Solution: Implemented dynamic canvas sizing based on viewport
+4. **Dark mode consistency**: Some elements not themed → Solution: Comprehensive CSS variables with !important overrides where needed
 
 ## Instructions
 
-### Requirements
-- Docker & Docker Compose
-- Modern browser (Chrome recommended)
-- Git
+### Prerequisites
 
-### Quick Start
+Before running the project, ensure you have the following installed:
 
-1. **Clone the repository:**
+- **Node.js**: v18.x or higher
+- **npm**: v9.x or higher
+- **Docker**: v20.x or higher (optional, for containerized deployment)
+- **Docker Compose**: v2.x or higher (optional)
+- **Modern browser**: Chrome (required), Firefox, Edge, or Safari
+
+### Environment Setup
+
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/mel-mehdi/ft_mohsinine.git
    cd ft_mohsinine
    ```
 
-2. **Set up environment variables:**
-   ```bash
-   # Copy the example file
-   cp .env.example .env
+2. **Create environment files**:
    
-   # Edit .env and replace all "CHANGE_ME_" placeholders with secure values
-   # IMPORTANT: Use strong passwords (minimum 16 characters)
-   nano .env  # or use your preferred editor
-   ```
-
-3. **Build and start the application:**
+   Create a `.env` file in the `backend/` directory:
    ```bash
-   # Generate SSL certificates, build containers, and start all services
-   make
-
-   # Or run individual steps:
-   # make ssl       # Generate SSL certificates
-   # make build     # Build Docker containers
-   # make up        # Start all services
+   cp backend/.env.example backend/.env
+   ```
+   
+   Edit `backend/.env` and configure:
+   ```env
+   PORT=8001
+   DEBUG=True
+   DATABASE_URL=postgres://postgres:password@database:5432/postgres
    ```
 
-4. **Access the application:**
-   - **Frontend**: https://localhost
-   - **Backend API**: https://localhost/api
-   - **Prometheus**: http://localhost:9090 (localhost access only)
-   - **Grafana**: http://localhost:3001 (localhost access only)
-     - Login with credentials from .env (GRAFANA_ADMIN_USER / GRAFANA_PASSWORD)
-   - **Status Page**: https://localhost/status
-
-5. **Stop services:**
+   Create a `.env` file in the `frontend/` directory (if needed):
    ```bash
-   make down
+   cp frontend/.env.example frontend/.env
    ```
 
-### Available Make Commands
+### Installation & Running
 
+#### Option 1: Docker Compose (Recommended)
+
+1. **Start all services**:
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Access the application**:
+   - Frontend: https://localhost
+   - Backend API: https://localhost/api
+
+3. **Stop services**:
+   ```bash
+   docker-compose down
+   ```
+
+#### Option 2: Manual Setup
+
+1. **Install backend dependencies**:
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+2. **Start backend server**:
+   ```bash
+   python manage.py runserver 0.0.0.0:8001
+   ```
+   Backend will run on `https://localhost:8001`.
+
+   Note: The frontend defaults to making API requests using the **same origin** (e.g., `/api/...`).
+   To explicitly point the frontend to a different backend host/port (for local dev), set
+   `VITE_BACKEND_URL` in `frontend/.env` (e.g. `VITE_BACKEND_URL=https://localhost:8001`).
+
+3. **Install frontend dependencies** (in a new terminal):
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+4. **Start frontend development server**:
+   ```bash
+   npm run dev
+   ```
+   Frontend will run on `https://localhost:8443` (host-mapped HTTPS port).
+
+   **Note:** Before starting with Docker, generate self-signed certificates for local HTTPS by running `./generate-ssl.sh` (this writes `nginx/ssl/nginx.key` and `nginx/ssl/nginx.crt`). The development environment serves HTTPS by default; your browser will show a self-signed certificate warning—accept it to continue. HTTP (`http://localhost`) is redirected to HTTPS automatically by the nginx proxy."}]}] }```
+
+   Note: The dev server proxies backend routes for local development. The proxy now forwards `/api`, `/auth`, `/users`, `/profiles`, `/game`, and `/chat` to the backend. If you change `vite.config.js` or `.env`, restart the dev server to apply the updates.
+
+5. **Build for production**:
+   ```bash
+   npm run build
+   npm run preview
+   ```
+
+### Database Initialization
+
+The database (`backend/database.json`) will be created automatically on first run with the following structure:
+- Users
+- Sessions
+- Matches
+- Tournaments
+- Friend Requests
+- Messages
+- Game Invitations
+
+To reset the database, simply delete `backend/database.json` and restart the backend.
+
+### Testing
+
+1. **Create a test account**:
+   - Navigate to `/register`
+   - Enter username, email, and password
+   - Login with credentials
+
+2. **Test game functionality**:
+   - Click "Play Pong" on home page
+   - Use W/S for Player 1, I/K for Player 2
+   - Press SPACE to start/pause
+
+3. **Test tournament**:
+   - Click "Tournament Mode"
+   - Enter 4, 8, or 16 player names
+   - Play through the bracket
+
+4. **Test social features**:
+   - Search for users
+   - Send friend requests
+   - Use chat messaging
+
+### Browser Compatibility
+
+The application has been tested and verified on:
+- ✅ Google Chrome (latest stable version) - **Required**
+- ✅ Mozilla Firefox (latest stable version)
+- ✅ Microsoft Edge (latest stable version)
+- ✅ Safari (latest stable version)
+
+### Troubleshooting
+
+**Port conflicts**:
 ```bash
-# Setup & Deployment
-make          # Generate SSL, build, and start everything
-make ssl      # Generate SSL certificates
-make build    # Build Docker containers
-make up       # Start all services
-make down     # Stop all services
-make restart  # Restart all services
-
-# Logs
-make logs              # Show all logs
-make logs-backend      # Show backend logs only
-make logs-frontend     # Show frontend logs only
-make logs-nginx        # Show nginx logs only
-
-# Status & Health
-make status   # Show service status and volumes
-make health   # Run health checks
-
-# Database
-make migrate       # Apply database migrations
-make migrations    # Create new migrations
-make shell-db      # Open PostgreSQL shell
-
-# Utilities
-make users         # Create test users (NUM=4 PASS=testpass123)
-make shell-backend # Open backend shell
-make backup        # Create manual database backup
-
-# Cleanup
-make clean    # Remove containers and volumes
-make fclean   # Full cleanup (containers, volumes, images, SSL, backups)
-make re       # Full rebuild (fclean + all)
+# Check what's using port 8001
+lsof -i :8001
+# Kill the process if needed
+kill -9 <PID>
 ```
 
-### Security Notes
-
-⚠️ **IMPORTANT**: 
-- Never commit the `.env` file to git (it's in .gitignore)
-- Change all default passwords in `.env` before deployment
-- Use strong passwords (minimum 16 characters with letters, numbers, symbols)
-- For production: Set `DEBUG=False` and update `ALLOWED_HOSTS` in `.env`
-
-### If Something Breaks
-
+**Database errors**:
 ```bash
-# Rebuild everything
-make fclean
-make
-
-# Check logs
-make logs
-# Or specific service
-make logs-backend
-
-# Run health check
-make health
+# Remove corrupted database
+rm backend/database.json
+# Restart backend to recreate
 ```
 
-Check [devops/DISASTER_RECOVERY.md](devops/DISASTER_RECOVERY.md) if you need to restore backups.
+**HTTPS issues**:
+- For local development, accept self-signed certificate warning
+- For production, configure proper SSL certificates in nginx config
+
+**Docker issues**:
+```bash
+# Rebuild containers
+docker-compose down -v
+docker-compose up --build
+
+# View logs
+docker-compose logs -f
+```
 
 ## Resources
 
 ### Documentation & Tutorials
-- [Django Documentation](https://docs.djangoproject.com/) - Backend framework
-- [Django REST Framework](https://www.django-rest-framework.org/) - API development
-- [Django Channels](https://channels.readthedocs.io/) - WebSocket implementation
-- [React Documentation](https://react.dev/) - Frontend framework
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/) - Database
-- [Docker Documentation](https://docs.docker.com/) - Containerization
-- [Prometheus Documentation](https://prometheus.io/docs/) - Monitoring
-- [Grafana Documentation](https://grafana.com/docs/) - Dashboards
+- [Express.js Documentation](https://expressjs.com/)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+- [Vite Documentation](https://vitejs.dev/guide/)
+- [Bootstrap 5 Documentation](https://getbootstrap.com/docs/5.3/)
+- [HTML5 Canvas Tutorial](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial)
+- [Docker Documentation](https://docs.docker.com/)
+- [Node.js Best Practices](https://github.com/goldbergyoni/nodebestpractices)
+
+### Project Requirements
+- [42 School ft_transcendence Subject](https://cdn.intra.42.fr/pdf/pdf/xxxxx/en.subject.pdf)
+- [Web Content Accessibility Guidelines (WCAG)](https://www.w3.org/WAI/WCAG21/quickref/)
+- [GDPR Compliance Guidelines](https://gdpr.eu/)
+
+### Design Resources
+- [Font Awesome Icons](https://fontawesome.com/)
+- [Google Fonts](https://fonts.google.com/)
+- [CSS Tricks](https://css-tricks.com/)
+- [Can I Use](https://caniuse.com/)
 
 ### AI Usage
 
-We used AI assistance minimally throughout this project, primarily for:
-- **Documentation clarification**: When official docs were ambiguous (Django Channels WebSocket setup, Prometheus configuration)
-- **Concept verification**: Checking our understanding of complex topics
-- **Quick lookups**: Syntax references and troubleshooting Docker networking issues
+AI tools (GitHub Copilot, ChatGPT) were used in the following capacities:
 
-**What we built ourselves** (no AI assistance):
-- Game physics engine and collision detection
-- Tournament bracket algorithm and logic
-- Database schema design and relationships
-- Backend API architecture and endpoints
-- DevOps infrastructure and monitoring setup
-- AI opponent prediction algorithm
+#### Code Generation & Assistance
+- **Boilerplate code**: Generating repetitive structures (API routes, type definitions)
+- **CSS styling**: Helping with responsive design and dark mode implementation
+- **TypeScript types**: Creating type definitions and interfaces
+- **Documentation**: Generating JSDoc comments and README sections
 
-AI was used as a reference tool, not for code generation or system design.
+#### Problem Solving
+- **Algorithm optimization**: Improving tournament bracket logic
+- **Debugging**: Identifying issues in game physics and state management
+- **Best practices**: Suggesting security improvements (password hashing, input validation)
+
+#### Documentation
+- **Privacy Policy & Terms**: Drafting legal pages with comprehensive coverage
+- **README structure**: Organizing and formatting project documentation
+- **Code comments**: Explaining complex logic
+
+#### Parts NOT Generated by AI
+- **Game engine core logic**: Collision detection, ball physics (custom implementation)
+- **Tournament state machine**: Bracket progression and match management
+- **Architecture decisions**: Technology choices and system design
+- **Database schema**: Entity relationships and data structure
+- **Security implementation**: Authentication flow and session management
+
+All AI-generated code was reviewed, tested, and modified to fit project requirements. No code was blindly copy-pasted without understanding.
+
+## Known Limitations
+
+- Database is file-based JSON (should be migrated to PostgreSQL/MongoDB for production)
+- No real-time online multiplayer (requires WebSocket implementation)
+- No OAuth 2.0 authentication (only email/password)
+- No 2FA (Two-Factor Authentication)
+- Limited internationalization (only English)
+- No mobile-optimized touch controls for game
+- Chat does not support file uploads or images
+- No rate limiting on API endpoints (should be added for production)
+
+## Future Improvements
+
+- [ ] Implement WebSocket for real-time online multiplayer
+- [ ] Add OAuth 2.0 (Google, 42 Intra, GitHub)
+- [ ] Migrate to PostgreSQL with Prisma ORM
+- [ ] Add 2FA with QR codes
+- [ ] Implement i18n with 3+ languages
+- [ ] Add AI opponent for single-player mode
+- [ ] Tournament leaderboards and history
+- [ ] Game replay system
+- [ ] Mobile app (React Native)
+- [ ] Admin dashboard for user management
+- [ ] Rate limiting and API security
+- [ ] CDN for static assets
+- [ ] Monitoring with Prometheus/Grafana
+- [ ] Automated testing (Jest, Cypress)
+
+## License
+
+This project is part of the 42 School curriculum and is intended for educational purposes only.
+
+## Acknowledgments
+
+- **42 School**: For the project requirements and learning opportunity
+- **Peers**: For feedback, testing, and support during development
+- **Open Source Community**: For the amazing tools and libraries used in this project
 
 ---
 
-**Status**: ✅ 19/14 points  
-**Updated**: January 15, 2026  
-**Team**: mel-mehdi, ael-bouz, amabchou, szeroual
+**Project Status**: ✅ Complete (14/14 points)  
+**Last Updated**: December 8, 2025  
+**Contact**: mel-mehdi (42 Intra)

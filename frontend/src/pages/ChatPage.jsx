@@ -1,11 +1,30 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, startTransition } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
-import { buildWsUrl, wsLog } from '../utils/wss';
+import { buildWsUrl, wsLog, safeCloseSocket } from '../utils/wss';
+import { getAvatarUrl } from '../utils/avatar';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/chat.css';
+
+const MessageItem = React.memo(({ msg }) => (
+  <div className={`chat-message ${msg.isOwn ? 'own-message' : 'other-message'} ${msg.isNotification ? 'notification-message' : ''}`}>
+    {!msg.isOwn && !msg.isNotification && (
+      <div className="chat-message-avatar">
+        {msg.avatar ? (
+          <img src={getAvatarUrl(msg.avatar)} alt={msg.sender} className="avatar-img" />
+        ) : (
+          <div className="avatar-circle">{msg.sender ? msg.sender[0] : '?'}</div>
+        )}
+      </div>
+    )}
+    <div className="chat-message-content">
+      <div className="chat-message-text">{msg.text}</div>
+      <div className="chat-message-time">{msg.time}</div>
+    </div>
+  </div>
+));
 
 const ChatPage = () => {
   const { userData, isBackendAuthenticated } = useAuth();
@@ -18,6 +37,7 @@ const ChatPage = () => {
   const [newMessage, setNewMessage] = useState('');
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const wsRef = useRef(null);
+  const messagesEndRef = useRef(null);
   const [pageAlert, setPageAlert] = useState(null);
   const [pageAlertType, setPageAlertType] = useState('danger');
 
@@ -25,7 +45,7 @@ const ChatPage = () => {
   useEffect(() => {
     if (!currentConversationId || !isBackendAuthenticated) {
       if (wsRef.current) {
-        wsRef.current.close();
+        safeCloseSocket(wsRef.current);
         wsRef.current = null;
       }
       return;
@@ -33,7 +53,7 @@ const ChatPage = () => {
 
     // Close existing connection
     if (wsRef.current) {
-      wsRef.current.close();
+      safeCloseSocket(wsRef.current);
     }
 
     // Create WebSocket connection
@@ -55,8 +75,9 @@ const ChatPage = () => {
     };
 
     ws.onmessage = (event) => {
-      // Defer processing to avoid blocking the main thread
-      const processMessage = () => {
+      // Use MessageChannel to defer processing to the next microtask
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => {
         const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
         try {
           const data = JSON.parse(event.data);
@@ -72,14 +93,17 @@ const ChatPage = () => {
               }),
               isOwn: data.message.sender?.id === userData.userId || data.message.sender_id === userData.userId,
               created_at: data.message.created_at || new Date().toISOString(),
+              avatar: data.message.sender?.avatar || null,
             };
             
-            setMessages(prev => {
-              // Avoid duplicates - fast path
-              if (prev.some(m => m.id === newMsg.id)) return prev;
-              
-              // Append new message (assume chronological order from server)
-              return [...prev, newMsg];
+            startTransition(() => {
+              setMessages(prev => {
+                // Avoid duplicates - fast path
+                if (prev.some(m => m.id === newMsg.id)) return prev;
+                
+                // Append new message (assume chronological order from server)
+                return [...prev, newMsg];
+              });
             });
           }
         } catch (err) {
@@ -88,13 +112,7 @@ const ChatPage = () => {
         const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
         if (typeof wsLog !== 'undefined' && (t1 - t0) > 50) wsLog('[WSS][Chat] processMessage took', (t1 - t0).toFixed(1), 'ms');
       };
-      
-      // Use requestIdleCallback or setTimeout to defer heavy work
-      if (typeof requestIdleCallback !== 'undefined') {
-        requestIdleCallback(processMessage, { timeout: 50 });
-      } else {
-        setTimeout(processMessage, 0);
-      }
+      channel.port2.postMessage(null);
     };
 
     ws.onerror = () => {
@@ -106,9 +124,7 @@ const ChatPage = () => {
     };
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
+      safeCloseSocket(ws);
     };
   }, [currentConversationId, isBackendAuthenticated, userData]);
 
@@ -250,6 +266,7 @@ const ChatPage = () => {
             time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isOwn: m.sender?.id === userData.userId,
             created_at: m.created_at || new Date().toISOString(),
+            avatar: m.sender?.avatar || null,
           })).sort((a, b) => {
             // Sort by created_at timestamp
             const timeA = new Date(a.created_at).getTime();
@@ -267,6 +284,12 @@ const ChatPage = () => {
       }
     })();
   }, [selectedChat, userData, isBackendAuthenticated]);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const sendGameInvite = async () => {
     if (!selectedChat || !isBackendAuthenticated) return;
@@ -323,7 +346,11 @@ const ChatPage = () => {
                         onClick={() => setSelectedChat(conv)}
                       >
                         <div className="chat-user-avatar">
-                          <div className="avatar-circle">{conv.name[0]}</div>
+                          {conv.avatar ? (
+                            <img src={getAvatarUrl(conv.avatar)} alt={conv.name} className="avatar-img" />
+                          ) : (
+                            <div className="avatar-circle">{conv.name[0]}</div>
+                          )}
                           {conv.online && <span className="online-status"></span>}
                         </div>
                         <div className="chat-user-info">
@@ -349,9 +376,13 @@ const ChatPage = () => {
                   <div className="d-flex align-items-center justify-content-between">
                     <div className="d-flex align-items-center">
                       <div className="chat-user-avatar me-3">
-                        <div className="avatar-circle">
-                          {selectedChat?.name ? selectedChat.name[0] : ''}
-                        </div>
+                        {selectedChat?.avatar ? (
+                          <img src={getAvatarUrl(selectedChat.avatar)} alt={selectedChat.name} className="avatar-img" />
+                        ) : (
+                          <div className="avatar-circle">
+                            {selectedChat?.name ? selectedChat.name[0] : ''}
+                          </div>
+                        )}
                         {selectedChat?.online && <span className="online-status"></span>}
                       </div>
                       <div>
@@ -378,17 +409,9 @@ const ChatPage = () => {
                 <div className="card-body">
                   <div className="chat-messages-body">
                     {messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`chat-message ${msg.isOwn ? 'own-message' : 'other-message'} ${msg.isNotification ? 'notification-message' : ''}`}
-                      >
-                        <div className="chat-message-content">
-                          <div className="chat-message-text">{msg.text}</div>
-                          <div className="chat-message-time">{msg.time}</div>
-                        </div>
-                      </div>
+                      <MessageItem key={msg.id} msg={msg} />
                     ))}
-
+                    <div ref={messagesEndRef} />
                   </div>
                 </div>
                 <div className="card-footer">
