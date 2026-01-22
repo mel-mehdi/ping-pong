@@ -438,6 +438,61 @@ As the sole developer, I was responsible for all aspects of the project:
 3. **Responsive canvas**: Canvas sizing issues on mobile → Solution: Implemented dynamic canvas sizing based on viewport
 4. **Dark mode consistency**: Some elements not themed → Solution: Comprehensive CSS variables with !important overrides where needed
 
+### Sanaa (szeroual) - ~15%
+
+As the AI Developer, responsible for designing and implementing the intelligent AI opponent system:
+
+#### AI Opponent System Implementation
+
+**Ball Trajectory Prediction Algorithm** (`ai_predect.py`)
+- Implements predictive collision detection by simulating ball physics
+- Iteratively calculates ball position based on velocity vectors (vx, vy)
+- Accounts for wall bounces (top/bottom screen boundaries)
+- Returns predicted paddle target Y-coordinate for ball collision
+- Core algorithm: Simulates ball movement until it reaches CPU paddle X position, accounting for reflections
+
+**Error Modeling System** (`ai_error.py`)
+- Introduces human-like imperfection in AI decision-making
+- Applies configurable random errors to predicted target positions
+- Different error amounts per difficulty level (Easy: ±40px, Medium: ±20px, Hard: ±5px)
+- Makes AI beatable and provides skill progression
+
+**Reaction Time Simulation** (`ai_reaction.py`)
+- Simulates human reaction delays using probability-based activation
+- Configurable reaction values per difficulty:
+  - Easy: 30% chance to react (slower responses)
+  - Medium: 60% chance to react
+  - Hard: 90% chance to react (near-perfect reactivity)
+- Implemented using `random.random()` for realistic behavior
+
+**Difficulty System Architecture** (`difficulty.py`)
+- Three balanced difficulty levels with independent parameters:
+  - **Easy**: Speed 6, Error ±40px, Reaction 30%, Prediction 0.1 (minimal prediction strength)
+  - **Medium**: Speed 8, Error ±20px, Reaction 60%, Prediction 0.3
+  - **Hard**: Speed 12, Error ±5px, Reaction 90%, Prediction 0.7 (strong prediction)
+- Configurable parameters allow fine-tuning for game balance
+
+**AI Decision Engine** (`cpu_ai.py`)
+- Main orchestrator combining all AI components:
+  1. Check if AI should react based on reaction probability
+  2. Predict ball trajectory to get target Y position
+  3. Apply prediction strength scaling for difficulty variation
+  4. Add human-like errors to target position
+  5. Compare paddle center with target and return direction (-1, 0, +1)
+- Returns paddle movement direction: -1 (up), 0 (stationary), +1 (down)
+
+#### Technical Challenges & Solutions
+1. **Precise trajectory prediction**: Ball velocity changes due to paddle collisions → Solution: Iteratively simulated physics until ball reaches CPU paddle X position
+2. **Balancing difficulty**: AI was too perfect or too weak → Solution: Implemented multi-parameter difficulty system with speed, error, reaction, and prediction strength
+3. **Realistic human behavior**: AI movements appeared robotic → Solution: Combined reaction delays with error modeling to create believable AI mistakes
+4. **Integration with game engine**: AI predictions needed to work with canvas-based physics → Solution: Tightly integrated with game physics calculations
+
+#### Integration Points
+- Integrated with `game_engine.py` for single-player AI-opponent mode
+- Works with game physics system for accurate ball trajectory calculation
+- Configurable difficulty selection in game mode settings
+- Seamless integration with existing game score tracking and win conditions
+
 ## Instructions
 
 ### Prerequisites
@@ -640,35 +695,86 @@ docker-compose logs -f
 
 ### AI Usage
 
+#### AI Algorithms Implemented (Sanaa - szeroual)
 
-#### AI Tools Used for Other Project Parts
+The AI opponent system implements several core algorithms from game AI theory:
 
-AI tools (GitHub Copilot, ChatGPT) were used in the following capacities:
+**1. Ball Trajectory Prediction**
+- **Purpose**: Predict where the ball will be when it reaches the CPU paddle
+- **Algorithm**: Physics-based simulation with iterative position calculation
+- **Implementation**: Accounts for ball velocity, paddle position, and wall bounces
+- **References**: Classic Pong AI algorithm from game development literature
 
-#### Code Generation & Assistance
-- **Boilerplate code**: Generating repetitive structures (API routes, type definitions)
-- **CSS styling**: Helping with responsive design and dark mode implementation
-- **TypeScript types**: Creating type definitions and interfaces
-- **Documentation**: Generating JSDoc comments and README sections
+**2. Error Modeling**
+- **Purpose**: Introduce human-like imperfection to create realistic difficulty scaling
+- **Algorithm**: Random error application with configurable bounds
+- **Implementation**: Random distribution of errors applied to target position
+- **Difficulty Progression**: Error ranges from ±5px (Hard) to ±40px (Easy)
 
-#### Problem Solving
-- **Algorithm optimization**: Improving tournament bracket logic
-- **Debugging**: Identifying issues in game physics and state management
-- **Best practices**: Suggesting security improvements (password hashing, input validation)
+**3. Reaction Time Simulation**
+- **Purpose**: Simulate delayed human reflexes
+- **Algorithm**: Probability-based decision activation
+- **Implementation**: Random number generator with difficulty-based thresholds
+- **Effect**: Varies from 30% (Easy) to 90% (Hard) successful reactions
 
-#### Documentation
-- **Privacy Policy & Terms**: Drafting legal pages with comprehensive coverage
-- **README structure**: Organizing and formatting project documentation
-- **Code comments**: Explaining complex logic
+**4. Multi-Parameter Difficulty System**
+- **Purpose**: Create smooth difficulty progression without making AI feel cheap
+- **Parameters**: Speed, Error Amount, Reaction Probability, Prediction Strength
+- **Balance**: Each difficulty level is independently tuned for fair competitive play
 
-#### Parts NOT Generated by AI
-- **Game engine core logic**: Collision detection, ball physics (custom implementation)
-- **Tournament state machine**: Bracket progression and match management
-- **Architecture decisions**: Technology choices and system design
-- **Database schema**: Entity relationships and data structure
-- **Security implementation**: Authentication flow and session management
+#### AI Tools Used for Code Assistance
 
-All AI-generated code was reviewed, tested, and modified to fit project requirements. No code was blindly copy-pasted without understanding.
+GitHub Copilot and ChatGPT were used for:
+
+**Code Structure & Boilerplate**
+- API route generation (mel-mehdi)
+- TypeScript type definitions (mel-mehdi)
+- CSS styling and responsive design (mel-mehdi)
+- Documentation comments and JSDoc (both)
+
+**Problem Solving & Debugging**
+- Algorithm optimization suggestions (mel-mehdi)
+- Debugging game physics issues (mel-mehdi)
+- Security best practices (mel-mehdi)
+- AI parameter tuning suggestions (szeroual)
+
+**Documentation**
+- Privacy Policy & Terms of Service drafting (mel-mehdi)
+- README structure and organization (both)
+- Code comments and explanations (both)
+
+#### Parts Implemented WITHOUT AI Code Generation
+
+**AI Implementation (Sanaa - szeroual)**
+- Ball trajectory prediction algorithm: Custom implementation from physics principles
+- Error modeling system: Custom random error distribution
+- Reaction time simulation: Custom probability-based implementation
+- Difficulty parameter tuning: Manual testing and balancing via gameplay testing
+- All AI decision logic: Hand-coded orchestration and integration
+
+**Game & Backend (Mehdi - mel-mehdi)**
+- Game engine core logic: Collision detection, ball physics (custom implementation)
+- Tournament state machine: Bracket progression and match management
+- Architecture decisions: Technology choices and system design
+- Database schema: Entity relationships and data structure
+- Security implementation: Authentication flow and session management
+
+#### Resources & References Used
+
+**AI Development Resources**
+- Python Official Documentation: [https://docs.python.org/3/](https://docs.python.org/3/) — Classes, modules, and algorithms
+- Python Random Module: [https://docs.python.org/3/library/random.html](https://docs.python.org/3/library/random.html) — Reaction delays and error simulation
+- Game AI Fundamentals: Classic Pong AI techniques for trajectory prediction and difficulty scaling
+- Physics Simulation: Velocity and collision-based movement calculations
+- YouTube Tutorial: "How to make a simple Game AI for Pong" ([https://www.youtube.com/watch?v=_evDO_Xvir4](https://www.youtube.com/watch?v=_evDO_Xvir4)) — Reference for ball prediction algorithms
+
+**Justification of AI Choices**
+- **Why trajectory prediction**: Allows AI to make intelligent paddle positioning decisions based on ball physics
+- **Why error modeling**: Creates skill progression without requiring complete AI rewrites; maintains playability
+- **Why reaction delays**: Makes AI behavior feel more human and less perfect; adds strategic depth
+- **Why multi-parameter system**: Provides fine-grained difficulty control for competitive balance and player progression
+
+All AI code was custom-implemented, extensively tested through gameplay, and carefully integrated with the game engine. AI assistance tools were used only for code structure suggestions and debugging, not for algorithm design or core implementation.
 
 ## Known Limitations
 
