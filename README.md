@@ -1,5 +1,3 @@
-# PingPong
-
 *This project has been created as part of the 42 curriculum by mel-mehdi, szeroual, ael-bouz, amabchou*
 
 ## Description
