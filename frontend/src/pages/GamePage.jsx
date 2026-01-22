@@ -845,7 +845,7 @@ const GamePage = () => {
               <div className="player-avatar-pro">P1</div>
               <div className="player-info-pro">
                 <div className="player-name-pro">
-                  {isVsAI ? (userData?.username || t('game.player1')) : (mode === 'online' || mode === 'tournament') ? (myName || t('game.player1')) : t('game.player1')}
+                  {isVsAI ? (userData?.username || t('game.player1')) : (mode === 'online' || mode === 'tournament') ? (playerRole === 1 ? myName : opponentName) || t('game.player1') : t('game.player1')}
                 </div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
@@ -861,7 +861,7 @@ const GamePage = () => {
               <div className="player-score-pro">{player2Score}</div>
               <div className="player-info-pro">
                 <div className="player-name-pro">
-                  {isVsAI ? 'AI' : (mode === 'online' || mode === 'tournament') ? (opponentName || t('game.opponent') || 'Opponent') : t('game.player2')}
+                  {isVsAI ? 'AI' : (mode === 'online' || mode === 'tournament') ? (playerRole === 1 ? opponentName : myName) || t('game.opponent') || 'Opponent' : t('game.player2')}
                 </div>
                 <div className="player-status-pro">{t('game.ready')}</div>
               </div>
