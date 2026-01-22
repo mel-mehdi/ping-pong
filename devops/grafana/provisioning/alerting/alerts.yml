@@ -12,6 +12,7 @@ groups:
         data:
           - refId: 'A'
             relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: 'prometheus'
             model:
               expr: 'up{job="backend"} == 0'
               hide: false
@@ -20,6 +21,7 @@ groups:
               refId: 'A'
           - refId: 'B'
             relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
             model:
               expr: 'up{job="backend"} == 0'
               hide: false
@@ -30,6 +32,7 @@ groups:
               type: 'reduce'
           - refId: 'C'
             relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
             model:
               conditions:
                 - evaluator: { params: [0.5], type: 'gt' }
@@ -52,6 +55,7 @@ groups:
         data:
           - refId: 'A'
             relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: 'prometheus'
             model:
               expr: 'up{job="postgres"} == 0'
               hide: false
@@ -60,6 +64,7 @@ groups:
               refId: 'A'
           - refId: 'B'
             relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
             model:
               expr: 'up{job="postgres"} == 0'
               hide: false
@@ -70,6 +75,7 @@ groups:
               type: 'reduce'
           - refId: 'C'
             relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
             model:
               conditions:
                 - evaluator: { params: [0.5], type: 'gt' }
@@ -92,6 +98,7 @@ groups:
         data:
           - refId: 'A'
             relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: 'prometheus'
             model:
               expr: 'up{job="redis"} == 0'
               hide: false
@@ -100,6 +107,7 @@ groups:
               refId: 'A'
           - refId: 'B'
             relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
             model:
               expr: 'up{job="redis"} == 0'
               hide: false
@@ -110,6 +118,7 @@ groups:
               type: 'reduce'
           - refId: 'C'
             relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
             model:
               conditions:
                 - evaluator: { params: [0.5], type: 'gt' }

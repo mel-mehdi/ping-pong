@@ -19,7 +19,7 @@ scrape_configs:
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ['backend:8001']
+      - targets: ['django:8001']
 
   - job_name: 'redis'
     static_configs:
