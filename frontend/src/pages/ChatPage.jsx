@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, startTransition } from 'react';
-import { FixedSizeList as List } from 'react-window';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
@@ -9,22 +8,20 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/chat.css';
 
-const MessageItem = React.memo(({ msg, style }) => (
-  <div style={style}>
-    <div className={`chat-message ${msg.isOwn ? 'own-message' : 'other-message'} ${msg.isNotification ? 'notification-message' : ''}`}>
-      {!msg.isOwn && !msg.isNotification && (
-        <div className="chat-message-avatar">
-          {msg.avatar ? (
-            <img src={getAvatarUrl(msg.avatar)} alt={msg.sender} className="avatar-img" />
-          ) : (
-            <div className="avatar-circle">{msg.sender ? msg.sender[0] : '?'}</div>
-          )}
-        </div>
-      )}
-      <div className="chat-message-content">
-        <div className="chat-message-text">{msg.text}</div>
-        <div className="chat-message-time">{msg.time}</div>
+const MessageItem = React.memo(({ msg }) => (
+  <div className={`chat-message ${msg.isOwn ? 'own-message' : 'other-message'} ${msg.isNotification ? 'notification-message' : ''}`}>
+    {!msg.isOwn && !msg.isNotification && (
+      <div className="chat-message-avatar">
+        {msg.avatar ? (
+          <img src={getAvatarUrl(msg.avatar)} alt={msg.sender} className="avatar-img" />
+        ) : (
+          <div className="avatar-circle">{msg.sender ? msg.sender[0] : '?'}</div>
+        )}
       </div>
+    )}
+    <div className="chat-message-content">
+      <div className="chat-message-text">{msg.text}</div>
+      <div className="chat-message-time">{msg.time}</div>
     </div>
   </div>
 ));
@@ -40,7 +37,7 @@ const ChatPage = () => {
   const [newMessage, setNewMessage] = useState('');
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const wsRef = useRef(null);
-  const listRef = useRef(null);
+  const messagesEndRef = useRef(null);
   const [pageAlert, setPageAlert] = useState(null);
   const [pageAlertType, setPageAlertType] = useState('danger');
 
@@ -289,8 +286,8 @@ const ChatPage = () => {
   }, [selectedChat, userData, isBackendAuthenticated]);
 
   useEffect(() => {
-    if (listRef.current && messages.length > 0) {
-      listRef.current.scrollToItem(messages.length - 1, 'end');
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
@@ -411,17 +408,10 @@ const ChatPage = () => {
                 </div>
                 <div className="card-body">
                   <div className="chat-messages-body">
-                    <List
-                      ref={listRef}
-                      height={400}
-                      itemCount={messages.length}
-                      itemSize={60}
-                      width="100%"
-                    >
-                      {({ index, style }) => (
-                        <MessageItem key={messages[index].id} msg={messages[index]} style={style} />
-                      )}
-                    </List>
+                    {messages.map((msg) => (
+                      <MessageItem key={msg.id} msg={msg} />
+                    ))}
+                    <div ref={messagesEndRef} />
                   </div>
                 </div>
                 <div className="card-footer">
