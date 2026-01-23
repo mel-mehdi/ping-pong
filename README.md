@@ -73,8 +73,6 @@
 - **Schema**: Well-defined models with users, profiles, matches, tournaments, friendships, messages, notifications, and achievements
 
 **Why Chosen**: PostgreSQL provides:
-- ACID compliance and data integrity
-- Scalable performance for production
 - Django ORM integration for efficient queries
 - Migration support for schema changes
 

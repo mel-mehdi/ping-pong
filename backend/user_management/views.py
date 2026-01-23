@@ -105,8 +105,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
 	def get_permissions(self):
 		"""Allow public access to list and retrieve users"""
-		if self.action in ['list', 'retrieve', 'profile']:
-			return []
 		return [IsAuthenticated()]
 
 	@action(detail=False, methods=['get'])

@@ -66,7 +66,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
 		conversation = self.get_object()
 		
 		before_timestamp = request.query_params.get('before')
-    
+
 		queryset = conversation.messages.all().order_by('-created_at')
 		
 		if before_timestamp:
