@@ -1,0 +1,136 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: 'Transcendence Monitoring'
+    folder: 'Services'
+    interval: 10s
+    rules:
+      - uid: 'backend_service_down'
+        title: 'Backend Down Alert'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: 'prometheus'
+            model:
+              expr: 'up{job="backend"} == 0'
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: 'A'
+          - refId: 'B'
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
+            model:
+              expr: 'up{job="backend"} == 0'
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: 'last'
+              refId: 'B'
+              type: 'reduce'
+          - refId: 'C'
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
+            model:
+              conditions:
+                - evaluator: { params: [0.5], type: 'gt' }
+                  operator: { type: 'and' }
+                  query: { params: ['B'] }
+                  reducer: { params: [], type: 'last' }
+                  type: 'query'
+              refId: 'C'
+              type: 'classic_conditions'
+        for: '30s'
+        annotations:
+          summary: 'The Backend (Django) is down'
+          description: "Prometheus has detected that the backend service is unreachable for more than 30 seconds."
+        labels:
+          severity: 'critical'
+
+      - uid: 'postgres_down'
+        title: 'Database Down'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: 'prometheus'
+            model:
+              expr: 'up{job="postgres"} == 0'
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: 'A'
+          - refId: 'B'
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
+            model:
+              expr: 'up{job="postgres"} == 0'
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: 'last'
+              refId: 'B'
+              type: 'reduce'
+          - refId: 'C'
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
+            model:
+              conditions:
+                - evaluator: { params: [0.5], type: 'gt' }
+                  operator: { type: 'and' }
+                  query: { params: ['B'] }
+                  reducer: { params: [], type: 'last' }
+                  type: 'query'
+              refId: 'C'
+              type: 'classic_conditions'
+        for: '30s'
+        annotations:
+          summary: "Postgres container is down!"
+          description: "Prometheus has detected that the Postgres Container is unreachable for more than 30 seconds."
+        labels:
+          severity: 'critical'
+      
+      - uid: 'redis_down'
+        title: 'Cache Down'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: 'prometheus'
+            model:
+              expr: 'up{job="redis"} == 0'
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: 'A'
+          - refId: 'B'
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
+            model:
+              expr: 'up{job="redis"} == 0'
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: 'last'
+              refId: 'B'
+              type: 'reduce'
+          - refId: 'C'
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: '__expr__'
+            model:
+              conditions:
+                - evaluator: { params: [0.5], type: 'gt' }
+                  operator: { type: 'and' }
+                  query: { params: ['B'] }
+                  reducer: { params: [], type: 'last' }
+                  type: 'query'
+              refId: 'C'
+              type: 'classic_conditions'
+        for: '30s'
+        annotations:
+          summary: "Redis container is down!"
+          description: "Prometheus has detected that the Redis Container is unreachable for more than 30 seconds."
+        labels:
+          severity: 'critical'
