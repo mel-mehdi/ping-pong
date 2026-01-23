@@ -58,9 +58,16 @@
             "gridPos": { "h": 4, "w": 6, "x": 0, "y": 12 },
             "targets": [
                 {
-                    "expr": "pg_stat_activity_count", "refId": "A"
+                    "expr": "sum(pg_stat_activity_count)", "refId": "A"
                 }
-            ]
+            ],
+            "options": {
+                "graphMode": "none",
+                "reducedOptions": {
+                    "value": false,
+                    "calcs": ["lastNotNull"]
+                }
+            }
         },
         {
             "title": "Redis Memory Usage",
