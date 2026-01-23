@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Initialize environment variables
 env = environ.Env(
-    DEBUG=(bool, False) 
+	DEBUG=(bool, False) 
 )
 environ.Env.read_env(os.path.join(BASE_DIR.parent, '.env')) # Looks for .env in the parent directory (project root)
 
@@ -53,12 +53,12 @@ MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
 	'corsheaders.middleware.CorsMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+	'django.contrib.sessions.middleware.SessionMiddleware',
+	'django.middleware.common.CommonMiddleware',
+	'django.middleware.csrf.CsrfViewMiddleware',
+	'django.contrib.auth.middleware.AuthenticationMiddleware',
+	'django.contrib.messages.middleware.MessageMiddleware',
+	'django.middleware.clickjacking.XFrameOptionsMiddleware',
 	'public_api.middleware.APILoggingMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
@@ -66,18 +66,18 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
+	{
+		'BACKEND': 'django.template.backends.django.DjangoTemplates',
+		'DIRS': [],
+		'APP_DIRS': True,
+		'OPTIONS': {
+			'context_processors': [
+				'django.template.context_processors.request',
+				'django.contrib.auth.context_processors.auth',
+				'django.contrib.messages.context_processors.messages',
+			],
+		},
+	},
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
@@ -86,14 +86,14 @@ ASGI_APPLICATION = 'config.asgi.application'
 
 # Database Configuration for PostgreSQL via Docker Compose
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('POSTGRES_DB'),
-        'USER': env('POSTGRES_USER'),
-        'PASSWORD': env('POSTGRES_PASSWORD'),
-        'HOST': 'database',
-        'PORT': '5432',
-    }
+	'default': {
+		'ENGINE': 'django.db.backends.postgresql',
+		'NAME': env('POSTGRES_DB'),
+		'USER': env('POSTGRES_USER'),
+		'PASSWORD': env('POSTGRES_PASSWORD'),
+		'HOST': 'database',
+		'PORT': '5432',
+	}
 }
 
 CHANNEL_LAYERS = {
@@ -118,21 +118,21 @@ PASSWORD_HASHERS = [
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+	{
+		'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+	},
+	{
+		'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
 		'OPTIONS': {
 			'min_length': 8,
 		}
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+	},
+	{
+		'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+	},
+	{
+		'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+	},
 ]
 
 
@@ -213,13 +213,15 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-    ],
+	'DEFAULT_AUTHENTICATION_CLASSES': [
+		'rest_framework.authentication.SessionAuthentication',
+	],
+	'DEFAULT_PERMISSION_CLASSES': [
+		'config.permissions.AdminOnly',
+	],
 }
+
+
 
 
 SUPERUSER_USERNAME = env('DJANGO_SUPERUSER_USERNAME')
@@ -228,18 +230,18 @@ SUPERUSER_PASSWORD = env('DJANGO_SUPERUSER_PASSWORD')
 
 # API Documentation settings
 SWAGGER_SETTINGS = {
-    'SECURITY_DEFINITIONS': {
-        'ApiKey': {
-            'type': 'apiKey',
-            'in': 'header',
-            'name': 'X-API-Key'
-        }
-    }
+	'SECURITY_DEFINITIONS': {
+		'ApiKey': {
+			'type': 'apiKey',
+			'in': 'header',
+			'name': 'X-API-Key'
+		}
+	}
 }
 
 # Swagger settings
 SWAGGER_SETTINGS = {
-    'DEFAULT_AUTO_SCHEMA_CLASS': 'config.urls.CustomAutoSchema',
+	'DEFAULT_AUTO_SCHEMA_CLASS': 'config.urls.CustomAutoSchema',
 }
 
 # Google OAuth Settings

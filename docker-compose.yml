@@ -16,8 +16,6 @@ services:
   redis:
     image: redis:8-alpine
     container_name: redis
-    ports:
-      - "6380:6379"
     restart: unless-stopped
     networks:
       - transcendence_network
@@ -27,8 +25,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: django
-    ports:
-      - "8001:8001"
     volumes:
       - ./backend:/app
       - django_static:/app/staticfiles
