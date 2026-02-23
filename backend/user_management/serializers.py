@@ -2,10 +2,20 @@ from rest_framework import serializers
 from .models import User, UserProfile, Friendship, Achievement, UserAchievement, Notification
 
 
+class RelativeImageField(serializers.ImageField):
+	"""Custom ImageField that returns relative URLs instead of absolute URLs"""
+	def to_representation(self, value):
+		if not value:
+			return None
+		return value.url
+
+
 class UserSerializer(serializers.ModelSerializer):
 	"""
 	Serializer for User model
 	"""
+	avatar = RelativeImageField(required=False, allow_null=True)
+	
 	class Meta:
 		model = User
 		fields = [
@@ -60,6 +70,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 	user = UserSerializer(read_only=True)
 	total_games = serializers.ReadOnlyField()
 	win_rate = serializers.ReadOnlyField()
+	achievements = serializers.SerializerMethodField()
 
 	class Meta:
 		model = UserProfile
@@ -73,9 +84,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
 			'xp',
 			'total_games',
 			'win_rate',
+			'achievements',
 			'created_at'
 		]
 		read_only_fields = ['created_at']
+	
+	def get_achievements(self, obj):
+		"""Get user's unlocked achievements"""
+		user_achievements = UserAchievement.objects.filter(user=obj.user).select_related('achievement')
+		return UserAchievementSerializer(user_achievements, many=True).data
 
 
 class FriendshipSerializer(serializers.ModelSerializer):

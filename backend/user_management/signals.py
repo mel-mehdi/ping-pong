@@ -39,11 +39,15 @@ def save_user_profile(sender, instance, **kwargs):
 		instance.profile.save()
 
 @receiver(post_save, sender=Friendship)
-def create_friend_request_notifications(sender, instance, created, **kwargs):
+def create_friend_request_notifications(sender, instance, created, update_fields, **kwargs):
 	"""Create notifications for friend requests"""
 	channel_layer = get_channel_layer()
+	
+	# Determine if this was a status change from rejected to pending
+	is_resent = (not created and update_fields and 'status' in update_fields and instance.status == 'pending')
 
-	if created and instance.status == 'pending':
+	# Send notification when friendship becomes pending (created or resent after rejection)
+	if instance.status == 'pending' and (created or is_resent):
 		# Notify receiver
 		notification = Notification.objects.create(
 			user=instance.to_user,
@@ -61,12 +65,17 @@ def create_friend_request_notifications(sender, instance, created, **kwargs):
 					'id': notification.id,
 					'type': 'friend_request_received',
 					'message': notification.message,
-					'from_user': instance.from_user.username
+					'from_user': instance.from_user.username,
+					'friend_request_id': instance.id,
+					'related_user': {
+						'id': instance.from_user.id,
+						'username': instance.from_user.username
+					}
 				}
 			}
 		)
 
-	elif instance.status == 'accepted':
+	elif not created and update_fields and 'status' in update_fields and instance.status == 'accepted':
 		# Notify sender
 		notification = Notification.objects.create(
 			user=instance.from_user,

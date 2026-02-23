@@ -1,11 +1,21 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.contrib.auth import get_user_model
 from .models import Notification
+
+User = get_user_model()
 
 
 class NotificationConsumer(AsyncWebsocketConsumer):
 	async def connect(self):
+		# Log scope headers for debugging WS auth issues
+		try:
+			headers = {k.decode('latin1'): v.decode('latin1') for k, v in self.scope.get('headers', [])}
+			print('WS connect scope headers:', headers)
+		except Exception:
+			pass
+
 		self.user = self.scope['user']
 		
 		if self.user.is_authenticated:
@@ -18,6 +28,9 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 			
 			await self.accept()
 			
+			# Set user online when connecting to notifications
+			await self.set_user_online(True)
+			
 			unread_notifications = await self.get_unread_notifications()
 			await self.send(text_data=json.dumps({
 				'type': 'unread_notifications',
@@ -27,11 +40,19 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 			await self.close()
 
 	async def disconnect(self, close_code):
-		if self.user.is_authenticated:
+		if hasattr(self, 'user') and self.user.is_authenticated:
+			# Set user offline when disconnecting
+			await self.set_user_online(False)
+			
 			await self.channel_layer.group_discard(
 				self.notification_group_name,
 				self.channel_name
 			)
+
+	@database_sync_to_async
+	def set_user_online(self, is_online):
+		"""Update user online status"""
+		User.objects.filter(id=self.user.id).update(online_status=is_online)
 
 	async def receive(self, text_data):
 		try:
@@ -71,6 +92,14 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 		await self.send(text_data=json.dumps({
 			'type': 'new_notification',
 			'notification': notification
+		}))
+
+	async def game_invite_accepted(self, event):
+		await self.send(text_data=json.dumps({
+			'type': 'game_invite_accepted',
+			'invitation_id': event['invitation_id'],
+			'receiver_id': event['receiver_id'],
+			'receiver_name': event['receiver_name']
 		}))
 
 	@database_sync_to_async
@@ -134,6 +163,17 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 				'description': notification.achievement.description,
 				'icon': notification.achievement.icon,
 				'xp_reward': notification.achievement.xp_reward
+			}
+		
+		if notification.game_invitation:
+			result['game_invitation'] = {
+				'id': notification.game_invitation.id,
+				'sender': {
+					'id': notification.game_invitation.sender.id,
+					'username': notification.game_invitation.sender.username,
+					'avatar': notification.game_invitation.sender.avatar.url if notification.game_invitation.sender.avatar else None
+				},
+				'status': notification.game_invitation.status
 			}
 		
 		return result

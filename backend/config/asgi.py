@@ -20,12 +20,11 @@ django_asgi_app = get_asgi_application()
 
 from chat.routing import websocket_urlpatterns as chat_ws
 from user_management.routing import websocket_urlpatterns as notif_ws
+from game.routing import websocket_urlpatterns as game_ws
 
 application = ProtocolTypeRouter({
 	"http": django_asgi_app,
-	"websocket": AllowedHostsOriginValidator(
-		AuthMiddlewareStack(
-			URLRouter(chat_ws + notif_ws)
-		)
+	"websocket": AuthMiddlewareStack(
+		URLRouter(chat_ws + notif_ws + game_ws)
 	),
 })

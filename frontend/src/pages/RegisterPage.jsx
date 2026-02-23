@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -12,6 +12,8 @@ import {
 import apiClient from '../utils/api';
 import '../styles/auth.css';
 import SplashCursor from '../components/SplashCursor';
+
+const GOOGLE_CLIENT_ID = '726422486704-f02t4gf3nvs5jo8c2lda00klda9p80mb.apps.googleusercontent.com';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -28,6 +30,80 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const { t } = useLanguage();
+
+  const [googleInitialized, setGoogleInitialized] = useState(false);
+  const [googlePrompting, setGooglePrompting] = useState(false);
+  const promptTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    // Initialize Google Sign-In (do not render the default button; use our custom button)
+    if (window.google && GOOGLE_CLIENT_ID) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (resp) => {
+            // clear prompting state when credential arrives
+            setGooglePrompting(false);
+            if (!resp || !resp.credential) {
+              console.error('Google callback received without credential', resp);
+              setErrors({ general: 'Google Sign-In failed to return a credential. Try again or use Incognito to rule out extensions.' });
+              return;
+            }
+            handleGoogleResponse(resp);
+          },
+          // Disable FedCM to avoid CORS issues with Google's id assertion endpoint
+          // This falls back to the popup-based OAuth flow which works better with
+          // self-signed certificates and non-standard ports (localhost:8443)
+          use_fedcm_for_prompt: false,
+        });
+
+        // Mark initialization complete so we can safely call prompt from our custom button
+        setGoogleInitialized(true);
+      } catch (err) {
+        console.error('Failed to initialize Google Sign-In', err);
+        setErrors({ general: 'Google Sign-In initialization failed. Check browser extensions and that the Google client ID is configured.' });
+      }
+    }
+
+    return () => {
+      if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+    };
+  }, []);
+
+  const handleGoogleResponse = async (response) => {
+    try {
+      setLoading(true);
+
+      if (!response || !response.credential) {
+        setLoading(false);
+        console.error('Invalid Google response', response);
+        setErrors({ general: 'Invalid response from Google Sign-In.' });
+        return;
+      }
+
+      const result = await apiClient.googleLogin(response.credential);
+      const userPayload = result?.user || result || {};
+
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
+        username: userPayload.username,
+        token: result?.token || result?.access,
+        loggedIn: true,
+        loginTime: new Date().toISOString(),
+      });
+
+      checkBackendAuth().catch(() => {});
+      navigate('/');
+    } catch (error) {
+      setLoading(false);
+      console.error('Google Sign-In error:', error);
+      const msg = (error?.status === 0 || /network|cors|failed/i.test(error?.message || ''))
+        ? 'Network or CORS error during Google Sign-In. Try Incognito or check OAuth origins and browser extensions.'
+        : 'Google Sign-In failed. Please try again.';
+      setErrors({ general: msg });
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -69,7 +145,7 @@ const RegisterPage = () => {
     setLoading(true);
 
     try {
-      await apiClient.register(formData.username, formData.email, formData.password);
+      await apiClient.register(formData.username, formData.email, formData.password, formData.fullname);
       const loginResp = await apiClient.login(formData.username, formData.password);
       const userPayload = loginResp?.user || loginResp || {};
       
@@ -87,8 +163,30 @@ const RegisterPage = () => {
       checkBackendAuth().catch(() => {});
       setTimeout(() => navigate('/'), 500);
     } catch (error) {
-      console.error('Registration error:', error);
       setLoading(false);
+      
+      // Handle backend validation errors
+      if (error?.data) {
+        const backendErrors = {};
+        if (error.data.username) {
+          backendErrors.username = Array.isArray(error.data.username) 
+            ? error.data.username[0] 
+            : error.data.username;
+        }
+        if (error.data.email) {
+          backendErrors.email = Array.isArray(error.data.email) 
+            ? error.data.email[0] 
+            : error.data.email;
+        }
+        if (error.data.password) {
+          backendErrors.password = Array.isArray(error.data.password) 
+            ? error.data.password[0] 
+            : error.data.password;
+        }
+        if (Object.keys(backendErrors).length > 0) {
+          setErrors(backendErrors);
+        }
+      }
     }
   };
 
@@ -222,10 +320,38 @@ const RegisterPage = () => {
               <span>{t('auth.or')}</span>
             </div>
 
+            {/* Keep the placeholder for Google's renderButton for compatibility, but the UI will show our custom button */}
+            <div
+              id="google-signup-button"
+              className="google-signin-container"
+              style={{ display: 'none' }}
+            ></div>
+
             <button
-              className="gsi-material-button"
+              className={`gsi-material-button ${googlePrompting ? 'loading' : ''}`}
               type="button"
-              onClick={() => {/* Google sign-up not implemented */}}
+              id="manual-google-signup-button"
+              onClick={() => {
+                if (googleInitialized && window.google && !googlePrompting) {
+                  setGooglePrompting(true);
+                  if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+                  promptTimeoutRef.current = setTimeout(() => {
+                    setGooglePrompting(false);
+                    setErrors({ general: 'Google Sign-In took too long or was blocked. Try Incognito or disable extensions.' });
+                  }, 8000);
+                  try {
+                    window.google.accounts.id.prompt();
+                  } catch (err) {
+                    console.error('Google prompt failed', err);
+                    setGooglePrompting(false);
+                    setErrors({ general: 'Google Sign-In failed to open. Check that the Google scripts are reachable and not blocked.' });
+                  }
+                } else {
+                  console.warn('Google Sign-In not initialized yet.');
+                }
+              }}
+              disabled={!googleInitialized || loading || googlePrompting}
+              title={!googleInitialized ? t('auth.google_not_ready') || 'Google Sign-In not ready' : ''}
             >
               <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">
@@ -258,6 +384,7 @@ const RegisterPage = () => {
                 <span className="gsi-material-button-contents">
                   {t('auth.sign_in_with_google')}
                 </span>
+                <span className="gsi-spinner" aria-hidden={!googlePrompting} style={{ display: googlePrompting ? 'inline-block' : 'none' }}></span>
               </div>
             </button>
           </form>

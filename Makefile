@@ -1,59 +1,83 @@
-all: ssl build up
+BLUE = \033[1;34m
+GREEN = \033[1;32m
+YELLOW = \033[1;33m
+RESET = \033[0m
+
+all: setup ssl build up
+
+setup:
+	@if [ ! -f .env ]; then \
+		echo "$(YELLOW)⚠️  Warning: .env file not found! Copying .env.example...$(RESET)"; \
+		cp .env.example .env; \
+	fi
 
 ssl:
-	@echo "🔐 Checking SSL certificates..."
+	@echo "$(BLUE)🔐 Checking SSL certificates...$(RESET)"
 	@if [ ! -f nginx/ssl/nginx.crt ]; then \
-		echo "📜 Generating self-signed SSL certificates..."; \
+		echo "$(YELLOW)📜 Generating self-signed SSL certificates...$(RESET)"; \
 		chmod +x generate-ssl.sh; \
 		./generate-ssl.sh; \
 	else \
-		echo "✅ SSL certificates already exist"; \
+		echo "$(GREEN)✅ SSL certificates already exist$(RESET)"; \
 	fi
 
 build:
-	@echo "🐳 Building Docker containers..."
+	@echo "$(BLUE)🐳 Building Docker containers...$(RESET)"
 	docker compose build
 
 up:
-	@echo "🚀 Starting services..."
+	@echo "$(BLUE)🚀 Starting services...$(RESET)"
 	docker compose up -d
-	@sleep 3
+	@sleep 5
 	@echo ""
-	@echo "✅ Services started!"
-	@echo "🌐 Application: https://localhost (HTTPS)"
-	@echo "⚠️  Note: Accept the self-signed certificate warning in your browser"
+	@echo "$(GREEN)✅ Services started!$(RESET)"
 	@echo ""
-	@echo "📊 Backend API: https://localhost/api"
-	@echo "💬 Frontend: https://localhost"
+	@echo "--- $(YELLOW)MONITORING DASHBOARDS$(RESET) ---"
+	@echo "$(GREEN)📈 Grafana:$(RESET)    http://localhost:3001"
+	@echo "$(GREEN)🔥 Prometheus:$(RESET) http://localhost:9090"
+	@echo "$(YELLOW)⚠️  Note: Accept the self-signed certificate warning in your browser$(RESET)"
+	@echo "$(BLUE)📊 Backend API DOCS:$(RESET) https://localhost:8443/api/docs"
+	@echo "$(BLUE)💬 Frontend:$(RESET)    https://localhost:8443"
+	@echo ""
 
 down:
-	@echo "🛑 Stopping services..."
+	@echo "$(YELLOW)🛑 Stopping services...$(RESET)"
 	docker compose down
 
 clean:
-	@echo "🧹 Cleaning containers and volumes..."
-	docker compose down -v
+	@echo "$(YELLOW)🧹 Cleaning containers and networks...$(RESET)"
+	docker compose down --remove-orphans
 
-fclean: clean
-	@echo "🧼 Performing full cleanup..."
-	docker compose down -v
-	docker system prune -af
-	docker builder prune -f
-	@echo "🗑️  Removing SSL certificates..."
+fclean:
+	@echo "$(YELLOW)🧼 Performing FULL cleanup (volumes & images)...$(RESET)"
+	docker compose down -v --remove-orphans
+	docker system prune -af --volumes
+	@echo "$(YELLOW)🗑️  Removing SSL certificates...$(RESET)"
 	rm -rf nginx/ssl
-
-re: clean all
+	@echo "$(YELLOW)🗑️  Removing media files...$(RESET)"
+	rm -rf backend/media/*
+	@echo "$(GREEN)✨ System is fresh!$(RESET)"
 
 logs:
-	@echo "📋 Showing logs (Ctrl+C to exit)..."
+	@echo "$(BLUE)📋 Showing logs (Ctrl+C to exit)...$(RESET)"
 	docker compose logs -f
 
 restart:
-	@echo "♻️  Restarting services..."
+	@echo "$(BLUE)♻️  Restarting services...$(RESET)"
 	docker compose restart
 
 status:
-	@echo "📊 Service status:"
+	@echo "$(BLUE)📊 Service status:$(RESET)"
 	docker compose ps
 
-.PHONY: all ssl build up down clean fclean re logs restart status
+users:
+	@echo "$(BLUE)👥 Creating test users...$(RESET)"
+	@NUM=$${NUM:-8}; \
+	PASS=$${PASS:-testpass123}; \
+	echo "   Number of users: $$NUM"; \
+	echo "   Password: $$PASS"; \
+	docker compose exec backend python create_test_users.py $$NUM $$PASS
+
+re: fclean all
+
+.PHONY: all setup ssl build up down clean fclean re logs restart status users

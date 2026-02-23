@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { validateRequired } from '../utils/validation';
@@ -6,6 +6,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import apiClient from '../utils/api';
 import '../styles/auth.css';
 import SplashCursor from '../components/SplashCursor';
+
+const GOOGLE_CLIENT_ID = '726422486704-f02t4gf3nvs5jo8c2lda00klda9p80mb.apps.googleusercontent.com';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -17,7 +19,81 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [googleInitialized, setGoogleInitialized] = useState(false);
+  const [googlePrompting, setGooglePrompting] = useState(false);
+  const promptTimeoutRef = useRef(null);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    // Initialize Google Sign-In without rendering the default button
+    if (window.google && GOOGLE_CLIENT_ID) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (resp) => {
+            // Ensure any pending prompt loading state is cleared when a credential arrives
+            setGooglePrompting(false);
+            if (!resp || !resp.credential) {
+              console.error('Google callback received without credential', resp);
+              setErrors({ general: 'Google Sign-In failed to return a credential. Try again or use Incognito to rule out extensions.' });
+              return;
+            }
+            handleGoogleResponse(resp);
+          },
+          // Disable FedCM to avoid CORS issues with Google's id assertion endpoint
+          // This falls back to the popup-based OAuth flow which works better with
+          // self-signed certificates and non-standard ports (localhost:8443)
+          use_fedcm_for_prompt: false,
+        });
+        // mark initialization complete so prompt() is safe to call
+        setGoogleInitialized(true);
+      } catch (err) {
+        console.error('Failed to initialize Google Sign-In', err);
+        setErrors({ general: 'Google Sign-In initialization failed. Check browser extensions and that the Google client ID is configured.' });
+      }
+    }
+
+    return () => {
+      if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+    };
+  }, []);
+
+  const handleGoogleResponse = async (response) => {
+    try {
+      setLoading(true);
+      if (!response || !response.credential) {
+        setLoading(false);
+        console.error('Invalid Google response', response);
+        setErrors({ general: 'Invalid response from Google Sign-In.' });
+        return;
+      }
+
+      const result = await apiClient.googleLogin(response.credential);
+      const userPayload = result?.user || result || {};
+
+      login({
+        ...userPayload,
+        userId: userPayload.id || userPayload.userId,
+        username: userPayload.username,
+        token: result?.token || result?.access,
+        loggedIn: true,
+        loginTime: new Date().toISOString(),
+      });
+
+      checkBackendAuth().catch(() => {});
+      navigate('/');
+    } catch (error) {
+      setLoading(false);
+      console.error('Google Sign-In error:', error);
+
+      // Network / CORS errors often don't surface as structured errors; give actionable advice
+      const msg = (error?.status === 0 || /network|cors|failed/i.test(error?.message || ''))
+        ? 'Network or CORS error during Google Sign-In. Try Incognito or check OAuth origins and browser extensions.'
+        : 'Google Sign-In failed. Please try again.';
+
+      setErrors({ general: msg });
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,8 +142,19 @@ const LoginPage = () => {
       checkBackendAuth().catch(() => {});
       navigate('/');
     } catch (error) {
-      console.error('Login error:', error);
       setLoading(false);
+      console.error('Login failed', error);
+
+      // Handle 401/invalid credentials specifically
+      if (error.status === 401) {
+        const msg = error.detail || error.data?.detail || error.data?.error || t('auth.invalid_credentials') || 'Invalid credentials';
+        setErrors({ password: msg });
+        return;
+      }
+
+      // Backend may return structured errors (e.g., non_field_errors)
+      const backendMsg = error.data?.non_field_errors?.[0] || error.data?.detail || error.data?.error || error.message;
+      setErrors({ general: backendMsg || t('auth.login_error') || 'An error occurred during login' });
     }
   };
 
@@ -88,6 +175,11 @@ const LoginPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
+            {errors.general && (
+              <div className="alert alert-danger" style={{ marginBottom: '1rem', color: 'var(--error)', background: 'rgba(255, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                {errors.general}
+              </div>
+            )}
             <div className="form-group">
               <label htmlFor="username">{t('auth.username')}</label>
               <input
@@ -133,11 +225,33 @@ const LoginPage = () => {
             </div>
 
             <button
-              className="gsi-material-button"
+              className={`gsi-material-button ${googlePrompting ? 'loading' : ''}`}
               type="button"
-              onClick={() => {/* Google sign-in not implemented */}}
+              onClick={() => {
+                if (googleInitialized && window.google && !googlePrompting) {
+                  // show spinner while the Google prompt/UI appears
+                  setGooglePrompting(true);
+                  // Fallback: clear spinner after timeout if nothing happens and show actionable error
+                  if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
+                  promptTimeoutRef.current = setTimeout(() => {
+                    setGooglePrompting(false);
+                    setErrors({ general: 'Google Sign-In took too long or was blocked. Try Incognito or disable extensions.' });
+                  }, 8000);
+
+                  try {
+                    window.google.accounts.id.prompt();
+                  } catch (err) {
+                    console.error('Google prompt failed', err);
+                    setGooglePrompting(false);
+                    setErrors({ general: 'Google Sign-In failed to open. Check that the Google scripts are reachable and not blocked.' });
+                  }
+                } else {
+                  console.warn('Google Sign-In not initialized yet.');
+                }
+              }}
+              disabled={!googleInitialized || loading || googlePrompting}
+              title={!googleInitialized ? t('auth.google_not_ready') || 'Google Sign-In not ready' : ''}
             >
-              <div className="gsi-material-button-state"></div>
               <div className="gsi-material-button-content-wrapper">
                 <div className="gsi-material-button-icon">
                   <svg
@@ -168,6 +282,8 @@ const LoginPage = () => {
                 <span className="gsi-material-button-contents">
                   {t('auth.sign_in_with_google')}
                 </span>
+                {/* Spinner shown while waiting for Google prompt */}
+                <span className="gsi-spinner" aria-hidden={!googlePrompting} style={{ display: googlePrompting ? 'inline-block' : 'none' }}></span>
               </div>
             </button>
           </form>

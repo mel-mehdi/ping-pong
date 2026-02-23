@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import apiClient from '../utils/api';
 import { ACHIEVEMENTS } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,7 +8,7 @@ import '../styles/profile.css';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const ProfilePage = () => {
-  const { userData, login, updateUser, isBackendAuthenticated } = useAuth();
+  const { userData, login, updateUser, isBackendAuthenticated, logout } = useAuth();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -21,7 +21,6 @@ const ProfilePage = () => {
     username: userData?.username || '',
     fullname: userData?.fullname || '',
     email: userData?.email || '',
-    bio: userData?.bio || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -48,7 +47,7 @@ const ProfilePage = () => {
         apiClient.clearActiveApiKey();
       }
     } catch (e) {
-      console.warn('loadActiveKeyForUser error', e);
+      // Error loading active key
     }
   };
 
@@ -72,7 +71,6 @@ const ProfilePage = () => {
         setTimeout(() => setApiKeyMessage(null), 2000);
       }
     } catch (e) {
-      console.warn('saveActiveKeyForUser error', e);
       setApiKeyMessage('Save failed');
       setTimeout(() => setApiKeyMessage(null), 2000);
     }
@@ -88,6 +86,8 @@ const ProfilePage = () => {
     try {
       await navigator.clipboard.writeText(full);
       setApiKeyMessage('API key copied to clipboard');
+      setActiveKeyCopied(true);
+      setTimeout(() => setActiveKeyCopied(false), 1200);
       setTimeout(() => setApiKeyMessage(null), 1500);
     } catch (e) {
       setApiKeyMessage('Copy failed');
@@ -99,6 +99,38 @@ const ProfilePage = () => {
   const [apiInfo, setApiInfo] = useState({ active: false, key: null });
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiMessage, setApiMessage] = useState(null);
+  // Public API quick key
+  const [creatingPublicKey, setCreatingPublicKey] = useState(false);
+  const [publicCreatedFullKey, setPublicCreatedFullKey] = useState(null);
+  const [publicCreatedDetails, setPublicCreatedDetails] = useState(null);
+  const [publicExpanded, setPublicExpanded] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Restore any session-stored public key so clicking "Get key" can reveal it
+  useEffect(() => {
+    const id = userData?.userId || userData?.id;
+    if (!id) return;
+    try {
+      const raw = sessionStorage.getItem(`public_api_key_${id}`);
+      if (raw) {
+        try {
+          const obj = JSON.parse(raw);
+          if (obj && obj.key) {
+            setPublicCreatedFullKey(obj.key);
+            setPublicCreatedDetails({ id: obj.id || null, created_at: obj.createdAt || obj.created_at || null });
+          }
+        } catch (e) {
+          // backward-compat: raw string with key only
+          setPublicCreatedFullKey(raw);
+        }
+      }
+    } catch (e) { /* ignore */ }
+  }, [userData?.userId, userData?.id]);
+
+  // Copy feedback states (animated transient indicators)
+  const [activeKeyCopied, setActiveKeyCopied] = useState(false);
+  const [apiKeyCopied, setApiKeyCopied] = useState(false);
+  const [publicKeyCopied, setPublicKeyCopied] = useState(false);
 
   const loadApiInfoForUser = (id) => {
     if (!id) return;
@@ -117,7 +149,7 @@ const ProfilePage = () => {
         }
       }
     } catch (e) {
-      console.warn('loadApiInfoForUser error', e);
+      // Error loading API info
     }
   };
 
@@ -146,7 +178,7 @@ const ProfilePage = () => {
         }
       }
     } catch (e) {
-      console.warn('saveApiInfoForUser error', e);
+      // Error saving API info
     }
   };
 
@@ -156,7 +188,7 @@ const ProfilePage = () => {
     try {
       localStorage.setItem(`local_avatar_${id}`, dataUrl);
     } catch (e) {
-      console.warn('saveLocalAvatarForUser error', e);
+      // Error saving local avatar
     }
   };
 
@@ -165,7 +197,7 @@ const ProfilePage = () => {
     try {
       return localStorage.getItem(`local_avatar_${id}`);
     } catch (e) {
-      console.warn('loadLocalAvatarForUser error', e);
+      // Error loading local avatar
       return null;
     }
   };
@@ -228,6 +260,8 @@ const ProfilePage = () => {
     try {
       await navigator.clipboard.writeText(apiInfo.key);
       setApiMessage('API key copied to clipboard');
+      setApiKeyCopied(true);
+      setTimeout(() => setApiKeyCopied(false), 1200);
       setTimeout(() => setApiMessage(null), 2000);
     } catch (e) {
       setApiMessage('Copy failed');
@@ -235,19 +269,86 @@ const ProfilePage = () => {
     }
   };
 
+  // Reveal an existing session key, or create one once and persist it to session
+  const revealOrCreatePublicKey = async () => {
+    if (!isBackendAuthenticated) {
+      setApiMessage('Sign in to get a Public API key');
+      setTimeout(() => setApiMessage(null), 2500);
+      return;
+    }
+
+    const id = userData?.userId || userData?.id;
+
+    // Try to load existing session copy
+    try {
+      const raw = sessionStorage.getItem(`public_api_key_${id}`);
+      if (raw) {
+        try {
+          const obj = JSON.parse(raw);
+          if (obj && obj.key) {
+            setPublicCreatedFullKey(obj.key);
+            setPublicCreatedDetails({ id: obj.id || null, created_at: obj.createdAt || obj.created_at || null });
+            setPublicExpanded(true);
+            return;
+          }
+        } catch (e) {
+          setPublicCreatedFullKey(raw);
+          setPublicExpanded(true);
+          return;
+        }
+      }
+    } catch (e) { /* ignore */ }
+
+    // Create a new one and persist it
+    setCreatingPublicKey(true);
+    try {
+      const res = await apiClient.createApiKey({ name: 'Public API Key', rate_limit: 60 });
+      const createdAt = (res.details && (res.details.created_at || res.details.createdAt)) || new Date().toISOString();
+      setPublicCreatedFullKey(res.key || null);
+      setPublicCreatedDetails({ id: res.details?.id || null, created_at: createdAt });
+      try {
+        if (res.key && id) sessionStorage.setItem(`public_api_key_${id}`, JSON.stringify({ key: res.key, id: res.details?.id || null, createdAt }));
+      } catch (e) { /* ignore */ }
+      setPublicExpanded(true);
+      setApiMessage('Public API key created — save it now');
+      setTimeout(() => setApiMessage(null), 4000);
+    } catch (e) {
+      setApiMessage('Create Public API key failed');
+      setTimeout(() => setApiMessage(null), 3000);
+    } finally {
+      setCreatingPublicKey(false);
+    }
+  };
+
   const handleChangeAvatar = () => {
     setShowAvatarModal(true);
   };
 
+  // Ensure modal only opens when user clicks Edit — use a ref to mark user-triggered opens
+  const editTriggeredByUserRef = useRef(false);
+
   const handleEditProfile = () => {
+    editTriggeredByUserRef.current = true;
     setEditForm({
       username: userData?.username || '',
       fullname: userData?.fullname || '',
       email: userData?.email || '',
-      bio: userData?.bio || '',
     });
     setShowEditModal(true);
   };
+
+  // If modal appears without a user-trigger (e.g., after a refresh), close it before paint
+  useLayoutEffect(() => {
+    if (showEditModal && !editTriggeredByUserRef.current) {
+      // Close synchronously before paint to avoid any visible flash
+      setShowEditModal(false);
+    }
+
+    // Reset the user-trigger marker when the modal closes so subsequent clicks work
+    if (!showEditModal) {
+      editTriggeredByUserRef.current = false;
+    }
+  }, [showEditModal]);
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -267,7 +368,6 @@ const ProfilePage = () => {
           username: editForm.username,
           fullname: editForm.fullname,
           email: editForm.email,
-          bio: editForm.bio,
           avatar: regeneratedAvatar,
         };
         if (updateUser) updateUser(localUpdated);
@@ -283,14 +383,26 @@ const ProfilePage = () => {
         fullname: editForm.fullname,
         email: editForm.email,
       });
+      console.debug('updateUser response:', updated);
+      if (!updated) {
+        setApiMessage('Save failed');
+        setTimeout(() => setApiMessage(null), 2500);
+        setSaving(false);
+        return;
+      }
 
-      // If profile bio needs updating, update the profile object via profiles endpoint
-      if (profile && profile.id && (editForm.bio !== undefined && editForm.bio !== profile.bio)) {
-        try {
-          await apiClient.updateProfile(profile.id, { bio: editForm.bio });
-        } catch (e) {
-          console.warn('Failed to update profile bio:', e);
+      // Immediately merge updated user into local state so UI reflects changes without refresh
+      try {
+        const mergedUser = { ...(userData || {}), ...(updated || {}) };
+        if (updateUser) updateUser(mergedUser);
+        else login(mergedUser);
+
+        // If we're viewing our own profile, update the profile.user optimistically
+        if (profile && profile.user && (profile.user.id === (updated.id || updated.userId))) {
+          setProfile(prev => ({ ...(prev || {}), user: { ...(prev.user || {}), ...(updated || {}) } }));
         }
+      } catch (e) {
+        // ignore optimistic merge errors
       }
 
       if (updated) {
@@ -320,8 +432,21 @@ const ProfilePage = () => {
         }
       }
       setShowEditModal(false);
+      setApiMessage('Profile saved');
+      setTimeout(() => setApiMessage(null), 2500);
     } catch (error) {
-      console.error('Error saving profile:', error);
+      console.error('Save profile failed', error);
+      // If server forbids access, log the user out and notify
+      if (error?.status === 403) {
+        setApiMessage('Session expired. You have been logged out.');
+        setTimeout(() => setApiMessage(null), 3500);
+        if (logout) logout();
+        setShowEditModal(false);
+        setSaving(false);
+        return;
+      }
+      setApiMessage('Error saving profile');
+      setTimeout(() => setApiMessage(null), 3500);
     } finally {
       setSaving(false);
     }
@@ -340,6 +465,13 @@ const ProfilePage = () => {
       // Check file type
       if (!file.type.match(/image\/(png|jpg|jpeg|gif)/)) {
         setApiMessage('Invalid file type. Please upload PNG, JPG, or GIF');
+        setTimeout(() => setApiMessage(null), 3000);
+        return;
+      }
+
+      // Check file size (max 1MB)
+      if (file.size > 1024 * 1024) {
+        setApiMessage('File too large. Maximum size is 1MB');
         setTimeout(() => setApiMessage(null), 3000);
         return;
       }
@@ -393,7 +525,6 @@ const ProfilePage = () => {
             setTimeout(() => setApiMessage(null), 3000);
           }
         } catch (e) {
-          console.error('Local avatar save failed:', e);
           setApiMessage('Local avatar save failed');
           setTimeout(() => setApiMessage(null), 3000);
         } finally {
@@ -405,17 +536,25 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await apiClient.uploadAvatar(userIdForCalls, selectedFile);
+      const response = await apiClient.uploadAvatar(userData?.userId || userData?.id, selectedFile);
       if (response) {
         // Re-fetch full user record to get latest fields
-        const fresh = await apiClient.getUserById(response.id || response.userId || userIdForCalls);
+        const fresh = await apiClient.getUserById(response.id || response.userId || userData?.userId || userData?.id);
         if (fresh) {
           if (updateUser) updateUser(fresh);
           else login(fresh);
+          
+          // Also update profile state if we're viewing our own profile
+          if (profile?.user?.id === fresh.id) {
+            setProfile(prev => ({
+              ...prev,
+              user: fresh
+            }));
+          }
         }
         // clear any local avatar cache now that server has it
         try {
-          const id = userIdForCalls || userData?.userId || userData?.id;
+          const id = userData?.userId || userData?.id;
           if (id) clearLocalAvatarForUser(id);
         } catch (e) {
           /* ignore */
@@ -426,9 +565,22 @@ const ProfilePage = () => {
       setSelectedFile(null);
       setPreviewUrl(null);
     } catch (error) {
-      console.error('Error uploading avatar:', error);
-      setApiMessage('Error uploading avatar');
-      setTimeout(() => setApiMessage(null), 3000);
+      if (error?.status === 403) {
+        setApiMessage('Session expired. You have been logged out.');
+        setTimeout(() => setApiMessage(null), 3000);
+        if (logout) logout();
+        setShowAvatarModal(false);
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setUploading(false);
+        return;
+      }
+
+      // Show detailed server error if available
+      const detail = (error && (error.detail || (error.data && (error.data.error || error.data.avatar || error.data.detail)))) || null;
+      const message = detail ? `Upload failed: ${Array.isArray(detail) ? detail.join(' ') : detail}` : 'Error uploading avatar';
+      setApiMessage(message);
+      setTimeout(() => setApiMessage(null), 4000);
     } finally {
       setUploading(false);
     }
@@ -442,13 +594,17 @@ const ProfilePage = () => {
 
   const [recentMatches, setRecentMatches] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const userIdForCalls = profile?.user?.id || userData?.userId || userData?.id;
 
-  useEffect(() => {
-    const loadProfileAndMatches = async () => {
-      const id = userData?.userId || userData?.id;
-      if (!id) return;
+  const loadProfileAndMatches = async () => {
+    const id = userData?.userId || userData?.id;
+    if (!id) return;
+    
+    setIsRefreshing(true);
+
+    try {
 
       // Load any active API key stored for this user
       loadActiveKeyForUser(id);
@@ -487,39 +643,96 @@ const ProfilePage = () => {
 
       try {
         const matches = await apiClient.getMatchesForUser(id);
-        setRecentMatches(matches || []);
+        // Transform matches data to match the expected format
+        const transformedMatches = (matches || []).map((match) => {
+          const isPlayer1 = match.player1.id === id;
+          const opponent = isPlayer1 ? match.player2 : match.player1;
+          const myScore = isPlayer1 ? match.player1_score : match.player2_score;
+          const opponentScore = isPlayer1 ? match.player2_score : match.player1_score;
+          const didWin = match.winner && match.winner.id === id;
+          
+          return {
+            id: match.id,
+            opponent: opponent.username || opponent.fullname || 'Unknown',
+            score: `${myScore} - ${opponentScore}`,
+            result: didWin ? 'win' : 'loss',
+            date: new Date(match.completed_at || match.created_at).toLocaleDateString(),
+          };
+        });
+        setRecentMatches(transformedMatches);
       } catch (err) {
-        console.error('Error loading matches for profile:', err);
+        // Error loading matches for profile
       }
 
       try {
         const profileData = await apiClient.getUserProfile(id);
         setProfile(profileData);
       } catch (err) {
-        console.error('Error loading profile data:', err);
+        // Error loading profile data
       }
-    };
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     loadProfileAndMatches();
   }, [userData, isBackendAuthenticated]);
 
+  // Refresh API key list if we created a key via public button
+  useEffect(() => {
+    if (isBackendAuthenticated) {
+      try {
+        // If profile page loads, ensure API keys list is fresh (if the list exists later)
+        // (no-op if fetchApiKeys not present)
+        if (typeof fetchApiKeys === 'function') fetchApiKeys();
+      } catch (e) { /* ignore */ }
+    }
+  }, [isBackendAuthenticated]);
+
+  // Auto-refresh when switching to overview tab
+  useEffect(() => {
+    if (activeTab === 'overview' && isBackendAuthenticated) {
+      loadProfileAndMatches();
+    }
+  }, [activeTab]);
+
+  // Listen for achievement unlock events to auto-refresh profile
+  useEffect(() => {
+    const handleAchievementUnlock = () => {
+      if (isBackendAuthenticated) {
+        loadProfileAndMatches();
+      }
+    };
+
+    window.addEventListener('achievementUnlocked', handleAchievementUnlock);
+    
+    return () => {
+      window.removeEventListener('achievementUnlocked', handleAchievementUnlock);
+    };
+  }, [isBackendAuthenticated]);
+
   const stats = {
-    gamesPlayed: profile?.total_games || profile?.wins + profile?.losses || 0,
+    gamesPlayed: profile?.total_games || (profile?.wins || 0) + (profile?.losses || 0),
     wins: profile?.wins || 0,
     losses: profile?.losses || 0,
     winRate: profile?.win_rate || 0,
-    rank: profile?.rank ? `#${profile.rank}` : '—',
+    rank: profile?.rank ? `#${profile.rank}` : '#1000',
     level: profile?.level || 1,
   };
 
   const rawAchievements = profile?.achievements || userData?.achievements || [];
-  const earnedAchievementIds = new Set(
+  // Extract achievement types from backend response
+  const earnedAchievementTypes = new Set(
     (Array.isArray(rawAchievements) ? rawAchievements : [])
-      .map((a) => (typeof a === 'object' ? a.id : typeof a === 'string' ? parseInt(a, 10) : a))
+      .map((userAch) => userAch?.achievement?.achievement_type)
       .filter(Boolean)
   );
+  
+  // Map achievements from constants and mark as earned if user has them
   const achievementsList = ACHIEVEMENTS.map((a) => ({
     ...a,
-    earned: earnedAchievementIds.has(a.id),
+    earned: earnedAchievementTypes.has(a.type),
   }));
 
   return (
@@ -576,20 +789,63 @@ const ProfilePage = () => {
               <span className="level-badge">Level {stats.level}</span>
             </div>
 
-            {/* Active API toggle (single button) */}
-            <div className="profile-api">
-              <span className={apiInfo.active ? 'api-active' : 'api-inactive'}>
-                {apiInfo.active ? 'API Active' : 'API Inactive'}
-              </span>
 
-              <button
-                className={`btn btn-api ${apiInfo.active ? 'active' : ''}`}
-                onClick={toggleApiActive}
-                aria-pressed={apiInfo.active}
-                title={apiInfo.active ? 'Deactivate API' : 'Activate API'}
-              >
-                {apiInfo.active ? 'Deactivate API' : 'Activate API'}
-              </button>
+            {/* Public API — window-style (collapsed shows only Get key) */}
+            <div className="profile-public-api window">
+              <div className="window-header">
+                <div className="title-left">
+                  <h4 style={{ margin: 0 }}>Public API</h4>
+                </div>
+                <div className="title-right">
+                  {!publicCreatedFullKey ? (
+                    <button className="btn btn-primary" onClick={revealOrCreatePublicKey} disabled={creatingPublicKey}>{creatingPublicKey ? 'Generating…' : 'Get key'}</button>
+                  ) : (
+                    <button className="btn" onClick={() => setPublicExpanded((s) => !s)}>{publicExpanded ? '✕' : 'Show'}</button>
+                  )}
+                </div>
+              </div>
+
+              {publicCreatedFullKey && publicExpanded && (
+                <div className="window-body">
+                  <div className="api-key-row">
+                    <code className="api-key">{publicCreatedFullKey}</code>
+                    <div className="api-actions">
+                      <button className="btn" onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(publicCreatedFullKey);
+                          setApiMessage('Public API key copied to clipboard');
+                          setPublicKeyCopied(true);
+                          setTimeout(() => setPublicKeyCopied(false), 1200);
+                          setTimeout(() => setApiMessage(null), 1500);
+                        } catch (e) {
+                          setApiMessage('Copy failed');
+                          setTimeout(() => setApiMessage(null), 1500);
+                        }
+                      }}>{publicKeyCopied ? 'Copied!' : 'Copy'}</button>
+
+                      <button className="btn btn-danger" onClick={() => setShowDeleteConfirm(true)}>Delete key</button>
+                    </div>
+                  </div>
+
+                  <div className="window-note">
+                    <div className="profile-public-api-desc">Public endpoints (no auth required when using an API key):</div>
+                    <ul className="profile-public-api-list">
+                      <li><strong>GET</strong> <code>/api/leaderboard/</code> <small>api_leaderboard</small></li>
+                      <li><strong>GET</strong> <code>/api/tournaments/</code> <small>api_tournaments_read</small></li>
+                      <li><strong>POST</strong> <code>/api/tournaments/</code> <small>api_tournaments_create</small></li>
+                      <li><strong>PUT</strong> <code>/api/tournaments/{'{id}'}/</code> <small>api_tournaments_update</small></li>
+                      <li><strong>DELETE</strong> <code>/api/tournaments/{'{id}'}/</code> <small>api_tournaments_delete</small></li>
+                    </ul>
+                  </div>
+
+                  {/* show created timestamp if present */}
+                  {publicCreatedDetails?.created_at && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Created: {new Date(publicCreatedDetails.created_at).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <button
@@ -597,6 +853,7 @@ const ProfilePage = () => {
               onClick={handleEditProfile}
               title={t('profile.edit_profile')}
             >
+
               <svg
                 className="edit-icon"
                 width="20"
@@ -613,6 +870,43 @@ const ProfilePage = () => {
               </svg>
             </button>
           </div>
+
+          {/* Delete confirmation modal for Public API key */}
+          {showDeleteConfirm && (
+            <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>Delete Public API key?</h2>
+                  <button className="modal-close" onClick={() => setShowDeleteConfirm(false)}>✕</button>
+                </div>
+                <div className="modal-body">
+                  <p>Are you sure you want to delete the generated Public API key? This action cannot be undone.</p>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+                  <button className="btn btn-danger" onClick={async () => {
+                    const id = userIdForCalls || userData?.userId || userData?.id;
+                    if (!id) return;
+                    const keyId = publicCreatedDetails?.id;
+                    try {
+                      if (keyId) await apiClient.revokeApiKey(keyId);
+                      try { sessionStorage.removeItem(`public_api_key_${id}`); } catch (e) { /* ignore */ }
+                      setPublicCreatedFullKey(null);
+                      setPublicCreatedDetails(null);
+                      setPublicExpanded(false);
+                      setShowDeleteConfirm(false);
+                      setApiMessage('Public API key deleted');
+                      setTimeout(() => setApiMessage(null), 2000);
+                    } catch (e) {
+                      setApiMessage('Delete failed');
+                      setTimeout(() => setApiMessage(null), 2000);
+                      setShowDeleteConfirm(false);
+                    }
+                  }}>Delete</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="profile-tabs">
             <button
@@ -636,8 +930,33 @@ const ProfilePage = () => {
           </div>
 
           {activeTab === 'overview' && (
-            <div className="profile-content">
-              <div className="achievements-grid">
+            <div className="profile-content">              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0 }}>Statistics</h3>
+                <button
+                  onClick={loadProfileAndMatches}
+                  disabled={isRefreshing}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: isRefreshing ? '#6b7280' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }}>
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>              <div className="achievements-grid">
                 <div className="achievement-card">
                   <div className="achievement-icon" style={{ color: '#667eea' }}>
                     <svg
@@ -847,16 +1166,6 @@ const ProfilePage = () => {
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                   />
-                </div>
-                <div className="form-group">
-                  <label>{t('profile.bio')}</label>
-                  <textarea
-                    className="form-input"
-                    rows="3"
-                    placeholder={t('profile.bio_placeholder')}
-                    value={editForm.bio}
-                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                  ></textarea>
                 </div>
               </div>
               <div className="modal-footer">

@@ -16,28 +16,32 @@ export const HTTP_STATUS = {
   NOT_FOUND: 404,
 };
 
+const BACKEND_ORIGIN = (typeof window !== 'undefined' && import.meta.env && import.meta.env.VITE_BACKEND_ORIGIN) ? import.meta.env.VITE_BACKEND_ORIGIN : '';
+
 export const API_ENDPOINTS = {
-  DJANGO_USER_BASE: '',
+  // User-related endpoints are registered at the application root
+  // (e.g. GET /users/me/). Public API endpoints live under /api/.
+  DJANGO_USER_BASE: `${BACKEND_ORIGIN}`,
   DJANGO_API_BASE: '/api',
 };
 
 export const ACHIEVEMENTS = [
-  { id: 1, title: 'First Win', icon: '🏆' },
-  { id: 2, title: '10 Win Streak', icon: '🔥' },
-  { id: 3, title: 'Tournament Winner', icon: '👑' },
-  { id: 4, title: '100 Games', icon: '🎯' },
-  { id: 5, title: 'Perfect Game', icon: '💯' },
-  { id: 6, title: 'Speed Demon', icon: '⚡' },
-  { id: 7, title: 'Master Player', icon: '🎖️' },
-  { id: 8, title: 'Comeback King', icon: '🔄' },
-  { id: 9, title: 'Veteran', icon: '⭐' },
-  { id: 10, title: 'Unbeatable', icon: '🛡️' },
-  { id: 11, title: 'First Blood', icon: '🩸' },
-  { id: 12, title: 'Hat Trick', icon: '🎩' },
-  { id: 13, title: 'Marathon', icon: '🏃' },
-  { id: 14, title: 'Sharp Shooter', icon: '🎲' },
-  { id: 15, title: 'Social Butterfly', icon: '🦋' },
-  { id: 16, title: 'Night Owl', icon: '🦉' },
+  { id: 1, type: 'first_win', title: 'First Victory', icon: '🎯', description: 'Win your first match' },
+  { id: 2, type: '10_win_streak', title: 'Winning Streak', icon: '🔥', description: 'Win 10 matches in a row' },
+  { id: 3, type: 'tournament_winner', title: 'Tournament Champion', icon: '🏆', description: 'Win a tournament' },
+  { id: 4, type: '100_games', title: 'Century Club', icon: '💯', description: 'Play 100 matches' },
+  { id: 5, type: 'perfect_game', title: 'Perfect Game', icon: '⭐', description: 'Win without opponent scoring' },
+  { id: 6, type: 'speed_demon', title: 'Speed Demon', icon: '⚡', description: 'Win in under 2 minutes' },
+  { id: 7, type: 'master_player', title: 'Master Player', icon: '👑', description: 'Achieve 70% win rate with 50+ games' },
+  { id: 8, type: 'comeback_king', title: 'Comeback King', icon: '🎪', description: 'Win after being down 0-4' },
+  { id: 9, type: 'veteran', title: 'Veteran', icon: '🎖️', description: 'Play 500 matches' },
+  { id: 10, type: 'unbeatable', title: 'Unbeatable', icon: '🛡️', description: 'Win 20 matches in a row' },
+  { id: 11, type: 'first_blood', title: 'First Blood', icon: '🩸', description: 'Play your first match' },
+  { id: 12, type: 'hat_trick', title: 'Hat Trick', icon: '🎩', description: 'Win 3 matches in a row' },
+  { id: 13, type: 'marathon', title: 'Marathon', icon: '🏃', description: 'Play 10 matches in one day' },
+  { id: 14, type: 'sharp_shooter', title: 'Sharp Shooter', icon: '🎯', description: 'Win 5-0' },
+  { id: 15, type: 'social_butterfly', title: 'Social Butterfly', icon: '🦋', description: 'Play against 10 different opponents' },
+  { id: 16, type: 'night_owl', title: 'Night Owl', icon: '🦉', description: 'Play between midnight and 4 AM' },
 ];
 
 export const VALIDATION_RULES = {
