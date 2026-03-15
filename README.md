@@ -712,15 +712,25 @@ For manual setup (without Docker):
    cd ft_mohsinine
    ```
 
-2. **Generate SSL certificates**:
+2. **Create the root environment file**:
    ```bash
+   cp .env.example .env
+   ```
+   The default values are for local development. Change them for production.
+
+3. **Generate SSL certificates**:
+   ```bash
+   chmod +x generate-ssl.sh
    ./generate-ssl.sh
    ```
    This creates self-signed certificates for local HTTPS development.
 
-3. **Create environment files** (optional - defaults are provided):
-   
-   The project uses environment variables configured in `docker-compose.yml`. For custom configuration, you can create `.env` files in `backend/` and `frontend/` directories.
+4. **If you changed `POSTGRES_*` values after first run**:
+   ```bash
+   make clean
+   make up
+   ```
+   This recreates containers/volumes so Postgres credentials match the updated `.env`.
 
 ### Installation & Running
 
@@ -881,13 +891,15 @@ kill -9 <PID>
 
 **Database errors**:
 ```bash
-# Reset database (removes all data)
+# If POSTGRES_* values changed after first startup, reset DB volume
 make clean
-make build
+make up
 
 # Or manually reset migrations
 docker-compose exec backend python manage.py migrate --run-syncdb
 ```
+
+If you still see authentication failures, verify `.env` uses non-placeholder values and that `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` are aligned.
 
 **WebSocket connection issues**:
 ```bash
